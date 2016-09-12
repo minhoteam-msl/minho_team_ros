@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(minho_team_ros C CXX)
+project(minho_team_ros CXX)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -111,3 +111,28 @@ add_message_files(
 
 
 set(PROJECT_DIRECTORY ~/catkin_ws/src/minho_team_ros)
+include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
+list(APPEND CMAKE_CXX_FLAGS "${GAZEBO_CXX_FLAGS}")
+
+set(CMAKE_PREFIX_PATH /opt/Qt/5.7/gcc_64)
+find_package(Qt5 COMPONENTS Core SerialPort Network REQUIRED)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_AUTOMOC ON)
+set(QT_DIR /opt/Qt/5.7/gcc_64/include)
+include_directories(${QT_DIR} ${QT_DIR}/QtCore ${QT_DIR}/QtConcurrent ${QT_DIR}/QtDesigner ${QT_DIR}/QtDesignerComponents
+${QT_DIR}/QtGui ${QT_DIR}/QtNetwork ${QT_DIR}/QtSerialPort ${QT_DIR}/QtWebSockets ${QT_DIR}/QtWidgets ${QT_DIR}/QtXml)
+set(qt_LIBRARIES libQt5SerialPort.so libQt5Core.so libQt5Widgets.so libQt5Network.so libQt5Gui.so libQt5Qml.so libQt5Quick.so)
+link_directories(/opt/Qt/5.7/gcc_64/lib)
+add_definitions(-DQT_THREAD_SUPPORT)
+set(CMAKE_AUTOUIC ON)
+
+set(TELEOP_DIR ${PROJECT_DIRECTORY}/tools/minho_teleop)
+set(teleop_MOC_H ${TELEOP_DIR}/include/mainwindow.h)
+qt5_wrap_cpp(teleop_CPP ${teleop_MOC_H})
+set(teleop_SRC ${TELEOP_DIR}/src/main.cpp ${TELEOP_DIR}/src/mainwindow.cpp ${TELEOP_DIR}/src/qrc_resources.cpp)
+include_directories(${TELEOP_DIR}/include)
+add_executable(minho_teleop ${teleop_SRC} ${teleop_CPP}) 
+set_target_properties(minho_teleop PROPERTIES COMPILE_FLAGS "-fPIC")
+target_compile_features(minho_teleop PRIVATE cxx_range_for)
+target_link_libraries(minho_teleop ${catkin_LIBRARIES} ${qt_LIBRARIES})
+add_dependencies(minho_teleop minho_team_ros_generate_messages_cpp)
