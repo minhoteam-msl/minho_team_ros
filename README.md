@@ -21,4 +21,4 @@ The package will in future include:
  
  
  
-*Developed by **MinhoTeam** @2016*
+*Developed by MinhoTeam @2016*
