@@ -10,7 +10,7 @@ The package will in future include:
  * Aritificial Intelligence Node
  * World Model (Localization) Node
  * Kinect Vision Node
- * ...
+ * (...)
  
 It will also include under Tools:
  
