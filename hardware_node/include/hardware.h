@@ -25,16 +25,20 @@ using minho_team_ros::teleop; //Namespace for teleop msg - SUBSCRIBING
 
 using namespace std;
 
-/*class serialQueue :: public QObject
+class serialQueue : public QObject
 {
+   Q_OBJECT
+public:
    explicit serialQueue(QObject *parent=0);
 private:
-   vector<QString> writeQueue;  
+   vector<QString> queue;  
 public:
    void enqueue(QString data); 
+   void flush();
+   QString pop_front();
 signals:
    void elementAddedToQueue();     
-}*/
+};
 
 class hardware : public QObject
 {
@@ -60,6 +64,7 @@ private slots:
    void setROSPublisher(ros::Publisher *pub); // Sets ROS publisher for publishing topic
    // Hardware data filtering
    int correctImuAngle(int angle); // Linearizes imu angle given the defined linearization table
+   void watch_dog_bark();
 private:
    // Configuration data
    QString confFilePath;
@@ -68,19 +73,18 @@ private:
    QSerialPort *serial;
    int port;
    bool serialOpen;
-   vector<QString> writeQueue;
-   QTimer *writingTimer;
+   serialQueue queue;
+   QTimer *watch_dog;
    //Linearization of IMU
    vector<int> trueVals,imuVals;
    vector<double> m,b;
    // ROS data
    ros::Publisher *ros_publisher;
    bool is_teleop_active;
+   bool barking;
 public slots:
    void controlInfoCallback(const controlInfo::ConstPtr& msg);
-   void teleopCallback(const teleop::ConstPtr& msg);   
-   
-
+   void teleopCallback(const teleop::ConstPtr& msg);     
 };
 
 #endif // HARDWARE_H

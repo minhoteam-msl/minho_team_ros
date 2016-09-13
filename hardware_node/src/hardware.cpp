@@ -6,7 +6,7 @@ hardware::hardware(QObject *parent) : QObject(parent) // Constructor
    configFilePaths();
    initIMULinearization();
    serial = new QSerialPort(0);
-   writingTimer = new QTimer();
+   watch_dog = new QTimer();
    initVariables();
 }
 // *********************
@@ -95,10 +95,12 @@ void hardware::initVariables() // Initialization of variables and serial port
    serialOpen = false;
    ros_publisher = NULL;    
    is_teleop_active = false;
+   barking = false;
    connect(serial, SIGNAL(error(QSerialPort::SerialPortError)), this, SLOT(handleError(QSerialPort::SerialPortError)));
+   connect(&queue, SIGNAL(elementAddedToQueue()),this, SLOT(writeSerialQueue()));
    connect(serial, SIGNAL(readyRead()), this, SLOT(readSerialData()));
-   connect(writingTimer, SIGNAL(timeout()),this,SLOT(writeSerialQueue()));
-   writingTimer->start(3);
+   connect(watch_dog, SIGNAL(timeout()),this,SLOT(watch_dog_bark()));
+   watch_dog->start(200);
 
    int availablePorts = 0;
    foreach (const QSerialPortInfo &info, QSerialPortInfo::availablePorts()){
@@ -151,12 +153,8 @@ void hardware::readSerialData()
 
 void hardware::writeSerialQueue()
 {
-   if (serialOpen && writeQueue.size()>0){
-      while(writeQueue.size()>0){
-         writeSerial(writeQueue[0]); //FIFO
-         writeQueue.erase(writeQueue.begin());
-      }
-   }	
+   if(serialOpen) writeSerial(queue.pop_front());
+   barking = true;	
 }
 
 void hardware::addCommandToQueue(const controlInfo::ConstPtr& msg)
@@ -164,7 +162,7 @@ void hardware::addCommandToQueue(const controlInfo::ConstPtr& msg)
    QString cmd = "";
    cmd += QString::number((int)msg->linear_velocity)+","+QString::number((int)msg->angular_velocity)
       +","+QString::number((int)msg->movement_direction);
-   writeQueue.push_back(cmd);
+   queue.enqueue(cmd);
 }
 // *********************
 
@@ -189,6 +187,14 @@ void hardware::teleopCallback(const teleop::ConstPtr& msg)
    is_teleop_active = msg->set_teleop;
 }
 
+void hardware::watch_dog_bark()
+{
+   if(!barking){ // watch dog timed out
+      queue.flush();
+      if(serialOpen) serial->write("0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n");
+   }
+   barking = false;
+}
 // *********************
 
 // Hardware data filtering
@@ -201,8 +207,30 @@ int hardware::correctImuAngle(int angle)
 }
 // ********************* 
 
-    	
+serialQueue::serialQueue(QObject *parent) : QObject(parent) // Constructor
+{
+   queue.clear();
+}
 
+void serialQueue::enqueue(QString data)
+{
+   queue.push_back(data);
+   emit elementAddedToQueue();
+}
+ 
+void serialQueue::flush()
+{
+   queue.clear();
+}
+
+QString serialQueue::pop_front()
+{
+   if(queue.size()>0){
+      QString element = queue.at(0); //FIFO
+      queue.erase(queue.begin()); 
+      return element;
+   } else return "";
+}
 
 
 
