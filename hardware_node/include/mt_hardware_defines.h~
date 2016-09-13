@@ -1,0 +1,13 @@
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+struct passwd *pw = getpwuid(getuid());
+const char *homedir = pw->pw_dir;
+
+string HOME_DIR(homedir); 
+string PROJECT_DIR = HOME_DIR+"/catkin_ws/src/minho_team/mt_hardware";

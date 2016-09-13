@@ -23,6 +23,7 @@ using minho_team_ros::robotInfo; //Namespace for robot information msg - PUBLISH
 using minho_team_ros::controlInfo; //Namespace for control information msg - SUBSCRIBIN
 using minho_team_ros::teleop; //Namespace for teleop information msg - SUBSCRIBING
 
+#define ROBOT_BASE_IP "172.16.49."
 namespace Ui {
 class MainWindow;
 }
@@ -32,7 +33,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(int robot_id,QWidget *parent = 0);
+    explicit MainWindow(int robot_id,bool real_robot, QWidget *parent = 0);
     ~MainWindow();
 
 private slots:

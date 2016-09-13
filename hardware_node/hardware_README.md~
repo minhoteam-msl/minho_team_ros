@@ -1,0 +1,70 @@
+# hardware_node
+
+This node is one of the base nodes in minho_team ROS package, available on team's GitHub for free use. This node allows communication with the centralized hardware controller. Currently the node supports communication for the current sub-modules:
+
+>Send to node: [controlInfo.msg]
+- Omni3MD movement commands
+- Kick commands for soccer kicker
+
+>Receive from node:[hardwareInfo.msg]
+- Omni3MD information (odometry)
+- Camera, PC and Main battery voltages
+- IMU heading value
+- Free-wheel switch state
+- Ball sensor value
+
+# Configuration
+
+To configure this node, go to hardware_node/config and edit node.conf file. This file is necessary to allow an easy configuration of parameters to be used [send to node], maximum and minimum values for variables. The configuration has to follow the following structure:
+
+- To comment a line use #
+- Start a variable definition by @, like in the following example:
+
+```
+#Define the sub modules
+@N_SUBMODULES=2
+@SUB_MODULE_0 = OMNI
+@SUB_MODULE_1 = KICK
+#Define the used modules
+@USED_MODULES = 0,1
+#Define the maximum and minimum limits
+#MAX/MIN_[MODULE ID]_[VARIABLE_ID]=VALUE
+@MAX_0_0=80
+@MIN_0_0=0
+@MAX_0_1=80
+@MIN_0_1=-80
+```
+# Current Version
+1.1
+
+# Edit log
+
+>Version 1.0 - Basic version supporting only MSL hardware communication, with no configuration procedures.
+
+>Version 1.1 - Configuration procedures added, to include or exclude sub modules and configure maximum and minimum values for certain parameters, provided in node.conf file.
+
+**Free Software, Hell Yeah!**
+
+[//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
+
+
+   [dill]: <https://github.com/joemccann/dillinger>
+   [git-repo-url]: <https://github.com/joemccann/dillinger.git>
+   [john gruber]: <http://daringfireball.net>
+   [@thomasfuchs]: <http://twitter.com/thomasfuchs>
+   [df1]: <http://daringfireball.net/projects/markdown/>
+   [markdown-it]: <https://github.com/markdown-it/markdown-it>
+   [Ace Editor]: <http://ace.ajax.org>
+   [node.js]: <http://nodejs.org>
+   [Twitter Bootstrap]: <http://twitter.github.com/bootstrap/>
+   [keymaster.js]: <https://github.com/madrobby/keymaster>
+   [jQuery]: <http://jquery.com>
+   [@tjholowaychuk]: <http://twitter.com/tjholowaychuk>
+   [express]: <http://expressjs.com>
+   [AngularJS]: <http://angularjs.org>
+   [Gulp]: <http://gulpjs.com>
+
+   [PlDb]: <https://github.com/joemccann/dillinger/tree/master/plugins/dropbox/README.md>
+   [PlGh]:  <https://github.com/joemccann/dillinger/tree/master/plugins/github/README.md>
+   [PlGd]: <https://github.com/joemccann/dillinger/tree/master/plugins/googledrive/README.md>
+   [PlOd]: <https://github.com/joemccann/dillinger/tree/master/plugins/onedrive/README.md>

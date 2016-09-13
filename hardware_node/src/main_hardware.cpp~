@@ -1,0 +1,62 @@
+//C++ includes
+#include <iostream>
+#include <sstream>
+#include "ros/ros.h"
+#include <signal.h>
+#include<unistd.h>
+//ROS includes
+#include "std_msgs/String.h"
+#include "minho_team/hardwareInfo.h"
+#include "minho_team/controlInfo.h"
+//Application includes
+#include "mt_hardware_defines.h"
+#include "hardware.h"
+#include <QApplication>
+
+using namespace std;
+using namespace ros;
+using minho_team::hardwareInfo; //Namespace for hardware information msg - PUBLISHING
+using minho_team::controlInfo; //Namespace for control information msg - SUBSCRIBING
+
+#define SUBSCRIBER_VERBOSE false
+
+//Node specific objects
+hardware *hd;
+
+void controlInfoCallback(const controlInfo::ConstPtr& msg)
+{
+	if(SUBSCRIBER_VERBOSE) ROS_INFO("\nControl Packet Info:\n:Velocity: %u,%u,%u\n:Kick: %u,%u\n",msg->linear_velocity,msg->angular_velocity
+								  ,msg->movement_direction,msg->kick_strength,msg->kick_direction);
+	/*QString data_to_low_level = "";
+	data_to_low_level += QString::number((int)msg->linear_velocity)+","+QString::number((int)msg->angular_velocity)
+							+","+QString::number((int)msg->movement_direction);*/
+	hd->addCommandToQueue(msg);
+	
+}
+
+int main(int argc, char **argv)
+{
+	QCoreApplication a(argc, argv);
+	/* This program interfaces MinhoTeam's hardware via QSerialPort
+	 * and uses ROS to communicate with the remaining nodes.     */
+	// Set SIGINT and SIGTERM signals for closing
+	//Hardware Serial Port Communication Object Declaration
+	ROS_WARN("Attempting to start Serial Port services of hardware_node.");
+	hd = new hardware();
+	//Initialize ROS
+	ros::init(argc, argv, "hardware_node",ros::init_options::NoSigintHandler);
+	//Request node handler
+	ros::NodeHandle hardware_node;
+	//Initialize hardwareInfo publisher
+	ros::Publisher hardware_info_pub = hardware_node.advertise<hardwareInfo>("hardwareInfo", 1000);
+	hd->setROSPublisher(&hardware_info_pub);
+	//Initialize controlInfo subscriber
+	ros::Subscriber control_info_sub = hardware_node.subscribe("controlInfo", 1000, controlInfoCallback);
+	ROS_WARN("MinhoTeam hardware_node started running on ROS.");
+
+
+	ros::AsyncSpinner spinner(2);
+	spinner.start();
+	return a.exec();
+	return 0;
+}

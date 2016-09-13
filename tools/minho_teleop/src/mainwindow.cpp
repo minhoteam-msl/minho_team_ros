@@ -1,48 +1,65 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-MainWindow::MainWindow(int robot_id, QWidget *parent) :
+MainWindow::MainWindow(int robot_id, bool real_robot, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
-    teleop_activated_ = false;
-    robot_id_ = robot_id;
-    _update_ = new QTimer();
-    dribblers_state_ = false;
-    kick_request_ = is_pass_ = false;
-    thrust_.resize(7);
-    thrust_activation_.resize(7);
-    connect(_update_,SIGNAL(timeout()),this,SLOT(onUpdate()));
-    connect(_update_,SIGNAL(timeout()),this,SLOT(updateThrusts()));
-    ui->hs_lin->setValue(50);
-    ui->hs_ang->setValue(50);
-    ui->lb_robot_name->setStyleSheet("QLabel { color : red; }");
-    ui->centralWidget->setFocusPolicy(Qt::StrongFocus);
-    ui->lb_robot_name->setText(QString("Robot ")+QString::number(robot_id_));
-    
-    // Setup ROS Node and pusblishers/subscribers
-    QString asd = "Teleop";
-    asd.append(QString::number(robot_id));
-    std::stringstream control_topic;
-    control_topic << "minho_gazebo_robot" << std::to_string(robot_id) << "/controlInfo";
-    std::stringstream teleop_topic;
-    teleop_topic << "minho_gazebo_robot" << std::to_string(robot_id) << "/teleop";
-    std::stringstream robot_topic;
-    robot_topic << "minho_gazebo_robot" << std::to_string(robot_id) << "/robotInfo";
-    
-    //Initialize ROS
-    int argc = 0;
-	ros::init(argc, NULL, asd.toStdString().c_str(),ros::init_options::NoSigintHandler);
-    _node_ = new ros::NodeHandle();
-    control_pub_ = _node_->advertise<controlInfo>(control_topic.str().c_str(),100);
-    teleop_pub_ = _node_->advertise<teleop>(teleop_topic.str().c_str(),100);
-	//Initialize controlInfo subscriber
-	robot_sub_ = _node_->subscribe(robot_topic.str().c_str(), 1000, &MainWindow::robotInfoCallback, this);
-    spinner = new ros::AsyncSpinner(2);
-    spinner->start();
-    
-    _update_->start(30); // update teleop data to robot
+   ui->setupUi(this);
+   teleop_activated_ = false;
+   robot_id_ = robot_id;
+   _update_ = new QTimer();
+   dribblers_state_ = false;
+   kick_request_ = is_pass_ = false;
+   thrust_.resize(7);
+   thrust_activation_.resize(7);
+   connect(_update_,SIGNAL(timeout()),this,SLOT(onUpdate()));
+   connect(_update_,SIGNAL(timeout()),this,SLOT(updateThrusts()));
+   ui->hs_lin->setValue(50);
+   ui->hs_ang->setValue(50);
+   ui->lb_robot_name->setStyleSheet("QLabel { color : red; }");
+   ui->centralWidget->setFocusPolicy(Qt::StrongFocus);
+   ui->lb_robot_name->setText(QString("Robot ")+QString::number(robot_id_));
+   QFont font = ui->lb_pose->font();
+   font.setPointSize(6);
+   font.setBold(true);
+   ui->lb_pose->setFont(font);
+   
+   // Setup of ROS
+   QString asd = "Teleop";
+   asd.append(QString::number(robot_id));
+   std::stringstream control_topic;
+   std::stringstream teleop_topic;
+   std::stringstream robot_topic;
+   if(real_robot){
+      // Setup ROS Node and pusblishers/subscribers in SIMULATOR
+      control_topic << "controlInfo";
+      teleop_topic << "teleop";
+      robot_topic << "robotInfo";
+            
+      // Setup custom master
+      QString robot_ip = QString(ROBOT_BASE_IP)+QString::number(robot_id);
+      ROS_WARN("Robot IP: '%s'",robot_ip.toStdString().c_str());
+   } else {
+      // Setup ROS Node and pusblishers/subscribers in REAL ROBOT
+      control_topic << "minho_gazebo_robot" << std::to_string(robot_id) << "/controlInfo";
+      teleop_topic << "minho_gazebo_robot" << std::to_string(robot_id) << "/teleop";
+      robot_topic << "minho_gazebo_robot" << std::to_string(robot_id) << "/robotInfo";
+   }
+   
+
+   //Initialize ROS
+   int argc = 0;
+   ros::init(argc, NULL, asd.toStdString().c_str(),ros::init_options::NoSigintHandler);
+   _node_ = new ros::NodeHandle();
+   control_pub_ = _node_->advertise<controlInfo>(control_topic.str().c_str(),100);
+   teleop_pub_ = _node_->advertise<teleop>(teleop_topic.str().c_str(),100);
+   //Initialize controlInfo subscriber
+   robot_sub_ = _node_->subscribe(robot_topic.str().c_str(), 1000, &MainWindow::robotInfoCallback, this);
+   spinner = new ros::AsyncSpinner(2);
+   spinner->start();
+
+   _update_->start(30); // update teleop data to robot
 }
 
 MainWindow::~MainWindow()

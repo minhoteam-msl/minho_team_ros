@@ -1,0 +1,1 @@
+#define imgPath  "$(HOME)/catkin_ws/src/minho_team/mt_hardware/images/image.png"

@@ -54,6 +54,7 @@ add_message_files(
       robotInfo.msg
       refBoxInfo.msg
       teleop.msg
+      hardwareInfo.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -110,6 +111,8 @@ add_message_files(
 	)
 
 
+## DEPENDENCIES ##
+######################################################################
 set(PROJECT_DIRECTORY ~/catkin_ws/src/minho_team_ros)
 include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 list(APPEND CMAKE_CXX_FLAGS "${GAZEBO_CXX_FLAGS}")
@@ -125,7 +128,10 @@ set(qt_LIBRARIES libQt5SerialPort.so libQt5Core.so libQt5Widgets.so libQt5Networ
 link_directories(/opt/Qt/5.7/gcc_64/lib)
 add_definitions(-DQT_THREAD_SUPPORT)
 set(CMAKE_AUTOUIC ON)
+######################################################################
 
+## TELEOP ##
+######################################################################
 set(TELEOP_DIR ${PROJECT_DIRECTORY}/tools/minho_teleop)
 set(teleop_MOC_H ${TELEOP_DIR}/include/mainwindow.h)
 qt5_wrap_cpp(teleop_CPP ${teleop_MOC_H})
@@ -136,3 +142,21 @@ set_target_properties(minho_teleop PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(minho_teleop PRIVATE cxx_range_for)
 target_link_libraries(minho_teleop ${catkin_LIBRARIES} ${qt_LIBRARIES})
 add_dependencies(minho_teleop minho_team_ros_generate_messages_cpp)
+######################################################################
+
+## HARDWARE ##
+######################################################################
+set(HARDWARE_DIR ${PROJECT_DIRECTORY}/hardware_node)
+include_directories(${HARDWARE_DIR}/include)
+set(HARDWARE_SRC_DIR ${HARDWARE_DIR}/src)
+# Add new source files to folder /src and add them here for compilation
+set(hardware_SRC ${HARDWARE_SRC_DIR}/main_hardware.cpp ${HARDWARE_SRC_DIR}/hardware.cpp)
+# Add new header files to folder /include and add them here for compilation
+set(hardware_MOC_H ${HARDWARE_DIR}/include/hardware.h)
+qt5_wrap_cpp(hardware_CPP ${hardware_MOC_H})
+add_executable(hardware_node ${hardware_SRC} ${hardware_CPP})
+set_target_properties(hardware_node PROPERTIES COMPILE_FLAGS "-fPIC")
+target_compile_features(hardware_node PRIVATE cxx_range_for)
+target_link_libraries(hardware_node ${catkin_LIBRARIES} ${qt_LIBRARIES})
+add_dependencies(hardware_node minho_team_ros_generate_messages_cpp)
+######################################################################
