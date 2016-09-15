@@ -12,7 +12,7 @@ The package will in future include:
  * Kinect Vision Node
  * (...)
  
-It will also include under Tools:
+It will also include under Tools :
  
  * Teleoperation of the platform
  * Configuration of Control parameters
