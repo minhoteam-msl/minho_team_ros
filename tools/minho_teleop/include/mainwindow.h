@@ -17,13 +17,16 @@
 #include <sstream>
 #include <boost/shared_ptr.hpp>
 #include <stdio.h>
+#include <stdlib.h>
 
 using namespace ros;
 using minho_team_ros::robotInfo; //Namespace for robot information msg - PUBLISHING
 using minho_team_ros::controlInfo; //Namespace for control information msg - SUBSCRIBIN
 using minho_team_ros::teleop; //Namespace for teleop information msg - SUBSCRIBING
 
-#define ROBOT_BASE_IP "172.16.49."
+#define ROS_MASTER_IP "http://172.16.49."
+#define ROS_MASTER_PORT ":11311"
+
 namespace Ui {
 class MainWindow;
 }
