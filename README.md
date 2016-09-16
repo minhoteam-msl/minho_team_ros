@@ -18,4 +18,5 @@ It will also include under Tools :
  * Configuration of Control parameters
  * Configuration of Omnivision parameters
   
+Added support for SSH Keys
 *Developed by MinhoTeam @2016*
