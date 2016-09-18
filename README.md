@@ -1,6 +1,6 @@
 ##MinhoTeam ROS Package
 
-This repository holds the source code for the ROS package of RoboCup MSL's MinhoTeam. The repository will include all the developed nodes, messages and configuration tools used using ROS, developed in C++.
+This repository holds the source code for the ROS package of RoboCup MSL's MinhoTeam. The repository will include all the developed nodes, messages  using ROS, developed in C++.
 
 The package will in future include:
 
@@ -11,12 +11,5 @@ The package will in future include:
  * World Model (Localization) Node
  * Kinect Vision Node
  * (...)
- 
-It will also include under Tools :
- 
- * Teleoperation of the platform
- * Configuration of Control parameters
- * Configuration of Omnivision parameters
-  
-Added support for SSH Keys
+
 *Developed by MinhoTeam @2016*
