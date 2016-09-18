@@ -130,20 +130,6 @@ add_definitions(-DQT_THREAD_SUPPORT)
 set(CMAKE_AUTOUIC ON)
 ######################################################################
 
-## TELEOP ##
-######################################################################
-set(TELEOP_DIR ${PROJECT_DIRECTORY}/tools/minho_teleop)
-set(teleop_MOC_H ${TELEOP_DIR}/include/mainwindow.h)
-qt5_wrap_cpp(teleop_CPP ${teleop_MOC_H})
-set(teleop_SRC ${TELEOP_DIR}/src/main.cpp ${TELEOP_DIR}/src/mainwindow.cpp ${TELEOP_DIR}/src/qrc_resources.cpp)
-include_directories(${TELEOP_DIR}/include)
-add_executable(minho_teleop ${teleop_SRC} ${teleop_CPP}) 
-set_target_properties(minho_teleop PROPERTIES COMPILE_FLAGS "-fPIC")
-target_compile_features(minho_teleop PRIVATE cxx_range_for)
-target_link_libraries(minho_teleop ${catkin_LIBRARIES} ${qt_LIBRARIES})
-add_dependencies(minho_teleop minho_team_ros_generate_messages_cpp)
-######################################################################
-
 ## HARDWARE ##
 ######################################################################
 set(HARDWARE_DIR ${PROJECT_DIRECTORY}/hardware_node)
