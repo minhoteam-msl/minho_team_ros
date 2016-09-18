@@ -2,7 +2,7 @@
 #include "ros/ros.h"
 //Application includes
 #include "hardware.h"
-#include <QApplication>
+#include <QCoreApplication>
 
 using namespace std;
 using namespace ros;
