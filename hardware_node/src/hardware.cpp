@@ -1,4 +1,5 @@
 #include "hardware.h"
+#define DEBUG_DISPLAY 1
 
 // *********************
 hardware::hardware(QObject *parent) : QObject(parent) // Constructor
@@ -20,13 +21,18 @@ void hardware::openSerialPort(QString name)
    serial->setDataBits(QSerialPort::Data8);
    serial->setParity(QSerialPort::NoParity);
    serial->setStopBits( QSerialPort::OneStop);
-   serial->setFlowControl(QSerialPort::SoftwareControl);
+   //serial->setFlowControl(QSerialPort::SoftwareControl);
+   serial->setFlowControl(QSerialPort::NoFlowControl);
 
    if (serial->open(QIODevice::ReadWrite) && serial->isOpen() && serial->isWritable() && serial->isReadable()){
       serial->flush();
       ROS_INFO("Serial Port opened: %s",name.toStdString().c_str());
+      serialOpen = true;
    }
-   else ROS_ERROR("Error Opening Serial Port: %s",serial->errorString().toStdString().c_str());
+   else { 
+      ROS_ERROR("Error Opening Serial Port: %s",serial->errorString().toStdString().c_str());
+      serialOpen = false;
+   }    
 
 }
 
@@ -34,15 +40,16 @@ void hardware::closeSerialPort()
 {
    if (serialOpen){
       serial->write("0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n");
-      serial->close();
       serialOpen = false;
    }
+   
+   serial->close();
 }
 
 void hardware::handleError(QSerialPort::SerialPortError error)
 {
    if (error == QSerialPort::ResourceError) {
-      cout << serial->errorString().toStdString() << endl;
+      if(DEBUG_DISPLAY) ROS_ERROR("Serial Error %s",serial->errorString().toStdString().c_str());
       closeSerialPort();
    }
 }
@@ -96,18 +103,21 @@ void hardware::initVariables() // Initialization of variables and serial port
    ros_publisher = NULL;    
    is_teleop_active = false;
    barking = false;
-   connect(serial, SIGNAL(error(QSerialPort::SerialPortError)), this, SLOT(handleError(QSerialPort::SerialPortError)));
+   connect(serial, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
+   [=](QSerialPort::SerialPortError error){
+      serialOpen = false;
+      ROS_ERROR("Serial Error %s",serial->errorString().toStdString().c_str()); 
+      closeSerialPort();     
+   });
    connect(&queue, SIGNAL(elementAddedToQueue()),this, SLOT(writeSerialQueue()));
    connect(serial, SIGNAL(readyRead()), this, SLOT(readSerialData()));
    connect(watch_dog, SIGNAL(timeout()),this,SLOT(watch_dog_bark()));
-   watch_dog->start(200);
 
    int availablePorts = 0;
    foreach (const QSerialPortInfo &info, QSerialPortInfo::availablePorts()){
       if(info.manufacturer()!="Hokuyo Data Flex for USB"){
          availablePorts++;
          openSerialPort(info.portName());
-         serialOpen = true;
       }
    }
 
@@ -115,6 +125,8 @@ void hardware::initVariables() // Initialization of variables and serial port
       ROS_ERROR("No Serial Ports available");
       exit(0);
    }
+   
+   watch_dog->start(200);
 }
 
 // *********************
@@ -124,7 +136,7 @@ void hardware::initVariables() // Initialization of variables and serial port
 void hardware::writeSerial(QString data)
 {
    if (serialOpen) {
-      ROS_INFO("Written %s",data.toStdString().c_str());
+      if(DEBUG_DISPLAY) ROS_INFO("Written %s",data.toStdString().c_str());
       serial->write(data.toLocal8Bit()+'\n');
    }
 }
@@ -148,7 +160,7 @@ void hardware::readSerialData()
          msg.battery_main = list_read.at(8).toFloat();// BatteryMAIN
          // publish msg to ROS environment
          if(ros_publisher!=NULL)ros_publisher->publish(msg);
-         ROS_INFO("Correct data published");
+         if(DEBUG_DISPLAY) ROS_INFO("Correct data published");
       } else ROS_ERROR("Error String %s",read.toStdString().c_str());
    } 
 }
@@ -194,7 +206,8 @@ void hardware::watch_dog_bark()
    if(!barking){ // watch dog timed out
       queue.flush();
       if(serialOpen) { serial->write("0,0,0\n");
-         ROS_WARN("Watchdog triggered safety stop.");
+         if(DEBUG_DISPLAY) ROS_WARN("Watchdog triggered safety stop");
+         if(!serial->waitForBytesWritten(150)) ROS_ERROR("Error sending data.");
       }
    }
    barking = false;
