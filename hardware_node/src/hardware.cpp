@@ -148,6 +148,7 @@ void hardware::readSerialData()
          msg.battery_main = list_read.at(8).toFloat();// BatteryMAIN
          // publish msg to ROS environment
          if(ros_publisher!=NULL)ros_publisher->publish(msg);
+         ROS_INFO("Correct data published");
       } else ROS_ERROR("Error String %s",read.toStdString().c_str());
    } 
 }
