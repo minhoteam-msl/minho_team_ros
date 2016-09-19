@@ -22,7 +22,7 @@ void hardware::openSerialPort(QString name)
    serial->setStopBits( QSerialPort::OneStop);
    serial->setFlowControl(QSerialPort::SoftwareControl);
 
-   if (serial->open(QIODevice::ReadWrite)){
+   if (serial->open(QIODevice::ReadWrite) && serial->isOpen() && serial->isWritable() && serial->isReadable()){
       serial->flush();
       ROS_INFO("Serial Port opened: %s",name.toStdString().c_str());
    }
@@ -124,6 +124,7 @@ void hardware::initVariables() // Initialization of variables and serial port
 void hardware::writeSerial(QString data)
 {
    if (serialOpen) {
+      ROS_INFO("Written %s",data.toStdString().c_str());
       serial->write(data.toLocal8Bit()+'\n');
    }
 }
@@ -191,7 +192,9 @@ void hardware::watch_dog_bark()
 {
    if(!barking){ // watch dog timed out
       queue.flush();
-      if(serialOpen) serial->write("0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n");
+      if(serialOpen) { serial->write("0,0,0\n");
+         ROS_WARN("Watchdog triggered safety stop.");
+      }
    }
    barking = false;
 }
