@@ -106,7 +106,7 @@ void hardware::initVariables() // Initialization of variables and serial port
    connect(serial, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
    [=](QSerialPort::SerialPortError error){
       serialOpen = false;
-      ROS_ERROR("Error Handling: %s",serial->errorString().toStdString().c_str()); 
+      ROS_ERROR("Error Handling (%d): %s",error,serial->errorString().toStdString().c_str()); 
       closeSerialPort();    
       exit(0);
       ROS_ERROR("Fatal Error ... Closing."); 
