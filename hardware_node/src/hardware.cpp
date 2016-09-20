@@ -106,8 +106,9 @@ void hardware::initVariables() // Initialization of variables and serial port
    connect(serial, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
    [=](QSerialPort::SerialPortError error){
       serialOpen = false;
-      ROS_ERROR("Serial Error %s",serial->errorString().toStdString().c_str()); 
-      closeSerialPort();     
+      ROS_ERROR("Error Handling: %s",serial->errorString().toStdString().c_str()); 
+      closeSerialPort();    
+      exit(0); 
    });
    connect(&queue, SIGNAL(elementAddedToQueue()),this, SLOT(writeSerialQueue()));
    connect(serial, SIGNAL(readyRead()), this, SLOT(readSerialData()));
