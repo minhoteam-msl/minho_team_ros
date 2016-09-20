@@ -108,7 +108,8 @@ void hardware::initVariables() // Initialization of variables and serial port
       serialOpen = false;
       ROS_ERROR("Error Handling: %s",serial->errorString().toStdString().c_str()); 
       closeSerialPort();    
-      exit(0); 
+      exit(0);
+      ROS_ERROR("Fatal Error ... Closing."); 
    });
    connect(&queue, SIGNAL(elementAddedToQueue()),this, SLOT(writeSerialQueue()));
    connect(serial, SIGNAL(readyRead()), this, SLOT(readSerialData()));
