@@ -105,7 +105,7 @@ void hardware::initVariables() // Initialization of variables and serial port
    barking = false;
    connect(serial, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
    [=](QSerialPort::SerialPortError error){
-      if(error!=0){
+      if(error>0){
          serialOpen = false;
          ROS_ERROR("Error Handling (%d): %s",error,serial->errorString().toStdString().c_str()); 
          exit(0);
@@ -140,11 +140,13 @@ void hardware::writeSerial(QString data)
    if (serialOpen) {
       if(DEBUG_DISPLAY) ROS_INFO("Written %s",data.toStdString().c_str());
       serial->write(data.toLocal8Bit()+'\n');
+      if(!serial->waitForBytesWritten(150)) ROS_ERROR("Failed to write do device.");
    }
 }
 
 void hardware::readSerialData()
 {
+   ROS_INFO("Received stuff");
    if(serial->canReadLine()){
       hardwareInfo msg;
       QString read = serial->readLine();
