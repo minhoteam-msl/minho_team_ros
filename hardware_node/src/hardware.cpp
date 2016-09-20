@@ -165,7 +165,7 @@ void hardware::readSerialData()
          // publish msg to ROS environment
          if(ros_publisher!=NULL)ros_publisher->publish(msg);
          if(DEBUG_DISPLAY) ROS_INFO("Correct data published");
-      } else ROS_ERROR("Error String %s",read.toStdString().c_str());
+      } else ROS_ERROR("Error String '%s'",read.toStdString().c_str());
    } 
 }
 
