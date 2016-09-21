@@ -105,7 +105,7 @@ void hardware::initVariables() // Initialization of variables and serial port
    barking = false;
    connect(serial, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
    [=](QSerialPort::SerialPortError error){
-      if(error>0){
+      if(error>0 && error!=8){
          serialOpen = false;
          ROS_ERROR("Error Handling (%d): %s",error,serial->errorString().toStdString().c_str()); 
          exit(0);
@@ -212,6 +212,7 @@ void hardware::watch_dog_bark()
       if(serialOpen) { serial->write("0,0,0\n");
          if(DEBUG_DISPLAY) ROS_WARN("Watchdog triggered safety stop");
          if(!serial->waitForBytesWritten(150)) ROS_ERROR("Error sending data.");
+         ROS_INFO("%lld",serial->bytesToWrite());
       }
    }
    barking = false;
