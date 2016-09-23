@@ -2,6 +2,7 @@
 #define HARDWARE_H
 
 #include <QObject>
+#include <QThread>
 #include <QTimer>
 #include <QFile>
 #include <QTextStream>

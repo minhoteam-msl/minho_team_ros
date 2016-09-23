@@ -25,6 +25,7 @@ void hardware::openSerialPort(QString name)
    //serial->setFlowControl(QSerialPort::NoFlowControl);
 
    if (serial->open(QIODevice::ReadWrite) && serial->isOpen() && serial->isWritable() && serial->isReadable()){
+      QThread::sleep(2);
       serial->flush();
       ROS_INFO("Serial Port opened: %s",name.toStdString().c_str());
       serialOpen = true;
@@ -146,7 +147,6 @@ void hardware::writeSerial(QString data)
 
 void hardware::readSerialData()
 {
-   ROS_INFO("Received stuff");
    if(serial->canReadLine()){
       hardwareInfo msg;
       QString read = serial->readLine();
@@ -211,8 +211,7 @@ void hardware::watch_dog_bark()
       queue.flush();
       if(serialOpen) { serial->write("0,0,0\n");
          if(DEBUG_DISPLAY) ROS_WARN("Watchdog triggered safety stop");
-         if(!serial->waitForBytesWritten(150)) ROS_ERROR("Error sending data.");
-         ROS_INFO("%lld",serial->bytesToWrite());
+         ROS_INFO("%lld",serial->bytesAvailable());
       }
    }
    barking = false;
