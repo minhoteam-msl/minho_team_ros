@@ -184,7 +184,8 @@ void hardware::addCommandToQueue(const controlInfo::ConstPtr& msg)
    
    if(has_ball&&msg->kick_strength>0){
       int kick = (msg->kick_strength*25.0)/100.0;
-      cmd += +","+QString::number((int)kick);     
+      cmd += +","+QString::number((int)kick);   
+      ROS_INFO("Kicking %d",kick);  
    }
    
    queue.enqueue(cmd);
