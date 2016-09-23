@@ -82,6 +82,7 @@ private:
    // ROS data
    ros::Publisher *ros_publisher;
    bool is_teleop_active;
+   bool has_ball;
    bool barking;
 public slots:
    void controlInfoCallback(const controlInfo::ConstPtr& msg);

@@ -155,6 +155,7 @@ void hardware::readSerialData()
          msg.imu_value = correctImuAngle(list_read.at(0).toInt());// Bussola
          msg.free_wheel_activated = list_read.at(1).toInt();// FreeWheel
          msg.ball_sensor = list_read.at(2).toInt();// HaveBall
+         has_ball = msg.ball_sensor;
          msg.encoder_1 = list_read.at(3).toInt();// Enc1
          msg.encoder_2 = list_read.at(4).toInt();// Enc2
          msg.encoder_3 = list_read.at(5).toInt();// Enc3
@@ -177,9 +178,17 @@ void hardware::writeSerialQueue()
 void hardware::addCommandToQueue(const controlInfo::ConstPtr& msg)
 {
    QString cmd = "";
+   // Driving
    cmd += QString::number((int)msg->linear_velocity)+","+QString::number((int)msg->angular_velocity)
       +","+QString::number((int)msg->movement_direction);
+   
+   if(has_ball&&msg->kick_strength>0){
+      int kick = (msg->kick_strength*25.0)/100.0;
+      cmd += +","+QString::number((int)kick);     
+   }
+   
    queue.enqueue(cmd);
+   
 }
 // *********************
 
