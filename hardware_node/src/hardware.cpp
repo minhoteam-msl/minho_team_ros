@@ -1,5 +1,5 @@
 #include "hardware.h"
-#define DEBUG_DISPLAY 1
+#define DEBUG_DISPLAY 0
 
 // *********************
 hardware::hardware(QObject *parent) : QObject(parent) // Constructor
@@ -141,7 +141,6 @@ void hardware::writeSerial(QString data)
    if (serialOpen) {
       if(DEBUG_DISPLAY) ROS_INFO("Written %s",data.toStdString().c_str());
       serial->write(data.toLocal8Bit()+'\n');
-      if(!serial->waitForBytesWritten(150)) ROS_ERROR("Failed to write do device.");
    }
 }
 
@@ -211,7 +210,6 @@ void hardware::watch_dog_bark()
       queue.flush();
       if(serialOpen) { serial->write("0,0,0\n");
          if(DEBUG_DISPLAY) ROS_WARN("Watchdog triggered safety stop");
-         ROS_INFO("%lld",serial->bytesAvailable());
       }
    }
    barking = false;
