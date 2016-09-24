@@ -4,12 +4,4 @@ This repository holds the source code for the ROS package of RoboCup MSL's Minho
 
 The package will in future include:
 
- * Hardware Node
- * RTDB Node
- * Control Node
- * Aritificial Intelligence Node
- * World Model (Localization) Node
- * Kinect Vision Node
- * (...)
-
 *Developed by MinhoTeam @2016*
