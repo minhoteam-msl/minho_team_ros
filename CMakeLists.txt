@@ -57,6 +57,7 @@ add_message_files(
       refBoxInfo.msg
       teleop.msg
       hardwareInfo.msg
+      imgRequest.msg
 )
 
 ## Generate services in the 'srv' folder
