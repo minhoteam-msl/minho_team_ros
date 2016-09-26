@@ -44,7 +44,7 @@ int main(int argc, char **argv)
    test_image = imread("/home/pedro/catkin_ws/src/minho_team_ros/localization_node/config/sample.png");
    ros::Rate loop_rate(2);
    image_transport::ImageTransport it(localization_node);
-   image_transport::Publisher pub = it.advertise("camera/raw", 1);
+   image_transport::Publisher pub = it.advertise("camera", 1);
    sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", test_image).toImageMsg();
   
 	while(ros::ok()){
