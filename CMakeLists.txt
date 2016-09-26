@@ -116,6 +116,9 @@ add_message_files(
 set(PROJECT_DIRECTORY ~/catkin_ws/src/minho_team_ros)
 include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 list(APPEND CMAKE_CXX_FLAGS "${GAZEBO_CXX_FLAGS}")
+
+#Linking steps for Qt5
+########################################
 set(CURRQTPREFIX /opt/Qt/5.7/gcc_64)
 #set(CURRQTPREFIX /opt/Qt)
 set(CMAKE_PREFIX_PATH ${CURRQTPREFIX})
@@ -127,7 +130,30 @@ include_directories(${QT_DIR} ${QT_DIR}/QtCore ${QT_DIR}/QtConcurrent ${QT_DIR}/
 set(qt_LIBRARIES libQt5SerialPort.so libQt5Core.so libQt5Network.so)
 link_directories(${CURRQTPREFIX}/lib)
 add_definitions(-DQT_THREAD_SUPPORT)
-set(CMAKE_AUTOUIC ON)
+########################################
+
+#Linking steps for Flycapture Libraries
+########################################
+include_directories(/usr/include/flycapture)
+set(flycap_LIBRARIES libflycapture.so)
+link_directories(/usr/lib)
+########################################
+
+#Linking steps for libfreenect Libraries
+########################################
+include_directories(/usr/local/include/libfreenect)
+include_directories(/usr/include/libusb-1.0)
+set(freenect_LIBRARIES libfreenect.so libfreenect_sync.so)
+link_directories(/usr/local/lib)
+########################################
+
+#Linking steps for OpenCV Libraries
+########################################
+include_directories(/usr/local/include/opencv /usr/local/include/opencv2)
+set (opencv_LIBRARIES libopencv_core.so libopencv_highgui.so libopencv_imgproc.so)
+link_directories(/usr/local/lib)
+link_directories(/usr/lib/x86_64-linux-gnu)
+########################################
 ######################################################################
 
 ## HARDWARE ##
@@ -145,4 +171,21 @@ set_target_properties(hardware_node PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(hardware_node PRIVATE cxx_range_for)
 target_link_libraries(hardware_node ${catkin_LIBRARIES} ${qt_LIBRARIES})
 add_dependencies(hardware_node minho_team_ros_generate_messages_cpp)
+######################################################################
+
+## LOCALIZATION ##
+######################################################################
+set(LOCALIZATION_DIR ${PROJECT_DIRECTORY}/localization_node)
+include_directories(${LOCALIZATION_DIR}/include)
+set(LOCALIZATION_SRC_DIR ${LOCALIZATION_DIR}/src)
+# Add new source files to folder /src and add them here for compilation
+set(localization_SRC ${LOCALIZATION_SRC_DIR}/main_localization.cpp)
+# Add new header files to folder /include and add them here for compilation
+set(localization_MOC_H )#${LOCALIZATION_DIR}/include/vision_calibrator.h)
+qt5_wrap_cpp(localization_CPP ${localization_MOC_H})
+add_executable(localization_node ${localization_SRC} ${localization_CPP})
+set_target_properties(localization_node PROPERTIES COMPILE_FLAGS "-fPIC")
+target_compile_features(localization_node PRIVATE cxx_range_for)
+target_link_libraries(localization_node ${catkin_LIBRARIES} ${qt_LIBRARIES} ${opencv_LIBRARIES} ${flycap_LIBRARIES})
+add_dependencies(localization_node minho_team_ros_generate_messages_cpp)
 ######################################################################
