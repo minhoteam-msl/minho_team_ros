@@ -9,7 +9,9 @@ find_package(catkin REQUIRED COMPONENTS
 	std_msgs
 	message_generation	
 	sensor_msgs
-	genmsg			
+	genmsg	
+	cv_bridge
+	image_transport
 )
 
 
@@ -170,7 +172,6 @@ add_executable(hardware_node ${hardware_SRC} ${hardware_CPP})
 set_target_properties(hardware_node PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(hardware_node PRIVATE cxx_range_for)
 target_link_libraries(hardware_node ${catkin_LIBRARIES} ${qt_LIBRARIES})
-add_dependencies(hardware_node minho_team_ros_generate_messages_cpp)
 ######################################################################
 
 ## LOCALIZATION ##
@@ -187,5 +188,5 @@ add_executable(localization_node ${localization_SRC} ${localization_CPP})
 set_target_properties(localization_node PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(localization_node PRIVATE cxx_range_for)
 target_link_libraries(localization_node ${catkin_LIBRARIES} ${qt_LIBRARIES} ${opencv_LIBRARIES} ${flycap_LIBRARIES})
-add_dependencies(localization_node minho_team_ros_generate_messages_cpp)
 ######################################################################
+
