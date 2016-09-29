@@ -181,7 +181,10 @@ set(LOCALIZATION_DIR ${PROJECT_DIRECTORY}/localization_node)
 include_directories(${LOCALIZATION_DIR}/include)
 set(LOCALIZATION_SRC_DIR ${LOCALIZATION_DIR}/src)
 # Add new source files to folder /src and add them here for compilation
-set(localization_SRC ${LOCALIZATION_SRC_DIR}/main_localization.cpp ${LOCALIZATION_SRC_DIR}/Angle.cpp ${LOCALIZATION_SRC_DIR}/Vec.cpp ${LOCALIZATION_SRC_DIR}/RLE.cpp ${LOCALIZATION_SRC_DIR}/ScanLines.cpp ${LOCALIZATION_SRC_DIR}/kmeans.cpp ${LOCALIZATION_SRC_DIR}/blackflydriver.cpp ${LOCALIZATION_SRC_DIR}/blackflycamera.cpp)
+set(localization_SRC ${LOCALIZATION_SRC_DIR}/main_localization.cpp ${LOCALIZATION_SRC_DIR}/Angle.cpp 
+${LOCALIZATION_SRC_DIR}/Vec.cpp ${LOCALIZATION_SRC_DIR}/RLE.cpp ${LOCALIZATION_SRC_DIR}/ScanLines.cpp 
+${LOCALIZATION_SRC_DIR}/kmeans.cpp ${LOCALIZATION_SRC_DIR}/blackflydriver.cpp 
+${LOCALIZATION_SRC_DIR}/blackflycamera.cpp ${LOCALIZATION_SRC_DIR}/imageprocessor.cpp)
 # Add new header files to folder /include and add them here for compilation
 set(localization_MOC_H ${LOCALIZATION_DIR}/include/blackflycamera.h ${LOCALIZATION_DIR}/include/blackflydriver.h)
 qt5_wrap_cpp(localization_CPP ${localization_MOC_H})

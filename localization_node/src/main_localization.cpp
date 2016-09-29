@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 
 
    /////////////////////// TEST
-   Mat test_image;
+   /*Mat test_image;
    test_image = imread("/home/pedro/catkin_ws/src/minho_team_ros/localization_node/config/sample.png");
    ros::Rate loop_rate(2);
    image_transport::ImageTransport it(localization_node);
@@ -53,10 +53,10 @@ int main(int argc, char **argv)
 	   ros::spinOnce();
 	   loop_rate.sleep();
 	}
-	   ///////////////////////
+	   ///////////////////////*/
 	
-	/*ros::AsyncSpinner spinner(2);
-	spinner.start();	*/
+	ros::AsyncSpinner spinner(2);
+	spinner.start();
 	return a.exec();
 	return 0;
 }
