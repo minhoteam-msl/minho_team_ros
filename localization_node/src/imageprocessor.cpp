@@ -180,6 +180,7 @@ void ImageProcessor::preProcessIdx()
     Point temp;
 
     // Pre process radial sensors
+    // TODO :: Find which is faster -> set or copy
     idxImage.setTo(0);
     int classifier = 0;
     for (unsigned k = 0 ; k < linesRad.scanlines.size() ; k++){
@@ -347,6 +348,7 @@ void ImageProcessor::paintPixel(int x, int y, int classifier,Mat *buf)
 }
 
 // Converts rgb struct into hsv values, returns hsv struct
+// TODO :: Rewrite this function
 hsv ImageProcessor::rgbtohsv(rgb in)
 {
     hsv temp;
@@ -538,12 +540,12 @@ void ImageProcessor::getSegmentedImage(Mat *buffer)
                     pixel[j][2] = 255;
                     pixel[j][1] = 0;
                     pixel[j][0] = 0;
-                }else if ( YUVLookUpTable[index] == UAV_BLACK_BIT)//se é obstaculo ou desconhecido
+                }else if ( YUVLookUpTable[index] == UAV_BLACK_BIT)//se é obstaculo
                 {
                     pixel[j][2] = 0;
                     pixel[j][1] = 0;
                     pixel[j][0] = 0;
-                }else if ( YUVLookUpTable[index] == UAV_NOCOLORS_BIT)//se é obstaculo ou desconhecido
+                }else if ( YUVLookUpTable[index] == UAV_NOCOLORS_BIT)//se é mascara ou desconhecido
                 {
                     pixel[j][2] = 127;
                     pixel[j][1] = 127;
@@ -642,9 +644,9 @@ bool ImageProcessor::readLookUpTable()
 // Writes new look up table configuration to vision.cfg file
 bool ImageProcessor::writeLookUpTable()
 {
-    QFile file("../Configs/vision.cfg");
+    QFile file(lutPath);
     if(!file.open(QIODevice::WriteOnly)){
-        cout << "Error Writing lut.cfg"<< endl;
+        ROS_ERROR("Error writing to %s.",lutFileName);
         return false;
     }
     QTextStream in(&file);
