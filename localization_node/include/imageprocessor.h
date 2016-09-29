@@ -70,7 +70,6 @@ public:
     bool initWorldMapping(); // Inits world mapping variables
     bool initializeBasics();
     QString getField();
-    float linearizeIMU(float imu);
     /* WORLD STATE INFORMATION Buffers */
     vector<Point3d> ballCandidates;
     vector<Point>linePoints;
@@ -109,13 +108,10 @@ private:
     ScanLines linesRad, linesCir;
     Mat idxImage;
     RLE rleBallRad,rleLinesRad,rleObs,rleBallCir,rleLinesCir;
-    vector<double> linImu,linTrue;
-    vector<double> m,b;
-
     //ConfigFiles strings
     QString field;
     QString agent;
-    QString visionParamsPath,maskPath,lutPath;
+    QString mirrorParamsPath, imageParamsPath ,maskPath,lutPath;
 };
 
 #endif // IMAGEPROCESSOR_H

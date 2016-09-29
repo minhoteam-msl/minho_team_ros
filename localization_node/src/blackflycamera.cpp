@@ -1,10 +1,9 @@
 #include "blackflycamera.h"
 
 // Constructor
-BlackFlyCamera::BlackFlyCamera(bool enableDEBUG)
+BlackFlyCamera::BlackFlyCamera()
 {
     newFrameAvailable = cameraReady = false; //Flags start as false
-    printDebug = enableDEBUG;
     frameBuffer = Mat(480,480,CV_8UC3,Scalar(0,0,0));
 }
 
@@ -14,7 +13,7 @@ bool BlackFlyCamera::startCamera()
     // Connect the camera
     error = camera.Connect(0);
     if ( error != PGRERROR_OK ) {
-        if(printDebug) cout << "GigE Connection failed (1)."<<endl;
+        ROS_ERROR("PGE GiGE Connection Failed (1).");
         cameraReady = false;
         return cameraReady;
     }
@@ -22,12 +21,13 @@ bool BlackFlyCamera::startCamera()
     // Get the camera info and print it out
     error = camera.GetCameraInfo( &camInfo );
     if ( error != PGRERROR_OK ) {
-        if(printDebug) cout << "GigE Connection failed (2)."<<endl;
-        cameraReady = false; return cameraReady;
+        ROS_ERROR("PGE GiGE Connection Failed (2).");
+        cameraReady = false; 
+        return cameraReady;
     }
 
     cameraReady = true;
-    if(printDebug) cout << "GigE Connection successful."<<endl;
+    ROS_INFO("PGE GigE Connection successful.");
     return cameraReady;
 }
 
@@ -37,7 +37,7 @@ void BlackFlyCamera::closeCamera()
     camera.StopCapture();
     camera.Disconnect();
     cameraReady = false;
-    if(printDebug) cout << "GigE Disconnection successful."<<endl;
+    ROS_INFO("PGE GigE Disconnection successful.");
 }
 
 //Starts image capture thread, returns true if successful
@@ -47,13 +47,13 @@ bool BlackFlyCamera::startImaging()
     else {
         error = camera.StartCapture();
         if ( error != PGRERROR_OK ) {
-            if(printDebug) cout << "GigE Imaging failed."<<endl;
+            ROS_ERROR("PGE GigE Imaging failed.");
             cameraReady = false; return cameraReady;
         }
     }
 
     cameraReady = true;
-    if(printDebug) cout << "GigE Imaging successful."<<endl;
+    ROS_INFO("PGE GigE Imaging successful.");
 
     /* Start imaging thread */
     driver = new BlackFlyDriver(&camera,&newFrameAvailable,&mymutex,&frameBuffer);
@@ -70,7 +70,8 @@ void BlackFlyCamera::printCameraInfo()
 {
     if(!cameraReady) return;
     else {
-        cout << "Camera ID: " << camInfo.modelName << " by " << camInfo.vendorName<<endl;
+        //cout << "Camera ID: " << camInfo.modelName << " by " << camInfo.vendorName<<endl;
+      ROS_INFO("Cam ID: %s | Vendor: %s", camInfo.modelName, camInfo.vendorName);
     }
 }
 

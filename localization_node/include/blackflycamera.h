@@ -17,7 +17,7 @@ class BlackFlyCamera:public QObject
 
 public:
     /* Image and class methods */
-    BlackFlyCamera(bool enableDEBUG);
+    BlackFlyCamera();
     bool startCamera(); //Starts camera connection
     void closeCamera(); //Closes camera connection and image capture thread
     bool startImaging(); //Starts image capture thread

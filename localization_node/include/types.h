@@ -8,14 +8,16 @@
 ############################################################################   
 */
 // DIRECTORY PATHS
-#define imgFolderPath "src/minho_team_ros/localization_node/config/Images/"
-#define mainFile "src/minho_team_ros/localization_node/config/main.cfg"
-#define configFolderPath "src/minho_team_ros/localization_node/config/"
+#define imgFolderPath "Images/"
+#define fieldsFolderPath "Fields/"
+#define configFolderPath "/catkin_ws/src/minho_team_ros/localization_node/config/"
 
 // FILE NAMES
-#define visParamsFileName "/visionparams.cfg"
-#define lutFileName "/vision.cfg"
-#define maskFileName "/mask.png"
+#define mirrorFileName "mirror.cfg"
+#define imageFileName "image.cfg"
+#define lutFileName "lut.cfg"
+#define maskFileName "mask.png"
+#define mainFileName "main.cfg"
 
 // LUT DEFINES
 #define LUT_SIZE 256*256*256

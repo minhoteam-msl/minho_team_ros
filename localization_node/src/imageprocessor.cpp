@@ -1,42 +1,42 @@
 #include "imageprocessor.h"
 
 //Constructor of the class
-ImageProcessor::ImageProcessor(bool begin)
+ImageProcessor::ImageProcessor(bool use_camera)
 {
     // Initialize GigE Camera Driver
-    topCam = new BlackFlyCamera(false); //TopCam Handler
+    topCam = new BlackFlyCamera(); //TopCam Handler
 
     // Initialize basic robot and field definitions
     if(!initializeBasics()){
-      ROS_ERROR("Error Reading main.cfg.");
+      ROS_ERROR("Error Reading %s.",mainFileName);
       exit(7);
     } else ROS_INFO("Reading information for %s.",agent.toStdString().c_str());
       
     // Assign mask image
     mask = imread(maskPath.toStdString());
     if(mask.empty()){
-        ROS_ERROR("Error Reading mask.png.");
+        ROS_ERROR("Error Reading %s.",maskFileName);
         exit(1);
-    }else ROS_INFO("mask.png Ready.");
+    }else ROS_INFO("%s Ready.", maskFileName);
 
     // Read color segmentation Look Up Table
     if(!readLookUpTable()){ // Read and Initialize Look Up Table
         memset(&YUVLookUpTable,UAV_NOCOLORS_BIT,LUT_SIZE);
-        ROS_ERROR("Error Reading vision.cfg.");
+        ROS_ERROR("Error Reading %s.",lutFileName);
         exit(2);
-    } else ROS_INFO("vision.cfg Ready.");
+    } else ROS_INFO("%s Ready.",lutFileName);
 
     // Initialize world mapping parameters
     if(!initWorldMapping()){ // Initialize World Mapping
-        ROS_ERROR("Error Reading visionparams.cfg.");
+        ROS_ERROR("Error Reading %s",mirrorFileName);
         exit(3);
-    } else ROS_INFO("visionparams.cfg Ready.");
+    } else ROS_INFO("%s Ready.",mirrorFileName);
 
     variablesInitialization(); // Initialize common Variables
     rleModInitialization(); // Initialize RLE mod data
 
     // Initialize GigE Camera Image Feed
-    if(begin){
+    if(use_camera){
         if(startCamera()) {
             startImaging();
         } else {
@@ -47,6 +47,7 @@ ImageProcessor::ImageProcessor(bool begin)
 }
 
 // Miscellaneous variables Initialization
+// TODO :: Use file for variables initialization
 void ImageProcessor::variablesInitialization()
 {
     robotHeight = 0.74;
@@ -61,35 +62,62 @@ void ImageProcessor::variablesInitialization()
 // World mapping configuration initialization, returns true if successfully initialized
 bool ImageProcessor::initWorldMapping()
 {
-    QFile file(visionParamsPath);
+    // Read mirror parameters
+    QFile file(mirrorParamsPath);
     if(!file.open(QIODevice::ReadOnly)) {
         return false;
     }
     QTextStream in(&file);
 
-    QString realDist = in.readLine(); // Read from file
+    QString realDist = in.readLine(); 
+    realDist = realDist.right(realDist.size()-realDist.indexOf('=')-1);
     QString mappDist = in.readLine();
+    mappDist = mappDist.right(mappDist.size()-mappDist.indexOf('=')-1);
+
 
     QStringList realDists = realDist.split(","); // Split
-    for(int i=0;i<realDists.size();i++)distReal.push_back(realDists[i].toDouble());
     QStringList mappedDists = mappDist.split(",");
+    if(realDists.size()!=mappedDists.size() || realDists.size()<=0 || realDists.size()<=0) {
+       ROS_ERROR("Bad Configuration in %s",mirrorFileName);
+       return false;
+    }
+    
+    for(int i=0;i<realDists.size();i++)distReal.push_back(realDists[i].toDouble());
     for(int i=0;i<mappedDists.size();i++)distPix.push_back(mappedDists[i].toDouble());
+    
+    file.close();
+    //
 
-    QString line = in.readLine();
-    QStringList values = line.split(",");
+    QFile file2(imageParamsPath);
+    if(!file.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+    QTextStream in2(&file);
+    
+    QString image_center = in2.readLine();
+    QStringList coords = image_center.split(",");
 
+    if(coords.size()!=2) {
+       ROS_ERROR("Bad Configuration (1) in %s",imageFileName);
+       return false;
+    }
+    
+    centerX = coords.at(0).toInt();
+    centerY = coords.at(1).toInt();
+    
     QStringList realBall = in.readLine().split(",");
-    for(int i=0;i<realBall.size();i++)ballReal.push_back(realBall[i].toDouble());
     QStringList pixBall = in.readLine().split(",");
+    if(realBall.size()!=pixBall.size() || pixBall.size()<=0 || realBall.size()<=0) {
+       ROS_ERROR("Bad Configuration (2) in %s",imageFileName);
+       return false;
+    }
+    
+    for(int i=0;i<realBall.size();i++)ballReal.push_back(realBall[i].toDouble());
     for(int i=0;i<pixBall.size();i++)ballPix.push_back(pixBall[i].toDouble());
 
-    if(values.size()!=2) {
-        return false;
-    }else {
-        centerX = values.at(0).toInt();
-        centerY = values.at(1).toInt();
-    }
-
+    file.close();
+    
+    // Initialize Distance look up table
     distLookUpTable.clear();
     distLookUpTable = vector<vector<Point2d> >(480*480,vector<Point2d>(0));
 
@@ -102,31 +130,15 @@ bool ImageProcessor::initWorldMapping()
             distLookUpTable[j].push_back(Point2d(dist,angulo));
         }
     }
-
-    line = in.readLine();
-    linImu.clear();
-    QStringList imuV = line.split(",");
-    for(int i=0;i<imuV.size();i++)
-        linImu.push_back(imuV.at(i).toInt());
-    line = in.readLine();
-    linTrue.clear();
-    QStringList imuT = line.split(",");
-    for(int i=0;i<imuT.size();i++)
-        linTrue.push_back(imuT.at(i).toInt());
-
-    m.resize(linTrue.size()); b.resize(linTrue.size());
-
-    for(unsigned int i=0;i<m.size()-1;i++){
-        m.at(i) = (linTrue.at(i+1)-linTrue.at(i))/(linImu.at(i+1)-linImu.at(i));
-        b.at(i) = linTrue.at(i)-m.at(i)*linImu.at(i);
-    }
-
-    file.close();
     return true;
 }
 
 bool ImageProcessor::initializeBasics()
 {
+    QString home = QString::fromStdString(getenv("HOME"));
+    QString cfgDir = home+QString(configFolderPath);
+    QString mainFile = cfgDir+"/"+QString(mainFileName);
+    
     QFile file(mainFile);
     if(!file.open(QIODevice::ReadOnly)) {
         return false;
@@ -135,11 +147,14 @@ bool ImageProcessor::initializeBasics()
 
     agent = in.readLine();
     field = in.readLine();
-
-    visionParamsPath = QString(configFolderPath)+agent+QString(visParamsFileName);
-    lutPath = QString(configFolderPath)+agent+QString(lutFileName);
-    maskPath = QString(configFolderPath)+agent+QString(maskFileName);
-
+    
+    mirrorParamsPath = cfgDir+agent+"/"+QString(mirrorFileName);
+    imageParamsPath = cfgDir+agent+"/"+QString(imageFileName);
+    lutPath = cfgDir+agent+"/"+QString(lutFileName);
+    maskPath = cfgDir+agent+"/"+QString(maskFileName);
+   
+    ROS_INFO("Looking for config files in %s",cfgDir.toStdString().c_str());
+    
     file.close();
     return true;
 }
@@ -147,19 +162,6 @@ bool ImageProcessor::initializeBasics()
 QString ImageProcessor::getField()
 {
     return field;
-}
-
-float ImageProcessor::linearizeIMU(float imu)
-{
-    if(imu>0.0 && imu<=105.0) {
-        return imu*0.857143+0;
-    }else if(imu>105 && imu<=205) {
-        return imu*0.9-4.5;
-    }else if(imu>205 && imu<=280) {
-        return imu*1.2-66;
-    }else if(imu>280 && imu<=360) {
-       return imu*1.125-45;
-    }else return 0;
 }
 
 // Initializes data to perform RLE analysis
@@ -401,22 +403,22 @@ void ImageProcessor::printClassifier(int classifier)
     QString name = "";
     switch(classifier){
         case UAV_NOCOLORS_BIT:{
-            name = "mask or unknown";
+            name = "Mask or Unknown";
             break;
         }
         case UAV_WHITE_BIT:{
-            name = "line";
+            name = "Line";
             break;
         }
         case UAV_GREEN_BIT:{
-            name = "field";
+            name = "Field";
             break;
         }
         case UAV_BLACK_BIT:{
-            name = "obstacle";
+            name = "Obstacle";
             break;
         }case UAV_ORANGE_BIT:{
-            name = "ball";
+            name = "Ball";
             break;
         }
     }

@@ -9,6 +9,7 @@
 #include <QMutex>
 #include <QTimer>
 #include <QTime>
+#include "ros/ros.h"
 
 /* This class implements the driver of PGE BlackFly with QThreads
  * This code was made by Pedro Osório Silva @ MinhoTeam
