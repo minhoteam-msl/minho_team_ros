@@ -4,8 +4,7 @@
 #include <QCoreApplication>
 #include "minho_team_ros/hardwareInfo.h"
 #include "minho_team_ros/robotInfo.h"
-#include "imageprocessor.h"
-#include "configserver.h"
+#include "localization.h"
 
 using namespace ros;
 using namespace cv;
@@ -13,7 +12,7 @@ using minho_team_ros::hardwareInfo; //Namespace for hardware information msg - S
 using minho_team_ros::robotInfo; //Namespace for vision information msg - PUBLISHING
 
 //Node specific objects
-ImageProcessor *img_processor;
+Localization *localization;
 int main(int argc, char **argv)
 {
 	QCoreApplication a(argc, argv);
@@ -22,17 +21,15 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "localization_node",ros::init_options::NoSigintHandler);
 	//Request node handler
 	ros::NodeHandle localization_node;
-	//Initialize hardwareInfo publisher
-	ros::Publisher robot_info_pub = localization_node.advertise<robotInfo>("robotInfo", 1000);
-	//Initialize controlInfo subscriber
-	/*ros::Subscriber hardware_info_sub = localization_node.subscribe("hardwareInfo", 
-	                                                            1000, 
-	                                                            &CLASS::CALLBACK
-	                                                            CLASS);*/
-	ROS_WARN("MinhoTeam localization_node started running on ROS.");
-   configServer cfgsrv(&localization_node);
+	
+	localization = new Localization(&localization_node);
 
-   
+	ros::Publisher robot_info_pub = localization_node.advertise<robotInfo>("robotInfo", 1000);
+	ros::Subscriber hardware_info_sub = localization_node.subscribe("hardwareInfo", 
+	                                                            1000, 
+	                                                            &Localization::hardwareCallback
+	                                                            ,localization);
+	ROS_WARN("MinhoTeam localization_node started running on ROS.");
 	
 	ros::AsyncSpinner spinner(2);
 	spinner.start();

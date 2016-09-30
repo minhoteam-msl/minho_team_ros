@@ -185,9 +185,9 @@ set(localization_SRC ${LOCALIZATION_SRC_DIR}/main_localization.cpp ${LOCALIZATIO
 ${LOCALIZATION_SRC_DIR}/Vec.cpp ${LOCALIZATION_SRC_DIR}/RLE.cpp ${LOCALIZATION_SRC_DIR}/ScanLines.cpp 
 ${LOCALIZATION_SRC_DIR}/kmeans.cpp ${LOCALIZATION_SRC_DIR}/blackflydriver.cpp 
 ${LOCALIZATION_SRC_DIR}/blackflycamera.cpp ${LOCALIZATION_SRC_DIR}/imageprocessor.cpp
-${LOCALIZATION_SRC_DIR}/configserver.cpp )
+${LOCALIZATION_SRC_DIR}/configserver.cpp ${LOCALIZATION_SRC_DIR}/localization.cpp)
 # Add new header files to folder /include and add them here for compilation
-set(localization_MOC_H ${LOCALIZATION_DIR}/include/blackflycamera.h ${LOCALIZATION_DIR}/include/blackflydriver.h ${LOCALIZATION_DIR}/include/configserver.h)
+set(localization_MOC_H ${LOCALIZATION_DIR}/include/blackflycamera.h ${LOCALIZATION_DIR}/include/blackflydriver.h ${LOCALIZATION_DIR}/include/configserver.h ${LOCALIZATION_DIR}/include/localization.h)
 qt5_wrap_cpp(localization_CPP ${localization_MOC_H})
 add_executable(localization_node ${localization_SRC} ${localization_CPP})
 set_target_properties(localization_node PROPERTIES COMPILE_FLAGS "-fPIC")

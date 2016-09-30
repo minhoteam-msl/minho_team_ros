@@ -19,12 +19,12 @@ using minho_team_ros::imgRequest;
 
 using namespace cv;
 using namespace std;
-class configServer : public QObject
+class ConfigServer : public QObject
 {
    Q_OBJECT
 public:
-   explicit configServer(ros::NodeHandle *par, QObject *parent = 0); // Constructor
-   ~configServer();
+   explicit ConfigServer(ros::NodeHandle *par, QObject *parent = 0); // Constructor
+   ~ConfigServer();
    void assignImage(Mat *source);
 private:
    // VARIABLES
