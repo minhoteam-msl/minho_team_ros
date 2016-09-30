@@ -5,7 +5,7 @@
 #include "minho_team_ros/hardwareInfo.h"
 #include "minho_team_ros/robotInfo.h"
 #include "imageprocessor.h"
-
+#include "configserver.h"
 
 using namespace ros;
 using namespace cv;
@@ -18,7 +18,6 @@ int main(int argc, char **argv)
 {
 	QCoreApplication a(argc, argv);
 	ROS_WARN("Attempting to start GigE Vision services of localization_node.");
-   img_processor = new ImageProcessor(false); // -> false : dont init camera
 	//Initialize ROS
 	ros::init(argc, argv, "localization_node",ros::init_options::NoSigintHandler);
 	//Request node handler
@@ -31,7 +30,9 @@ int main(int argc, char **argv)
 	                                                            &CLASS::CALLBACK
 	                                                            CLASS);*/
 	ROS_WARN("MinhoTeam localization_node started running on ROS.");
+   configServer cfgsrv(&localization_node);
 
+   
 	
 	ros::AsyncSpinner spinner(2);
 	spinner.start();
