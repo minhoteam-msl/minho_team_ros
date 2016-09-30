@@ -6,7 +6,7 @@ Localization::Localization(ros::NodeHandle *par , QObject *parent) : QObject(par
    
    //#### Initialize major components ####
    //##################################### 
-   processor = new ImageProcessor(false); 
+   //processor = new ImageProcessor(false); 
    confserver = new ConfigServer(par); 
    //##################################### 
    
@@ -14,7 +14,14 @@ Localization::Localization(ros::NodeHandle *par , QObject *parent) : QObject(par
    //##################################### 
    connect(confserver,SIGNAL(stopImageAssigning()),this,SLOT(stopImageAssigning()));
    connect(confserver,SIGNAL(changedImageRequest(uint8_t)),this,SLOT(changeImageAssigning(uint8_t)));
-   //#####################################   
+   //#####################################
+   
+   
+   //Test
+   test_image = imread(QString(imgFolderPath+"1.png").toStdString());
+   test = new QTimer();
+   connect(test,SIGNAL(timeout()),this,SLOT(testfunc()));
+   test->start(30);
 }
 
 Localization::~Localization()
@@ -25,6 +32,10 @@ Localization::~Localization()
 void Localization::initVariables()
 {
    qRegisterMetaType<uint8_t>("uint8_t");
+   QString home = QString::fromStdString(getenv("HOME"));
+   QString cfgDir = home+QString(configFolderPath);
+   imgFolderPath = cfgDir+QString(imageFolderPath);
+   
    assigning_images = false;   
 }
 
@@ -41,4 +52,11 @@ void Localization::changeImageAssigning(uint8_t type)
 
 void Localization::hardwareCallback(const hardwareInfo::ConstPtr &msg)
 {
+}
+
+void Localization::testfunc()
+{
+   if(assigning_images){
+      confserver->assignImage(&test_image);   
+   }
 }

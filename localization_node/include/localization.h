@@ -26,12 +26,17 @@ private:
    //Confserver variables
    bool assigning_images;
    uint8_t assigning_type;
+   QString imgFolderPath;
+   //Test
+   Mat test_image;
+   QTimer *test;
 private slots:
    void initVariables();
    void stopImageAssigning();
    void changeImageAssigning(uint8_t type);
 public slots:
    void hardwareCallback(const hardwareInfo::ConstPtr &msg);
+   void testfunc();
 };
 
 #endif // LOCALIZATION_H

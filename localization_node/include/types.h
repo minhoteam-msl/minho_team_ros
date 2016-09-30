@@ -8,7 +8,7 @@
 ############################################################################   
 */
 // DIRECTORY PATHS
-#define imgFolderPath "Images/"
+#define imageFolderPath "Images/"
 #define fieldsFolderPath "Fields/"
 #define configFolderPath "/catkin_ws/src/minho_team_ros/localization_node/config/"
 
