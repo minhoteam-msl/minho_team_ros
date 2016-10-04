@@ -58,6 +58,9 @@ add_message_files(
       teleop.msg
       hardwareInfo.msg
       imgRequest.msg
+      range.msg
+      label.msg
+      visionHSVConfig.msg
 )
 
 ## Generate services in the 'srv' folder
