@@ -22,15 +22,13 @@ public:
 
     /* Detection Functions */
     void detectInterestPoints(); // Detects linePoints, ballPoints and obstaclePoints
-    bool ballMorphology(double dist, double rads); // Error between calibrated radius vs given radius for distance dist
-    bool lineWidthMatches(int width, double dist); // Same as ballMorphology but for lines
     void detectBallPosition(); // Given the detected ballRLE find the optimal candidate
 
     /* Image Output Functions */
     Mat *getImage(bool *success); // Returns camera image pointer
     Mat *getOriginal(); // Returns original (clean camera image) pointer
     Mat *readStaticImage(); // RetuFucksrns image read from static system path
-    void getBinary(Mat *in, int ymin, int ymax, int umin, int umax, int vmin, int vmax); // Returns thresholded HSV image
+    void getBinary(Mat *in,  labelConfiguration labelconf); // Returns thresholded HSV image
     void getSegmentedImage(Mat *buffer); // Returns buffer's segmented image
     void paintPixel(int x, int y, int classifier, Mat *buf); // Paints a certain pixel in the image
     hsv rgbtohsv(rgb in); // Converts rgb to hsv
@@ -49,8 +47,8 @@ public:
     bool writeLookUpTable(); // Writes look up table to file
     void resetLookUpTable(); // Resets defined look up table
     void generateLookUpTable(int values[4][3][2]); // Generates look up table based on values' ranges
+    
     int getClassifier(int x,int y); // Returns classifier given a pixel and LUT configuration
-    void printClassifier(int classifier); // Prints in stdout the name of the classifier
 
     /* Camera-Robot Information */
     void setCenter(int x,int y); // Sets robot center
@@ -65,9 +63,9 @@ public:
     Point2d worldMapping(Point p); // Maps point to world (world dist, angle)
 
     /* Initializations */
-    void searchPointsInitialization(); // Inits search sensors
     void variablesInitialization(); // Inits other variables
     bool initWorldMapping(); // Inits world mapping variables
+    bool writeMirrorConfig();
     bool initializeBasics();
     QString getField();
     /* WORLD STATE INFORMATION Buffers */
@@ -76,10 +74,11 @@ public:
     vector<Point>obstaclePoints;
     vector<Point>ballCentroids;
     vector<Point>ballPoints;
+    
 private:
     /*Image Containers */
     Mat *processed, *buffer;
-    Mat original, balls, mask,staticImg;
+    Mat original, balls, mask, staticImg;
 
     /* Camera Driver */
     BlackFlyCamera *topCam;
@@ -87,11 +86,12 @@ private:
 
     /* Other Variables and Lut Variables*/
     int YUVLookUpTable[256*256*256];
-
+    lutConfiguration lutconfig;
+    
     /* Vision Variables */
     Mat element;
     double sizeRelThreshold, piThreshold;
-    double MAX_DISTANCE;
+    double MAX_DISTANCE,STEP;
     QString staticImgPath;
 
     /* World Mapping */
@@ -108,6 +108,7 @@ private:
     ScanLines linesRad, linesCir;
     Mat idxImage;
     RLE rleBallRad,rleLinesRad,rleObs,rleBallCir,rleLinesCir;
+    
     //ConfigFiles strings
     QString field;
     QString agent;

@@ -4,7 +4,7 @@
 ImageProcessor::ImageProcessor(bool use_camera)
 {
     // Initialize GigE Camera Driver
-    topCam = new BlackFlyCamera(); //TopCam Handler
+    //topCam = new BlackFlyCamera(); //TopCam Handler
 
     // Initialize basic robot and field definitions
     if(!initializeBasics()){
@@ -28,10 +28,11 @@ ImageProcessor::ImageProcessor(bool use_camera)
 
     // Initialize world mapping parameters
     if(!initWorldMapping()){ // Initialize World Mapping
-        ROS_ERROR("Error Reading %s",mirrorFileName);
+        ROS_ERROR("Error Reading World mapping configurations");
         exit(3);
-    } else ROS_INFO("%s Ready.",mirrorFileName);
-
+    } else ROS_INFO("World mapping configurations Ready.");
+    writeMirrorConfig();
+   
     variablesInitialization(); // Initialize common Variables
     rleModInitialization(); // Initialize RLE mod data
 
@@ -53,7 +54,6 @@ void ImageProcessor::variablesInitialization()
     robotHeight = 0.74;
     processed = new Mat(480,480,CV_8UC3,Scalar(0,0,0));
     double morph_size = 1.5;
-    MAX_DISTANCE = 6.0;
     element = getStructuringElement(2, Size( 2*morph_size + 1, 2*morph_size+1 ), Point( morph_size, morph_size ) );
     sizeRelThreshold = 0.65;
     piThreshold = 0.6;
@@ -69,34 +69,39 @@ bool ImageProcessor::initWorldMapping()
     }
     QTextStream in(&file);
 
-    QString realDist = in.readLine(); 
-    realDist = realDist.right(realDist.size()-realDist.indexOf('=')-1);
-    QString mappDist = in.readLine();
-    mappDist = mappDist.right(mappDist.size()-mappDist.indexOf('=')-1);
+    QString max_distance = in.readLine(); 
+    QString step = in.readLine(); 
+    QString pixel_distances = in.readLine(); 
+    max_distance = max_distance.right(max_distance.size()-max_distance.indexOf('=')-1);
+    step = step.right(step.size()-step.indexOf('=')-1);
+    pixel_distances = pixel_distances.right(pixel_distances.size()-pixel_distances.indexOf('=')-1);
 
 
-    QStringList realDists = realDist.split(","); // Split
-    QStringList mappedDists = mappDist.split(",");
-    if(realDists.size()!=mappedDists.size() || realDists.size()<=0 || realDists.size()<=0) {
+    float _max_distance = max_distance.toFloat();
+    float _step = step.toFloat();
+    int expected_args = (int)(_max_distance/_step);
+    QStringList mappedDists = pixel_distances.split(",");
+    
+    if(expected_args!=mappedDists.size() || expected_args<=0 || mappedDists.size()<=0) {
        ROS_ERROR("Bad Configuration in %s",mirrorFileName);
        return false;
     }
     
-    for(int i=0;i<realDists.size();i++)distReal.push_back(realDists[i].toDouble());
-    for(int i=0;i<mappedDists.size();i++)distPix.push_back(mappedDists[i].toDouble());
+    for(float dist=_step;dist<=_max_distance;dist+=_step) distReal.push_back(dist);
+    for(int i=0;i<mappedDists.size();i++) distPix.push_back(mappedDists[i].toDouble());
     
     file.close();
     //
 
     QFile file2(imageParamsPath);
-    if(!file.open(QIODevice::ReadOnly)) {
+    if(!file2.open(QIODevice::ReadOnly)) {
         return false;
     }
-    QTextStream in2(&file);
+    QTextStream in2(&file2);
     
     QString image_center = in2.readLine();
     QStringList coords = image_center.split(",");
-
+    
     if(coords.size()!=2) {
        ROS_ERROR("Bad Configuration (1) in %s",imageFileName);
        return false;
@@ -105,8 +110,8 @@ bool ImageProcessor::initWorldMapping()
     centerX = coords.at(0).toInt();
     centerY = coords.at(1).toInt();
     
-    QStringList realBall = in.readLine().split(",");
-    QStringList pixBall = in.readLine().split(",");
+    QStringList realBall = in2.readLine().split(",");
+    QStringList pixBall = in2.readLine().split(",");
     if(realBall.size()!=pixBall.size() || pixBall.size()<=0 || realBall.size()<=0) {
        ROS_ERROR("Bad Configuration (2) in %s",imageFileName);
        return false;
@@ -115,7 +120,7 @@ bool ImageProcessor::initWorldMapping()
     for(int i=0;i<realBall.size();i++)ballReal.push_back(realBall[i].toDouble());
     for(int i=0;i<pixBall.size();i++)ballPix.push_back(pixBall[i].toDouble());
 
-    file.close();
+    file2.close();
     
     // Initialize Distance look up table
     distLookUpTable.clear();
@@ -130,6 +135,9 @@ bool ImageProcessor::initWorldMapping()
             distLookUpTable[j].push_back(Point2d(dist,angulo));
         }
     }
+    
+    MAX_DISTANCE = _max_distance;
+    STEP = _step;
     return true;
 }
 
@@ -182,15 +190,12 @@ void ImageProcessor::preProcessIdx()
     // Pre process radial sensors
     // TODO :: Find which is faster -> set or copy
     idxImage.setTo(0);
-    int classifier = 0;
     for (unsigned k = 0 ; k < linesRad.scanlines.size() ; k++){
         s = linesRad.getLine(k);
         for(unsigned i = 0; i < s.size(); i++)
         {
             temp = linesRad.getPointXYFromInteger(s[i]);
-            classifier = getClassifier(temp.x,temp.y);
-            idxImage.ptr()[s[i]] = classifier;
-
+            idxImage.ptr()[s[i]] = getClassifier(temp.x,temp.y);
         }
     }
 
@@ -200,9 +205,7 @@ void ImageProcessor::preProcessIdx()
         for(unsigned i = 0; i < s.size(); i++)
         {
             temp = linesCir.getPointXYFromInteger(s[i]);
-            classifier = getClassifier(temp.x,temp.y);
-            idxImage.ptr()[s[i]] = classifier;
-
+            idxImage.ptr()[s[i]] = getClassifier(temp.x,temp.y);
         }
     }
 
@@ -247,6 +250,7 @@ double ImageProcessor::d2pWorld(int pixeis)
         return -1;
     }
     else return distReal[index-1]+(((pixeis-distPix[index-1])*(distReal[index]-distReal[index-1]))/(distPix[index]-distPix[index-1]));
+    
 }
 
 // Maps a point (pixel) to world values, returning world distance and angle
@@ -303,21 +307,6 @@ void ImageProcessor::detectBallPosition()
             }
         }
     }
-}
-
-// Returns if the distance vs size of a ball candidate is valid or not
-bool ImageProcessor::ballMorphology(double dist, double rads)
-{
-    if(rads>26|| dist> 3.0 || rads<=4) return false;
-    if(dist<0.45) return true;
-    unsigned int index = 0;
-    while(dist>ballReal[index] && index<(ballReal.size()-1))index++;
-    double expected = 0.0;
-    if(index==0) expected = 26+(((dist-0.3)*(ballPix[index]-26))/(ballReal[index]-0.3));
-    else expected = ballPix[index-1]+(((dist-ballReal[index-1])*(ballPix[index]-ballPix[index-1]))/(ballReal[index]-ballReal[index-1]));
-    double error = abs(expected-rads);
-    if((error/expected)<=0.8) return true;
-    else return false;
 }
 
 // Paints a pixel accordingly to its classifier
@@ -399,35 +388,6 @@ int ImageProcessor::getClassifier(int x, int y)
     return YUVLookUpTable[index];
 }
 
-// Prints the name of a classifier
-void ImageProcessor::printClassifier(int classifier)
-{
-    QString name = "";
-    switch(classifier){
-        case UAV_NOCOLORS_BIT:{
-            name = "Mask or Unknown";
-            break;
-        }
-        case UAV_WHITE_BIT:{
-            name = "Line";
-            break;
-        }
-        case UAV_GREEN_BIT:{
-            name = "Field";
-            break;
-        }
-        case UAV_BLACK_BIT:{
-            name = "Obstacle";
-            break;
-        }case UAV_ORANGE_BIT:{
-            name = "Ball";
-            break;
-        }
-    }
-
-    cout << name.toStdString() << endl;
-}
-
 // Sets the center of the image (preferably, 240x240)
 void ImageProcessor::setCenter(int x, int y)
 {
@@ -481,7 +441,7 @@ Mat *ImageProcessor::getImage(bool *success)
 }
 
 // Returns binary image of the buffer, given YUV(or HSV) ranges
-void ImageProcessor::getBinary(Mat *in,int ymin,int ymax, int umin, int umax, int vmin, int vmax)
+void ImageProcessor::getBinary(Mat *in, labelConfiguration labelconf)
 {
     //Returns binary representation of a certain range
     Vec3b *pixel; // iterator to run through captured image
@@ -493,7 +453,7 @@ void ImageProcessor::getBinary(Mat *in,int ymin,int ymax, int umin, int umax, in
             pix.r = pixel[j][2]; pix.g = pixel[j][1]; pix.b = pixel[j][0];
             pix2 = rgbtohsv(pix);
 
-            if((pix2.h>=ymin)&&(pix2.h<=ymax) && (pix2.s>=umin)&&(pix2.s<=umax) && (pix2.v>=vmin)&&(pix2.v<=vmax))
+            if((pix2.h>=labelconf.lb_calib[0][0])&&(pix2.h<=labelconf.lb_calib[0][1]) && (pix2.s>=labelconf.lb_calib[1][0])&&(pix2.s<=labelconf.lb_calib[1][1]) && (pix2.v>=labelconf.lb_calib[2][0])&&(pix2.v<=labelconf.lb_calib[2][1]))
             {
                 pixel[j][2] = 255;
                 pixel[j][1] = 255;
@@ -623,22 +583,45 @@ bool ImageProcessor::readLookUpTable()
         return false;
     }
     QTextStream in(&file);
+    memset(&YUVLookUpTable,UAV_NOCOLORS_BIT,LUT_SIZE);
+    
+    QString line;
+    while(!in.atEnd()){
+      line = in.readLine();
+      if(line[0]=='#') continue;
+      else {
+         if(line[0]=='['){ // Process single color configuration
+            ;
+         } else { // Process range color configuration
+            QString label_name = line.left(line.indexOf("["));
+            QString temp = line.left(line.indexOf("]"));
+            int classifier = temp.right(temp.size()-temp.indexOf('[')-1).toInt();
+            QStringList values = line.right(line.size()-line.indexOf('=')-1).split(",");
 
-    QString line = in.readLine();
-    QStringList values = line.split(",");
-
-    /* 255*255*255 values */
-    if(values.size()!=LUT_SIZE) {
-        return false;
+            if(values.size()!=6) { 
+               ROS_ERROR("Bad Configuration (1) in %s",lutFileName); return false; 
+            }
+            
+            LABEL_t label;
+            if(label_name=="FIELD"){
+               label = FIELD;      
+            } else if(label_name=="LINE"){
+               label = LINE;
+            } else if(label_name=="BALL"){
+               label = BALL;
+            } else if(label_name=="OBSTACLE"){
+               label = OBSTACLE;
+            } else { ROS_ERROR("Bad Configuration (2) in %s",lutFileName); return false; }
+            
+            lutconfig.lut_calib[label].lb_calib[H][MIN] = values[0].toInt();
+            lutconfig.lut_calib[label].lb_calib[H][MAX] = values[1].toInt();
+            lutconfig.lut_calib[label].lb_calib[S][MIN] = values[2].toInt();
+            lutconfig.lut_calib[label].lb_calib[S][MAX] = values[3].toInt();
+            lutconfig.lut_calib[label].lb_calib[V][MIN] = values[4].toInt();
+            lutconfig.lut_calib[label].lb_calib[V][MAX] = values[5].toInt();
+         }
+      }
     }
-    int val = UAV_NOCOLORS_BIT;
-    for(int value = 0;value<LUT_SIZE;value++){
-        val = values.at(value).toInt();
-        YUVLookUpTable[value] = val;
-    }
-
-    file.close();
-    return true;
 }
 
 // Writes new look up table configuration to vision.cfg file
@@ -650,26 +633,52 @@ bool ImageProcessor::writeLookUpTable()
         return false;
     }
     QTextStream in(&file);
-
-    /* 255*255*255 values */
-    QString toWrite = "";
-    int counter = 0;
-    for(int value = 0;value<LUT_SIZE;value++){
-        if(value==LUT_SIZE-1){
-            toWrite = QString::number(YUVLookUpTable[value]);
-            counter++;
-        } else {
-            toWrite = QString::number(YUVLookUpTable[value])+",";
-            counter+=2;
-        }
-        in << toWrite;
-        toWrite.clear();
-    }
-    in << "\n";
-    /* write distances */
-
+    
+    in << "FIELD[1]=" 
+    << lutconfig.lut_calib[FIELD].lb_calib[H][MIN] << "," << lutconfig.lut_calib[FIELD].lb_calib[H][MAX] << "," 
+    << lutconfig.lut_calib[FIELD].lb_calib[S][MIN] << "," << lutconfig.lut_calib[FIELD].lb_calib[S][MAX] << "," 
+    << lutconfig.lut_calib[FIELD].lb_calib[V][MIN] << "," << lutconfig.lut_calib[FIELD].lb_calib[V][MAX] << "\n";
+    in << "LINE[2]=" 
+    << lutconfig.lut_calib[LINE].lb_calib[H][MIN] << "," << lutconfig.lut_calib[LINE].lb_calib[H][MAX] << "," 
+    << lutconfig.lut_calib[LINE].lb_calib[S][MIN] << "," << lutconfig.lut_calib[LINE].lb_calib[S][MAX] << "," 
+    << lutconfig.lut_calib[LINE].lb_calib[V][MIN] << "," << lutconfig.lut_calib[LINE].lb_calib[V][MAX] << "\n";
+    in << "BALL[4]=" 
+    << lutconfig.lut_calib[BALL].lb_calib[H][MIN] << "," << lutconfig.lut_calib[BALL].lb_calib[H][MAX] << "," 
+    << lutconfig.lut_calib[BALL].lb_calib[S][MIN] << "," << lutconfig.lut_calib[BALL].lb_calib[S][MAX] << "," 
+    << lutconfig.lut_calib[BALL].lb_calib[V][MIN] << "," << lutconfig.lut_calib[BALL].lb_calib[V][MAX] << "\n";
+    in << "OBSTACLE[8]=" 
+    << lutconfig.lut_calib[OBSTACLE].lb_calib[H][MIN] << "," << lutconfig.lut_calib[OBSTACLE].lb_calib[H][MAX] << "," 
+    << lutconfig.lut_calib[OBSTACLE].lb_calib[S][MIN] << "," << lutconfig.lut_calib[OBSTACLE].lb_calib[S][MAX] << "," 
+    << lutconfig.lut_calib[OBSTACLE].lb_calib[V][MIN] << "," << lutconfig.lut_calib[OBSTACLE].lb_calib[V][MAX] << "\n";
+    
+    QString message = QString("#NAME[CLASSIFIER]=HMIN,HMAX,SMIN,SMAX,VMIN,VMAX\r\n")+
+                      QString("#[R,G,B]=CLASSIFIER\r\n")+
+                      QString("#DONT CHANGE THE ORDER OF THE CONFIGURATIONS");
+    in << message;                   
     file.close();
     return true;
+}
+
+bool ImageProcessor::writeMirrorConfig()
+{
+   QFile file(mirrorParamsPath);
+    if(!file.open(QIODevice::WriteOnly)){
+        ROS_ERROR("Error writing to %s.",mirrorFileName);
+        return false;
+    }
+    QTextStream in(&file);
+    
+    in<<"MAX_DISTANCE="<<MAX_DISTANCE<<"\r\n";
+    in<<"STEP="<<STEP<<"\r\n";
+    QString dists = "";
+    for(unsigned int i=0;i<distPix.size();i++)dists+=QString::number(distPix[i])+QString(",");
+    dists = dists.left(dists.size()-1);
+    in<<"PIXEL_DISTANCES="<<dists<<"\r\n";
+    
+    QString message = QString("#DONT CHANGE THE ORDER OF THE CONFIGURATIONS");
+    in << message;                   
+    file.close();
+    return true;   
 }
 
 // Resets the look up table (puts everything to zero)

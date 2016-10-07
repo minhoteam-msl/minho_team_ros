@@ -6,7 +6,7 @@ Localization::Localization(ros::NodeHandle *par , QObject *parent) : QObject(par
    
    //#### Initialize major components ####
    //##################################### 
-   //processor = new ImageProcessor(false); 
+   processor = new ImageProcessor(false); 
    confserver = new ConfigServer(par); 
    //##################################### 
    
