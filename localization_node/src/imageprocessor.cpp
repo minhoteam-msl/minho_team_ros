@@ -31,7 +31,6 @@ ImageProcessor::ImageProcessor(bool use_camera)
         ROS_ERROR("Error Reading World mapping configurations");
         exit(3);
     } else ROS_INFO("World mapping configurations Ready.");
-    writeMirrorConfig();
    
     variablesInitialization(); // Initialize common Variables
     rleModInitialization(); // Initialize RLE mod data
@@ -89,6 +88,9 @@ bool ImageProcessor::initWorldMapping()
     
     for(float dist=_step;dist<=_max_distance;dist+=_step) distReal.push_back(dist);
     for(int i=0;i<mappedDists.size();i++) distPix.push_back(mappedDists[i].toDouble());
+        
+    MAX_DISTANCE = _max_distance;
+    STEP = _step;
     
     file.close();
     //
@@ -122,22 +124,7 @@ bool ImageProcessor::initWorldMapping()
 
     file2.close();
     
-    // Initialize Distance look up table
-    distLookUpTable.clear();
-    distLookUpTable = vector<vector<Point2d> >(480*480,vector<Point2d>(0));
-
-    for(int i=0; i<=480; i++){ // columns
-        for(int j=0; j<=480; j++){ // rows
-            double dist = d2pWorld(d2p(Point(centerX,centerY),Point(j,i)));
-            double angulo = (atan2((j-centerX),(i-centerY))*(180.0/M_PI))-45;
-            while(angulo<0.0)angulo+=360.0;
-            while(angulo>360.0)angulo-=360.0;
-            distLookUpTable[j].push_back(Point2d(dist,angulo));
-        }
-    }
-    
-    MAX_DISTANCE = _max_distance;
-    STEP = _step;
+    generateMirrorConfiguration();
     return true;
 }
 
@@ -260,6 +247,33 @@ Point2d ImageProcessor::worldMapping(Point p)
     return Point2d(distLookUpTable[p.x][p.y].x,distLookUpTable[p.x][p.y].y);
 }
 
+void ImageProcessor::generateMirrorConfiguration()
+{
+   // Initialize Distance look up table
+    distLookUpTable.clear();
+    distLookUpTable = vector<vector<Point2d> >(480*480,vector<Point2d>(0));
+
+    for(int i=0; i<=480; i++){ // columns
+        for(int j=0; j<=480; j++){ // rows
+            double dist = d2pWorld(d2p(Point(centerX,centerY),Point(j,i)));
+            double angulo = (atan2((j-centerX),(i-centerY))*(180.0/M_PI))-45;
+            while(angulo<0.0)angulo+=360.0;
+            while(angulo>360.0)angulo-=360.0;
+            distLookUpTable[j].push_back(Point2d(dist,angulo));
+        }
+    }   
+}
+
+void ImageProcessor::updateDists(double max, double step, vector<short unsigned int>pix_dists)
+{
+   distReal.clear(); distPix.clear();
+   for(float dist=step;dist<=max;dist+=step) distReal.push_back(dist);
+   for(int i=0;i<pix_dists.size();i++) distPix.push_back((double)pix_dists[i]);
+        
+   MAX_DISTANCE = max;
+   STEP = step;      
+}
+    
 // Detects ball position based on ball points or image segmentation
 void ImageProcessor::detectBallPosition()
 {
@@ -622,6 +636,8 @@ bool ImageProcessor::readLookUpTable()
          }
       }
     }
+    
+    generateLookUpTable();
 }
 
 // Writes new look up table configuration to vision.cfg file
@@ -688,7 +704,7 @@ void ImageProcessor::resetLookUpTable()
 }
 
 // Generates new look up table given the ranges in values
-void ImageProcessor::generateLookUpTable(int values[4][3][2])
+void ImageProcessor::generateLookUpTable()
 {
     int y,u,v;
     unsigned int index;
@@ -702,18 +718,27 @@ void ImageProcessor::generateLookUpTable(int values[4][3][2])
                 //-- initialize on update --
                 YUVLookUpTable[index] = UAV_NOCOLORS_BIT;
                 //-- Reference Colour range --
-                if (((y>=values[1][0][0]) && (y<=values[1][0][1])) && ((u>=values[1][1][0]) && (u<=values[1][1][1])) &&
-                        ((v>=values[1][2][0]) && (v<=values[1][2][1]))){
+                if (((y>=lutconfig.lut_calib[LINE].lb_calib[H][MIN]) && (y<=lutconfig.lut_calib[LINE].lb_calib[H][MAX])) 
+                   && ((u>=lutconfig.lut_calib[LINE].lb_calib[S][MIN]) && (u<=lutconfig.lut_calib[LINE].lb_calib[S][MAX])) 
+                   && ((v>=lutconfig.lut_calib[LINE].lb_calib[V][MIN]) && (v<=lutconfig.lut_calib[LINE].lb_calib[V][MAX]))){
                     YUVLookUpTable[index] = UAV_WHITE_BIT;
-                }else if (((y>=values[0][0][0]) && (y<=values[0][0][1])) && ((u>=values[0][1][0]) && (u<=values[0][1][1])) &&
-                          ((v>=values[0][2][0]) && (v<=values[0][2][1]))){
+                }else if (((y>=lutconfig.lut_calib[FIELD].lb_calib[H][MIN]) && (y<=lutconfig.lut_calib[FIELD].lb_calib[H][MAX])) 
+                   && ((u>=lutconfig.lut_calib[FIELD].lb_calib[S][MIN]) && (u<=lutconfig.lut_calib[FIELD].lb_calib[S][MAX])) 
+                   && ((v>=lutconfig.lut_calib[FIELD].lb_calib[V][MIN]) && (v<=lutconfig.lut_calib[FIELD].lb_calib[V][MAX]))){
                     YUVLookUpTable[index] = UAV_GREEN_BIT;
-                } else if (((y>=values[2][0][0]) && (y<=values[2][0][1])) && ((u>=values[2][1][0]) && (u<=values[2][1][1])) &&
-                           ((v>=values[2][2][0]) && (v<=values[2][2][1]))){
+                } else if (((y>=lutconfig.lut_calib[OBSTACLE].lb_calib[H][MIN]) && (y<=lutconfig.lut_calib[OBSTACLE].lb_calib[H][MAX])) 
+                   && ((u>=lutconfig.lut_calib[OBSTACLE].lb_calib[S][MIN]) && (u<=lutconfig.lut_calib[OBSTACLE].lb_calib[S][MAX])) 
+                   && ((v>=lutconfig.lut_calib[OBSTACLE].lb_calib[V][MIN]) && (v<=lutconfig.lut_calib[OBSTACLE].lb_calib[V][MAX]))){
                     YUVLookUpTable[index] = UAV_BLACK_BIT;
-                }else if (((y>=values[3][0][0]) && (y<=values[3][0][1])) && ((u>=values[3][1][0]) && (u<=values[3][1][1])) &&
-                          ((v>=values[3][2][0]) && (v<=values[3][2][1]))){
+                }else if (((y>=lutconfig.lut_calib[BALL].lb_calib[H][MIN]) && (y<=lutconfig.lut_calib[BALL].lb_calib[H][MAX])) 
+                   && ((u>=lutconfig.lut_calib[BALL].lb_calib[S][MIN]) && (u<=lutconfig.lut_calib[BALL].lb_calib[S][MAX])) 
+                   && ((v>=lutconfig.lut_calib[BALL].lb_calib[V][MIN]) && (v<=lutconfig.lut_calib[BALL].lb_calib[V][MAX]))){
                     YUVLookUpTable[index] = UAV_ORANGE_BIT;
                 }
             }
+}
+
+void ImageProcessor::updateLabelLutConf(LABEL_t label,labelConfiguration lb_conf)
+{
+   lutconfig.lut_calib[label] = lb_conf;      
 }

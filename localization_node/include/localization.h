@@ -19,17 +19,18 @@ class Localization : public QObject
 public:
    explicit Localization(ros::NodeHandle *par, QObject *parent = 0); // Constructor
    ~Localization();
+
 private:
    //Major components
    ImageProcessor *processor;
    ConfigServer *confserver;
+   QTimer *parentTimer;
+   Mat buffer, processed;
+   int requiredTiming;
    //Confserver variables
    bool assigning_images;
    uint8_t assigning_type;
    QString imgFolderPath;
-   //Test
-   Mat test_image;
-   QTimer *test;
 private slots:
    void initVariables();
    void stopImageAssigning();
@@ -37,8 +38,8 @@ private slots:
    void changeLookUpTableConfiguration(visionHSVConfig::ConstPtr msg);
    void changeMirrorConfiguration(mirrorConfig::ConstPtr msg);
 public slots:
-   void hardwareCallback(const hardwareInfo::ConstPtr &msg);
-   void testfunc();
+   void hardwareCallback(const hardwareInfo::ConstPtr &msg);   
+   void discoverWorldModel(); // Main Funcition
 };
 
 #endif // LOCALIZATION_H

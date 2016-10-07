@@ -46,8 +46,8 @@ public:
     bool readLookUpTable(); // Reads look up table from file
     bool writeLookUpTable(); // Writes look up table to file
     void resetLookUpTable(); // Resets defined look up table
-    void generateLookUpTable(int values[4][3][2]); // Generates look up table based on values' ranges
-    
+    void generateLookUpTable(); // Generates look up table based on values' ranges
+    void updateLabelLutConf(LABEL_t label,labelConfiguration lb_conf);
     int getClassifier(int x,int y); // Returns classifier given a pixel and LUT configuration
 
     /* Camera-Robot Information */
@@ -65,9 +65,12 @@ public:
     /* Initializations */
     void variablesInitialization(); // Inits other variables
     bool initWorldMapping(); // Inits world mapping variables
+    void generateMirrorConfiguration();
     bool writeMirrorConfig();
+    void updateDists(double max, double step, vector<short unsigned int>pix_dists);
     bool initializeBasics();
     QString getField();
+    
     /* WORLD STATE INFORMATION Buffers */
     vector<Point3d> ballCandidates;
     vector<Point>linePoints;
