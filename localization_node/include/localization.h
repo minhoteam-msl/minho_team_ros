@@ -34,6 +34,8 @@ private slots:
    void initVariables();
    void stopImageAssigning();
    void changeImageAssigning(uint8_t type);
+   void changeLookUpTableConfiguration(visionHSVConfig::ConstPtr msg);
+   void changeMirrorConfiguration(mirrorConfig::ConstPtr msg);
 public slots:
    void hardwareCallback(const hardwareInfo::ConstPtr &msg);
    void testfunc();

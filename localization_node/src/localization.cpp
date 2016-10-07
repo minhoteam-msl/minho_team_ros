@@ -14,6 +14,8 @@ Localization::Localization(ros::NodeHandle *par , QObject *parent) : QObject(par
    //##################################### 
    connect(confserver,SIGNAL(stopImageAssigning()),this,SLOT(stopImageAssigning()));
    connect(confserver,SIGNAL(changedImageRequest(uint8_t)),this,SLOT(changeImageAssigning(uint8_t)));
+   connect(confserver,SIGNAL(changedMirrorConfiguration(mirrorConfig::ConstPtr)),this,SLOT(changeMirrorConfiguration(mirrorConfig::ConstPtr)));
+   connect(confserver,SIGNAL(changedLutConfiguration(visionHSVConfig::ConstPtr)),this,SLOT(changeLookUpTableConfiguration(visionHSVConfig::ConstPtr)));
    //#####################################
    
    
@@ -32,6 +34,8 @@ Localization::~Localization()
 void Localization::initVariables()
 {
    qRegisterMetaType<uint8_t>("uint8_t");
+   qRegisterMetaType<mirrorConfig::ConstPtr>("mirrorConfig::ConstPtr");
+   qRegisterMetaType<visionHSVConfig::ConstPtr>("visionHSVConfig::ConstPtr");
    QString home = QString::fromStdString(getenv("HOME"));
    QString cfgDir = home+QString(configFolderPath);
    imgFolderPath = cfgDir+QString(imageFolderPath);
@@ -50,8 +54,18 @@ void Localization::changeImageAssigning(uint8_t type)
    assigning_images = true;    
 }
 
+void Localization::changeLookUpTableConfiguration(visionHSVConfig::ConstPtr msg)
+{
+   ROS_INFO("New configuration of Look Up Table will be set");
+}
+void Localization::changeMirrorConfiguration(mirrorConfig::ConstPtr msg)
+{
+   ROS_INFO("New configuration of mirror will be set");
+}
+   
 void Localization::hardwareCallback(const hardwareInfo::ConstPtr &msg)
 {
+   //Process hardware information
 }
 
 void Localization::testfunc()

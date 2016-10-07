@@ -20,6 +20,15 @@ ConfigServer::ConfigServer(ros::NodeHandle *par , QObject *parent) : QObject(par
                                   &ConfigServer::processImageRequest,
                                   this);
    image_pub_ = it_->advertise("camera", 1);
+   mirror_sub_ = par->subscribe("mirrorConfig", 
+                                  1000, 
+                                  &ConfigServer::processMirrorConfig,
+                                  this);
+    vision_sub_ = par->subscribe("visionHSVConfig", 
+                                  1000, 
+                                  &ConfigServer::processVisionConfig,
+                                  this);
+   
    watchdog_timer_->start(100);
    ROS_WARN("ConfigServer running on ROS ...");
 }
@@ -57,6 +66,16 @@ void ConfigServer::processImageRequest(const imgRequest::ConstPtr &msg)
    if(!multiple_sends_) configured_frequency_ = 30; // This is to send the single image as fast as possible
 }
 
+void ConfigServer::processMirrorConfig(const mirrorConfig::ConstPtr &msg)
+{
+   emit changedMirrorConfiguration(msg);
+}
+
+void ConfigServer::processVisionConfig(const visionHSVConfig::ConstPtr &msg)
+{
+   emit changedLutConfiguration(msg);
+}
+   
 void ConfigServer::postRequestedImage()
 {
    image_timer_->stop();
