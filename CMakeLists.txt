@@ -61,6 +61,7 @@ add_message_files(
       range.msg
       label.msg
       visionHSVConfig.msg
+      mirrorConfig.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -128,6 +129,7 @@ list(APPEND CMAKE_CXX_FLAGS "${GAZEBO_CXX_FLAGS}")
 set(CURRQTPREFIX /opt/Qt/5.7/gcc_64)
 #set(CURRQTPREFIX /opt/Qt)
 set(CMAKE_PREFIX_PATH ${CURRQTPREFIX})
+set(Qt5SerialPort_DIR ${CURRQTPREFIX}/lib/cmake/Qt5SerialPort)
 find_package(Qt5 COMPONENTS Core SerialPort Network REQUIRED)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
@@ -162,6 +164,8 @@ link_directories(/usr/lib/x86_64-linux-gnu)
 ########################################
 ######################################################################
 
+set(COMPILE TRUE)
+if(COMPILE)
 ## HARDWARE ##
 ######################################################################
 set(HARDWARE_DIR ${PROJECT_DIRECTORY}/hardware_node)
@@ -197,4 +201,4 @@ set_target_properties(localization_node PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(localization_node PRIVATE cxx_range_for)
 target_link_libraries(localization_node ${catkin_LIBRARIES} ${qt_LIBRARIES} ${opencv_LIBRARIES} ${flycap_LIBRARIES})
 ######################################################################
-
+endif(COMPILE)

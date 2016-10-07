@@ -1,6 +1,6 @@
 label field
 label line
-label obstacle
 label ball
+label obstacle
 label[] other_labels
 
