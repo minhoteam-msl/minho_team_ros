@@ -743,3 +743,47 @@ void ImageProcessor::updateLabelLutConf(LABEL_t label,labelConfiguration lb_conf
 {
    lutconfig.lut_calib[label] = lb_conf;      
 }
+
+mirrorConfig ImageProcessor::getMirrorConfAsMsg()
+{
+   mirrorConfig msg;
+   msg.max_distance = MAX_DISTANCE;
+   msg.step = STEP;
+   msg.pixel_distances = vector<short unsigned int>(distPix.begin(),distPix.end());
+   return msg;
+   
+}
+
+visionHSVConfig ImageProcessor::getVisionConfAsMsg()
+{
+   visionHSVConfig msg;
+   //FIELD
+   msg.field.H.min = lutconfig.lut_calib[FIELD].lb_calib[H][MIN];
+   msg.field.H.max = lutconfig.lut_calib[FIELD].lb_calib[H][MAX];
+   msg.field.S.min = lutconfig.lut_calib[FIELD].lb_calib[S][MIN];
+   msg.field.S.max = lutconfig.lut_calib[FIELD].lb_calib[S][MAX];
+   msg.field.V.min = lutconfig.lut_calib[FIELD].lb_calib[V][MIN];
+   msg.field.V.max = lutconfig.lut_calib[FIELD].lb_calib[V][MAX];
+   //LINE
+   msg.line.H.min = lutconfig.lut_calib[LINE].lb_calib[H][MIN];
+   msg.line.H.max = lutconfig.lut_calib[LINE].lb_calib[H][MAX];
+   msg.line.S.min = lutconfig.lut_calib[LINE].lb_calib[S][MIN];
+   msg.line.S.max = lutconfig.lut_calib[LINE].lb_calib[S][MAX];
+   msg.line.V.min = lutconfig.lut_calib[LINE].lb_calib[V][MIN];
+   msg.line.V.max = lutconfig.lut_calib[LINE].lb_calib[V][MAX];
+   //BALL
+   msg.ball.H.min = lutconfig.lut_calib[BALL].lb_calib[H][MIN];
+   msg.ball.H.max = lutconfig.lut_calib[BALL].lb_calib[H][MAX];
+   msg.ball.S.min = lutconfig.lut_calib[BALL].lb_calib[S][MIN];
+   msg.ball.S.max = lutconfig.lut_calib[BALL].lb_calib[S][MAX];
+   msg.ball.V.min = lutconfig.lut_calib[BALL].lb_calib[V][MIN];
+   msg.ball.V.max = lutconfig.lut_calib[BALL].lb_calib[V][MAX];
+   //OBSTACLE
+   msg.obstacle.H.min = lutconfig.lut_calib[OBSTACLE].lb_calib[H][MIN];
+   msg.obstacle.H.max = lutconfig.lut_calib[OBSTACLE].lb_calib[H][MAX];
+   msg.obstacle.S.min = lutconfig.lut_calib[OBSTACLE].lb_calib[S][MIN];
+   msg.obstacle.S.max = lutconfig.lut_calib[OBSTACLE].lb_calib[S][MAX];
+   msg.obstacle.V.min = lutconfig.lut_calib[OBSTACLE].lb_calib[V][MIN];
+   msg.obstacle.V.max = lutconfig.lut_calib[OBSTACLE].lb_calib[V][MAX];
+   return msg;
+}

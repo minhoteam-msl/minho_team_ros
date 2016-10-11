@@ -12,6 +12,7 @@
 #include "minho_team_ros/imgRequest.h"
 #include "minho_team_ros/mirrorConfig.h"
 #include "minho_team_ros/visionHSVConfig.h"
+#include "minho_team_ros/requestOmniVisionConf.h"
 #include "types.h"
 #include "ros/topic_manager.h"
 #include <QTime>
@@ -30,6 +31,7 @@ public:
    explicit ConfigServer(ros::NodeHandle *par, QObject *parent = 0); // Constructor
    ~ConfigServer();
    void assignImage(Mat *source);
+   void setOmniVisionConf(mirrorConfig mirrmsg,visionHSVConfig vismsg);
 private:
    // VARIABLES
    // ##############################################################
@@ -47,6 +49,9 @@ private:
    ros::NodeHandle *parent_; // ROS node parent pointer
    ros::Subscriber img_req_sub_; // Subscriber for image requests (imgRequest.msg)
    ros::Subscriber mirror_sub_; // Subscriber for mirror configuration (mirrorConfig.msg)
+   ros::ServiceServer service_; // Service to relay the configuration
+   mirrorConfig mirrorConfmsg; // Data to hold current mirrorConfig
+   visionHSVConfig visionConfmsg; // Data to hold current visionHSVConfig
    ros::Subscriber vision_sub_; // Subscriber for vision[lut] configuration (visionHSVConfig.msg)
    sensor_msgs::ImagePtr image_;
    cv::Mat mock_image;
@@ -55,6 +60,8 @@ private slots:
    void processImageRequest(const imgRequest::ConstPtr &msg);
    void processMirrorConfig(const mirrorConfig::ConstPtr &msg);
    void processVisionConfig(const visionHSVConfig::ConstPtr &msg);
+   bool omniVisionConfService(minho_team_ros::requestOmniVisionConf::Request &req,
+                              minho_team_ros::requestOmniVisionConf::Response &res);
    void postRequestedImage();
    void init_mock_image();
 signals:

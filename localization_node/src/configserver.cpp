@@ -28,7 +28,9 @@ ConfigServer::ConfigServer(ros::NodeHandle *par , QObject *parent) : QObject(par
                                   1000, 
                                   &ConfigServer::processVisionConfig,
                                   this);
-   
+   service_ = par->advertiseService("requestOmniVisionConf",
+                                  &ConfigServer::omniVisionConfService,
+                                  this);
    watchdog_timer_->start(100);
    ROS_WARN("ConfigServer running on ROS ...");
 }
@@ -47,6 +49,11 @@ void ConfigServer::assignImage(Mat *source)
    if(!image_timer_->isActive())image_timer_->start(1000.0/(float)configured_frequency_);
 }
 
+void ConfigServer::setOmniVisionConf(mirrorConfig mirrmsg,visionHSVConfig vismsg)
+{
+   mirrorConfmsg = mirrmsg;
+   visionConfmsg = vismsg;
+}
 void ConfigServer::getSubscribers()
 {
    n_subscriptions_ = image_pub_.getNumSubscribers();
@@ -69,13 +76,24 @@ void ConfigServer::processImageRequest(const imgRequest::ConstPtr &msg)
 void ConfigServer::processMirrorConfig(const mirrorConfig::ConstPtr &msg)
 {
    emit changedMirrorConfiguration(msg);
+   mirrorConfmsg = *msg;
 }
 
 void ConfigServer::processVisionConfig(const visionHSVConfig::ConstPtr &msg)
 {
    emit changedLutConfiguration(msg);
+   visionConfmsg = *msg;
 }
-   
+  
+bool ConfigServer::omniVisionConfService(minho_team_ros::requestOmniVisionConf::Request &req,minho_team_ros::requestOmniVisionConf::Response &res)
+{
+   ROS_INFO("requestOmniVisionConf by %s",req.request_node_name.c_str());
+   //get data from 
+   res.mirrorConf = mirrorConfmsg;
+   res.visionConf = visionConfmsg;
+   return true;
+}
+                               
 void ConfigServer::postRequestedImage()
 {
    image_timer_->stop();

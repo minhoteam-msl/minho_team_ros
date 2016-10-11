@@ -12,9 +12,14 @@
 #include "blackflycamera.h"
 #include "types.h"
 #include "ros/ros.h"
+#include "minho_team_ros/mirrorConfig.h"
+#include "minho_team_ros/visionHSVConfig.h"
 #include <iostream>
 
 using namespace std;
+using minho_team_ros::mirrorConfig;
+using minho_team_ros::visionHSVConfig;
+
 class ImageProcessor
 {
 public:
@@ -68,11 +73,13 @@ public:
     void generateMirrorConfiguration();
     bool writeMirrorConfig();
     void updateDists(double max, double step, vector<short unsigned int>pix_dists);
+    mirrorConfig getMirrorConfAsMsg();
+    visionHSVConfig getVisionConfAsMsg();
     bool initializeBasics();
     QString getField();
     
     /* WORLD STATE INFORMATION Buffers */
-    vector<Point3d> ballCandidates;
+    vector<Point3d>ballCandidates;
     vector<Point>linePoints;
     vector<Point>obstaclePoints;
     vector<Point>ballCentroids;

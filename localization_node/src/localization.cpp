@@ -8,6 +8,7 @@ Localization::Localization(ros::NodeHandle *par , QObject *parent) : QObject(par
    //##################################### 
    processor = new ImageProcessor(false); 
    confserver = new ConfigServer(par); 
+   confserver->setOmniVisionConf(processor->getMirrorConfAsMsg(),processor->getVisionConfAsMsg());
    parentTimer = new QTimer();
    requiredTiming = 33;
    connect(parentTimer,SIGNAL(timeout()),this,SLOT(discoverWorldModel()));
