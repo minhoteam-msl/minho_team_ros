@@ -706,33 +706,34 @@ void ImageProcessor::resetLookUpTable()
 // Generates new look up table given the ranges in values
 void ImageProcessor::generateLookUpTable()
 {
-    int y,u,v;
+    rgb pix; hsv pix2;
     unsigned int index;
     for (int r=0; r<256; r++) // classify every RGB color into our LUT
         for (int g=0; g<256; g++)
             for (int b=0; b<256; b++)
             {
-                 y=(9798*r+19235*g+3736*b)>>15;u=((18514*(b-y))>>15)+128;v=((23364*(r-y))>>15)+128;
+                 pix.r = r; pix.g = g; pix.b =b;
+                 pix2 = rgbtohsv(pix);
                  index = (r<<16)+(g<<8)+b;
 
                 //-- initialize on update --
                 YUVLookUpTable[index] = UAV_NOCOLORS_BIT;
                 //-- Reference Colour range --
-                if (((y>=lutconfig.lut_calib[LINE].lb_calib[H][MIN]) && (y<=lutconfig.lut_calib[LINE].lb_calib[H][MAX])) 
-                   && ((u>=lutconfig.lut_calib[LINE].lb_calib[S][MIN]) && (u<=lutconfig.lut_calib[LINE].lb_calib[S][MAX])) 
-                   && ((v>=lutconfig.lut_calib[LINE].lb_calib[V][MIN]) && (v<=lutconfig.lut_calib[LINE].lb_calib[V][MAX]))){
+                if (((pix2.h>=lutconfig.lut_calib[LINE].lb_calib[H][MIN]) && (pix2.h<=lutconfig.lut_calib[LINE].lb_calib[H][MAX])) 
+                   && ((pix2.s>=lutconfig.lut_calib[LINE].lb_calib[S][MIN]) && (pix2.s<=lutconfig.lut_calib[LINE].lb_calib[S][MAX])) 
+                   && ((pix2.v>=lutconfig.lut_calib[LINE].lb_calib[V][MIN]) && (pix2.v<=lutconfig.lut_calib[LINE].lb_calib[V][MAX]))){
                     YUVLookUpTable[index] = UAV_WHITE_BIT;
-                }else if (((y>=lutconfig.lut_calib[FIELD].lb_calib[H][MIN]) && (y<=lutconfig.lut_calib[FIELD].lb_calib[H][MAX])) 
-                   && ((u>=lutconfig.lut_calib[FIELD].lb_calib[S][MIN]) && (u<=lutconfig.lut_calib[FIELD].lb_calib[S][MAX])) 
-                   && ((v>=lutconfig.lut_calib[FIELD].lb_calib[V][MIN]) && (v<=lutconfig.lut_calib[FIELD].lb_calib[V][MAX]))){
+                }else if (((pix2.h>=lutconfig.lut_calib[FIELD].lb_calib[H][MIN]) && (pix2.h<=lutconfig.lut_calib[FIELD].lb_calib[H][MAX])) 
+                   && ((pix2.s>=lutconfig.lut_calib[FIELD].lb_calib[S][MIN]) && (pix2.s<=lutconfig.lut_calib[FIELD].lb_calib[S][MAX])) 
+                   && ((pix2.v>=lutconfig.lut_calib[FIELD].lb_calib[V][MIN]) && (pix2.v<=lutconfig.lut_calib[FIELD].lb_calib[V][MAX]))){
                     YUVLookUpTable[index] = UAV_GREEN_BIT;
-                } else if (((y>=lutconfig.lut_calib[OBSTACLE].lb_calib[H][MIN]) && (y<=lutconfig.lut_calib[OBSTACLE].lb_calib[H][MAX])) 
-                   && ((u>=lutconfig.lut_calib[OBSTACLE].lb_calib[S][MIN]) && (u<=lutconfig.lut_calib[OBSTACLE].lb_calib[S][MAX])) 
-                   && ((v>=lutconfig.lut_calib[OBSTACLE].lb_calib[V][MIN]) && (v<=lutconfig.lut_calib[OBSTACLE].lb_calib[V][MAX]))){
+                } else if (((pix2.h>=lutconfig.lut_calib[OBSTACLE].lb_calib[H][MIN]) && (pix2.h<=lutconfig.lut_calib[OBSTACLE].lb_calib[H][MAX])) 
+                   && ((pix2.s>=lutconfig.lut_calib[OBSTACLE].lb_calib[S][MIN]) && (pix2.s<=lutconfig.lut_calib[OBSTACLE].lb_calib[S][MAX])) 
+                   && ((pix2.v>=lutconfig.lut_calib[OBSTACLE].lb_calib[V][MIN]) && (pix2.v<=lutconfig.lut_calib[OBSTACLE].lb_calib[V][MAX]))){
                     YUVLookUpTable[index] = UAV_BLACK_BIT;
-                }else if (((y>=lutconfig.lut_calib[BALL].lb_calib[H][MIN]) && (y<=lutconfig.lut_calib[BALL].lb_calib[H][MAX])) 
-                   && ((u>=lutconfig.lut_calib[BALL].lb_calib[S][MIN]) && (u<=lutconfig.lut_calib[BALL].lb_calib[S][MAX])) 
-                   && ((v>=lutconfig.lut_calib[BALL].lb_calib[V][MIN]) && (v<=lutconfig.lut_calib[BALL].lb_calib[V][MAX]))){
+                }else if (((pix2.h>=lutconfig.lut_calib[BALL].lb_calib[H][MIN]) && (pix2.h<=lutconfig.lut_calib[BALL].lb_calib[H][MAX])) 
+                   && ((pix2.s>=lutconfig.lut_calib[BALL].lb_calib[S][MIN]) && (pix2.s<=lutconfig.lut_calib[BALL].lb_calib[S][MAX])) 
+                   && ((pix2.v>=lutconfig.lut_calib[BALL].lb_calib[V][MIN]) && (pix2.v<=lutconfig.lut_calib[BALL].lb_calib[V][MAX]))){
                     YUVLookUpTable[index] = UAV_ORANGE_BIT;
                 }
             }
