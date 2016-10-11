@@ -1,3 +1,4 @@
+#This message allows to request an image (or multiple) from the robot's camera
 bool is_multiple
 uint8 frequency
 uint8 type
