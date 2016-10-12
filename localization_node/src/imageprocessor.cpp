@@ -76,9 +76,9 @@ bool ImageProcessor::initWorldMapping()
     pixel_distances = pixel_distances.right(pixel_distances.size()-pixel_distances.indexOf('=')-1);
 
 
-    float _max_distance = max_distance.toFloat();
-    float _step = step.toFloat();
-    int expected_args = (int)(_max_distance/_step);
+    mirrorConf.max_distance = max_distance.toFloat();
+    mirrorConf.step = step.toFloat();
+    int expected_args = (int)(mirrorConf.max_distance/mirrorConf.step);
     QStringList mappedDists = pixel_distances.split(",");
     
     if(expected_args!=mappedDists.size() || expected_args<=0 || mappedDists.size()<=0) {
@@ -86,12 +86,12 @@ bool ImageProcessor::initWorldMapping()
        return false;
     }
     
-    for(float dist=_step;dist<=_max_distance;dist+=_step) distReal.push_back(dist);
-    for(int i=0;i<mappedDists.size();i++) distPix.push_back(mappedDists[i].toDouble());
-        
-    MAX_DISTANCE = _max_distance;
-    STEP = _step;
-    
+    mirrorConf.pixel_distances.clear();
+    for(float dist=mirrorConf.step;dist<=mirrorConf.max_distance;dist+=mirrorConf.step) distReal.push_back(dist);
+    for(int i=0;i<mappedDists.size();i++) {
+      distPix.push_back(mappedDists[i].toDouble());
+      mirrorConf.pixel_distances.push_back(mappedDists[i].toInt());
+    }
     file.close();
     //
 
@@ -269,9 +269,10 @@ void ImageProcessor::updateDists(double max, double step, vector<short unsigned 
    distReal.clear(); distPix.clear();
    for(float dist=step;dist<=max;dist+=step) distReal.push_back(dist);
    for(int i=0;i<pix_dists.size();i++) distPix.push_back((double)pix_dists[i]);
-        
-   MAX_DISTANCE = max;
-   STEP = step;      
+       
+   mirrorConf.pixel_distances = pix_dists; 
+   mirrorConf.max_distance = max;
+   mirrorConf.step = step;      
 }
     
 // Detects ball position based on ball points or image segmentation
@@ -455,7 +456,7 @@ Mat *ImageProcessor::getImage(bool *success)
 }
 
 // Returns binary image of the buffer, given YUV(or HSV) ranges
-void ImageProcessor::getBinary(Mat *in, labelConfiguration labelconf)
+void ImageProcessor::getBinary(Mat *in, minho_team_ros::label labelconf)
 {
     //Returns binary representation of a certain range
     Vec3b *pixel; // iterator to run through captured image
@@ -467,7 +468,9 @@ void ImageProcessor::getBinary(Mat *in, labelConfiguration labelconf)
             pix.r = pixel[j][2]; pix.g = pixel[j][1]; pix.b = pixel[j][0];
             pix2 = rgbtohsv(pix);
 
-            if((pix2.h>=labelconf.lb_calib[0][0])&&(pix2.h<=labelconf.lb_calib[0][1]) && (pix2.s>=labelconf.lb_calib[1][0])&&(pix2.s<=labelconf.lb_calib[1][1]) && (pix2.v>=labelconf.lb_calib[2][0])&&(pix2.v<=labelconf.lb_calib[2][1]))
+            if((pix2.h>=labelconf.H.min)&&(pix2.h<=labelconf.H.max) &&
+            (pix2.s>=labelconf.S.min)&&(pix2.s<=labelconf.S.max) &&
+            (pix2.v>=labelconf.V.min)&&(pix2.v<=labelconf.V.max))
             {
                 pixel[j][2] = 255;
                 pixel[j][1] = 255;
@@ -617,22 +620,20 @@ bool ImageProcessor::readLookUpTable()
             }
             
             LABEL_t label;
+            minho_team_ros::label *lb;
             if(label_name=="FIELD"){
-               label = FIELD;      
+               lb = &lutconfig.field;      
             } else if(label_name=="LINE"){
-               label = LINE;
+               lb = &lutconfig.line;
             } else if(label_name=="BALL"){
-               label = BALL;
+               lb = &lutconfig.ball;
             } else if(label_name=="OBSTACLE"){
-               label = OBSTACLE;
+               lb = &lutconfig.obstacle;
             } else { ROS_ERROR("Bad Configuration (2) in %s",lutFileName); return false; }
             
-            lutconfig.lut_calib[label].lb_calib[H][MIN] = values[0].toInt();
-            lutconfig.lut_calib[label].lb_calib[H][MAX] = values[1].toInt();
-            lutconfig.lut_calib[label].lb_calib[S][MIN] = values[2].toInt();
-            lutconfig.lut_calib[label].lb_calib[S][MAX] = values[3].toInt();
-            lutconfig.lut_calib[label].lb_calib[V][MIN] = values[4].toInt();
-            lutconfig.lut_calib[label].lb_calib[V][MAX] = values[5].toInt();
+            lb->H.min = values[0].toInt(); lb->H.max = values[1].toInt();
+            lb->S.min = values[2].toInt(); lb->S.max = values[3].toInt();
+            lb->V.min = values[4].toInt(); lb->V.max = values[5].toInt();
          }
       }
     }
@@ -651,21 +652,21 @@ bool ImageProcessor::writeLookUpTable()
     QTextStream in(&file);
     
     in << "FIELD[1]=" 
-    << lutconfig.lut_calib[FIELD].lb_calib[H][MIN] << "," << lutconfig.lut_calib[FIELD].lb_calib[H][MAX] << "," 
-    << lutconfig.lut_calib[FIELD].lb_calib[S][MIN] << "," << lutconfig.lut_calib[FIELD].lb_calib[S][MAX] << "," 
-    << lutconfig.lut_calib[FIELD].lb_calib[V][MIN] << "," << lutconfig.lut_calib[FIELD].lb_calib[V][MAX] << "\n";
+    << lutconfig.field.H.min << "," << lutconfig.field.H.max << "," 
+    << lutconfig.field.S.min << "," << lutconfig.field.S.max << "," 
+    << lutconfig.field.V.min << "," << lutconfig.field.V.max << "\n";
     in << "LINE[2]=" 
-    << lutconfig.lut_calib[LINE].lb_calib[H][MIN] << "," << lutconfig.lut_calib[LINE].lb_calib[H][MAX] << "," 
-    << lutconfig.lut_calib[LINE].lb_calib[S][MIN] << "," << lutconfig.lut_calib[LINE].lb_calib[S][MAX] << "," 
-    << lutconfig.lut_calib[LINE].lb_calib[V][MIN] << "," << lutconfig.lut_calib[LINE].lb_calib[V][MAX] << "\n";
+    << lutconfig.line.H.min << "," << lutconfig.line.H.max << "," 
+    << lutconfig.line.S.min << "," << lutconfig.line.S.max << "," 
+    << lutconfig.line.V.min << "," << lutconfig.line.V.max << "\n";
     in << "BALL[4]=" 
-    << lutconfig.lut_calib[BALL].lb_calib[H][MIN] << "," << lutconfig.lut_calib[BALL].lb_calib[H][MAX] << "," 
-    << lutconfig.lut_calib[BALL].lb_calib[S][MIN] << "," << lutconfig.lut_calib[BALL].lb_calib[S][MAX] << "," 
-    << lutconfig.lut_calib[BALL].lb_calib[V][MIN] << "," << lutconfig.lut_calib[BALL].lb_calib[V][MAX] << "\n";
+    << lutconfig.ball.H.min << "," << lutconfig.ball.H.max << "," 
+    << lutconfig.ball.S.min << "," << lutconfig.ball.S.max << "," 
+    << lutconfig.ball.V.min << "," << lutconfig.ball.V.max << "\n";
     in << "OBSTACLE[8]=" 
-    << lutconfig.lut_calib[OBSTACLE].lb_calib[H][MIN] << "," << lutconfig.lut_calib[OBSTACLE].lb_calib[H][MAX] << "," 
-    << lutconfig.lut_calib[OBSTACLE].lb_calib[S][MIN] << "," << lutconfig.lut_calib[OBSTACLE].lb_calib[S][MAX] << "," 
-    << lutconfig.lut_calib[OBSTACLE].lb_calib[V][MIN] << "," << lutconfig.lut_calib[OBSTACLE].lb_calib[V][MAX] << "\n";
+    << lutconfig.obstacle.H.min << "," << lutconfig.obstacle.H.max << "," 
+    << lutconfig.obstacle.S.min << "," << lutconfig.obstacle.S.max << "," 
+    << lutconfig.obstacle.V.min << "," << lutconfig.obstacle.V.max << "\n";
     
     QString message = QString("#NAME[CLASSIFIER]=HMIN,HMAX,SMIN,SMAX,VMIN,VMAX\r\n")+
                       QString("#[R,G,B]=CLASSIFIER\r\n")+
@@ -684,10 +685,10 @@ bool ImageProcessor::writeMirrorConfig()
     }
     QTextStream in(&file);
     
-    in<<"MAX_DISTANCE="<<MAX_DISTANCE<<"\r\n";
-    in<<"STEP="<<STEP<<"\r\n";
+    in<<"MAX_DISTANCE="<<mirrorConf.max_distance<<"\r\n";
+    in<<"STEP="<<mirrorConf.step<<"\r\n";
     QString dists = "";
-    for(unsigned int i=0;i<distPix.size();i++)dists+=QString::number(distPix[i])+QString(",");
+    for(unsigned int i=0;i<mirrorConf.pixel_distances.size();i++)dists+=QString::number(mirrorConf.pixel_distances[i])+QString(",");
     dists = dists.left(dists.size()-1);
     in<<"PIXEL_DISTANCES="<<dists<<"\r\n";
     
@@ -719,71 +720,44 @@ void ImageProcessor::generateLookUpTable()
                 //-- initialize on update --
                 YUVLookUpTable[index] = UAV_NOCOLORS_BIT;
                 //-- Reference Colour range --
-                if (((pix2.h>=lutconfig.lut_calib[LINE].lb_calib[H][MIN]) && (pix2.h<=lutconfig.lut_calib[LINE].lb_calib[H][MAX])) 
-                   && ((pix2.s>=lutconfig.lut_calib[LINE].lb_calib[S][MIN]) && (pix2.s<=lutconfig.lut_calib[LINE].lb_calib[S][MAX])) 
-                   && ((pix2.v>=lutconfig.lut_calib[LINE].lb_calib[V][MIN]) && (pix2.v<=lutconfig.lut_calib[LINE].lb_calib[V][MAX]))){
+                if (((pix2.h>=lutconfig.line.H.min) && (pix2.h<=lutconfig.line.H.max)) 
+                   && ((pix2.s>=lutconfig.line.S.min) && (pix2.s<=lutconfig.line.S.max)) 
+                   && ((pix2.v>=lutconfig.line.V.min) && (pix2.v<=lutconfig.line.V.max))){
                     YUVLookUpTable[index] = UAV_WHITE_BIT;
-                }else if (((pix2.h>=lutconfig.lut_calib[FIELD].lb_calib[H][MIN]) && (pix2.h<=lutconfig.lut_calib[FIELD].lb_calib[H][MAX])) 
-                   && ((pix2.s>=lutconfig.lut_calib[FIELD].lb_calib[S][MIN]) && (pix2.s<=lutconfig.lut_calib[FIELD].lb_calib[S][MAX])) 
-                   && ((pix2.v>=lutconfig.lut_calib[FIELD].lb_calib[V][MIN]) && (pix2.v<=lutconfig.lut_calib[FIELD].lb_calib[V][MAX]))){
+                }else if (((pix2.h>=lutconfig.field.H.min) && (pix2.h<=lutconfig.field.H.max)) 
+                   && ((pix2.s>=lutconfig.field.S.min) && (pix2.s<=lutconfig.field.S.max)) 
+                   && ((pix2.v>=lutconfig.field.V.min) && (pix2.v<=lutconfig.field.V.max))){
                     YUVLookUpTable[index] = UAV_GREEN_BIT;
-                } else if (((pix2.h>=lutconfig.lut_calib[OBSTACLE].lb_calib[H][MIN]) && (pix2.h<=lutconfig.lut_calib[OBSTACLE].lb_calib[H][MAX])) 
-                   && ((pix2.s>=lutconfig.lut_calib[OBSTACLE].lb_calib[S][MIN]) && (pix2.s<=lutconfig.lut_calib[OBSTACLE].lb_calib[S][MAX])) 
-                   && ((pix2.v>=lutconfig.lut_calib[OBSTACLE].lb_calib[V][MIN]) && (pix2.v<=lutconfig.lut_calib[OBSTACLE].lb_calib[V][MAX]))){
+                } else if (((pix2.h>=lutconfig.obstacle.H.min) && (pix2.h<=lutconfig.obstacle.H.max)) 
+                   && ((pix2.s>=lutconfig.obstacle.S.min) && (pix2.s<=lutconfig.obstacle.S.max)) 
+                   && ((pix2.v>=lutconfig.obstacle.V.min) && (pix2.v<=lutconfig.obstacle.V.max))){
                     YUVLookUpTable[index] = UAV_BLACK_BIT;
-                }else if (((pix2.h>=lutconfig.lut_calib[BALL].lb_calib[H][MIN]) && (pix2.h<=lutconfig.lut_calib[BALL].lb_calib[H][MAX])) 
-                   && ((pix2.s>=lutconfig.lut_calib[BALL].lb_calib[S][MIN]) && (pix2.s<=lutconfig.lut_calib[BALL].lb_calib[S][MAX])) 
-                   && ((pix2.v>=lutconfig.lut_calib[BALL].lb_calib[V][MIN]) && (pix2.v<=lutconfig.lut_calib[BALL].lb_calib[V][MAX]))){
+                }else if (((pix2.h>=lutconfig.ball.H.min) && (pix2.h<=lutconfig.ball.H.max)) 
+                   && ((pix2.s>=lutconfig.ball.S.min) && (pix2.s<=lutconfig.ball.S.max)) 
+                   && ((pix2.v>=lutconfig.ball.V.min) && (pix2.v<=lutconfig.ball.V.max))){
                     YUVLookUpTable[index] = UAV_ORANGE_BIT;
                 }
             }
 }
 
-void ImageProcessor::updateLabelLutConf(LABEL_t label,labelConfiguration lb_conf)
+void ImageProcessor::updateLabelLutConf(LABEL_t label,minho_team_ros::label lb_conf)
 {
-   lutconfig.lut_calib[label] = lb_conf;      
+   minho_team_ros::label *lb;
+   if(label==FIELD) lb = &lutconfig.field;
+   else if(label==LINE) lb = &lutconfig.line;
+   else if(label==BALL) lb = &lutconfig.ball;
+   else if(label==OBSTACLE) lb = &lutconfig.obstacle;
+   else return;
+   *lb = lb_conf;      
 }
 
 mirrorConfig ImageProcessor::getMirrorConfAsMsg()
 {
-   mirrorConfig msg;
-   msg.max_distance = MAX_DISTANCE;
-   msg.step = STEP;
-   msg.pixel_distances = vector<short unsigned int>(distPix.begin(),distPix.end());
-   return msg;
+   return mirrorConf;
    
 }
 
 visionHSVConfig ImageProcessor::getVisionConfAsMsg()
 {
-   visionHSVConfig msg;
-   //FIELD
-   msg.field.H.min = lutconfig.lut_calib[FIELD].lb_calib[H][MIN];
-   msg.field.H.max = lutconfig.lut_calib[FIELD].lb_calib[H][MAX];
-   msg.field.S.min = lutconfig.lut_calib[FIELD].lb_calib[S][MIN];
-   msg.field.S.max = lutconfig.lut_calib[FIELD].lb_calib[S][MAX];
-   msg.field.V.min = lutconfig.lut_calib[FIELD].lb_calib[V][MIN];
-   msg.field.V.max = lutconfig.lut_calib[FIELD].lb_calib[V][MAX];
-   //LINE
-   msg.line.H.min = lutconfig.lut_calib[LINE].lb_calib[H][MIN];
-   msg.line.H.max = lutconfig.lut_calib[LINE].lb_calib[H][MAX];
-   msg.line.S.min = lutconfig.lut_calib[LINE].lb_calib[S][MIN];
-   msg.line.S.max = lutconfig.lut_calib[LINE].lb_calib[S][MAX];
-   msg.line.V.min = lutconfig.lut_calib[LINE].lb_calib[V][MIN];
-   msg.line.V.max = lutconfig.lut_calib[LINE].lb_calib[V][MAX];
-   //BALL
-   msg.ball.H.min = lutconfig.lut_calib[BALL].lb_calib[H][MIN];
-   msg.ball.H.max = lutconfig.lut_calib[BALL].lb_calib[H][MAX];
-   msg.ball.S.min = lutconfig.lut_calib[BALL].lb_calib[S][MIN];
-   msg.ball.S.max = lutconfig.lut_calib[BALL].lb_calib[S][MAX];
-   msg.ball.V.min = lutconfig.lut_calib[BALL].lb_calib[V][MIN];
-   msg.ball.V.max = lutconfig.lut_calib[BALL].lb_calib[V][MAX];
-   //OBSTACLE
-   msg.obstacle.H.min = lutconfig.lut_calib[OBSTACLE].lb_calib[H][MIN];
-   msg.obstacle.H.max = lutconfig.lut_calib[OBSTACLE].lb_calib[H][MAX];
-   msg.obstacle.S.min = lutconfig.lut_calib[OBSTACLE].lb_calib[S][MIN];
-   msg.obstacle.S.max = lutconfig.lut_calib[OBSTACLE].lb_calib[S][MAX];
-   msg.obstacle.V.min = lutconfig.lut_calib[OBSTACLE].lb_calib[V][MIN];
-   msg.obstacle.V.max = lutconfig.lut_calib[OBSTACLE].lb_calib[V][MAX];
-   return msg;
+   return lutconfig;
 }

@@ -94,23 +94,10 @@ void Localization::changeLookUpTableConfiguration(visionHSVConfig::ConstPtr msg)
 {
    ROS_INFO("New configuration of Look Up Table will be set");
    //Stop processing mechanism
-   labelConfiguration label;
-   label.lb_calib[H][MIN] = msg->field.H.min; label.lb_calib[H][MAX] = msg->field.H.max;
-   label.lb_calib[S][MIN] = msg->field.S.min; label.lb_calib[S][MAX] = msg->field.S.max;
-   label.lb_calib[V][MIN] = msg->field.V.min; label.lb_calib[V][MAX] = msg->field.V.max;
-   processor->updateLabelLutConf(FIELD,label);
-   label.lb_calib[H][MIN] = msg->line.H.min; label.lb_calib[H][MAX] = msg->line.H.max;
-   label.lb_calib[S][MIN] = msg->line.S.min; label.lb_calib[S][MAX] = msg->line.S.max;
-   label.lb_calib[V][MIN] = msg->line.V.min; label.lb_calib[V][MAX] = msg->line.V.max;
-   processor->updateLabelLutConf(LINE,label);
-   label.lb_calib[H][MIN] = msg->ball.H.min; label.lb_calib[H][MAX] = msg->ball.H.max;
-   label.lb_calib[S][MIN] = msg->ball.S.min; label.lb_calib[S][MAX] = msg->ball.S.max;
-   label.lb_calib[V][MIN] = msg->ball.V.min; label.lb_calib[V][MAX] = msg->ball.V.max;
-   processor->updateLabelLutConf(BALL,label);
-   label.lb_calib[H][MIN] = msg->obstacle.H.min; label.lb_calib[H][MAX] = msg->obstacle.H.max;
-   label.lb_calib[S][MIN] = msg->obstacle.S.min; label.lb_calib[S][MAX] = msg->obstacle.S.max;
-   label.lb_calib[V][MIN] = msg->obstacle.V.min; label.lb_calib[V][MAX] = msg->obstacle.V.max;
-   processor->updateLabelLutConf(OBSTACLE,label);
+   processor->updateLabelLutConf(FIELD,msg->field);
+   processor->updateLabelLutConf(LINE,msg->line);
+   processor->updateLabelLutConf(BALL,msg->ball);
+   processor->updateLabelLutConf(OBSTACLE,msg->obstacle);
    processor->generateLookUpTable();
    if(processor->writeLookUpTable())ROS_INFO("New %s saved!",lutFileName);
    //Start processing mechanism
