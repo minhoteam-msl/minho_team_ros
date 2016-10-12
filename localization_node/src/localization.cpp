@@ -8,7 +8,7 @@ Localization::Localization(ros::NodeHandle *par , QObject *parent) : QObject(par
    //##################################### 
    processor = new ImageProcessor(false); 
    confserver = new ConfigServer(par); 
-   confserver->setOmniVisionConf(processor->getMirrorConfAsMsg(),processor->getVisionConfAsMsg());
+   confserver->setOmniVisionConf(processor->getMirrorConfAsMsg(),processor->getVisionConfAsMsg(),processor->getImageConfAsMsg());
    parentTimer = new QTimer();
    requiredTiming = 33;
    connect(parentTimer,SIGNAL(timeout()),this,SLOT(discoverWorldModel()));
@@ -20,6 +20,7 @@ Localization::Localization(ros::NodeHandle *par , QObject *parent) : QObject(par
    connect(confserver,SIGNAL(changedImageRequest(uint8_t)),this,SLOT(changeImageAssigning(uint8_t)));
    connect(confserver,SIGNAL(changedMirrorConfiguration(mirrorConfig::ConstPtr)),this,SLOT(changeMirrorConfiguration(mirrorConfig::ConstPtr)));
    connect(confserver,SIGNAL(changedLutConfiguration(visionHSVConfig::ConstPtr)),this,SLOT(changeLookUpTableConfiguration(visionHSVConfig::ConstPtr)));
+   connect(confserver,SIGNAL(changedImageConfiguration(imageConfig::ConstPtr)),this,SLOT(changeImageConfiguration(imageConfig::ConstPtr)));
    //#####################################
    
    //TEST
@@ -72,6 +73,7 @@ void Localization::initVariables()
    qRegisterMetaType<uint8_t>("uint8_t");
    qRegisterMetaType<mirrorConfig::ConstPtr>("mirrorConfig::ConstPtr");
    qRegisterMetaType<visionHSVConfig::ConstPtr>("visionHSVConfig::ConstPtr");
+   qRegisterMetaType<imageConfig::ConstPtr>("imageConfig::ConstPtr");
    QString home = QString::fromStdString(getenv("HOME"));
    QString cfgDir = home+QString(configFolderPath);
    imgFolderPath = cfgDir+QString(imageFolderPath);
@@ -92,7 +94,7 @@ void Localization::changeImageAssigning(uint8_t type)
 
 void Localization::changeLookUpTableConfiguration(visionHSVConfig::ConstPtr msg)
 {
-   ROS_INFO("New configuration of Look Up Table will be set");
+   ROS_WARN("New configuration of Look Up Table will be set.");
    //Stop processing mechanism
    processor->updateLabelLutConf(FIELD,msg->field);
    processor->updateLabelLutConf(LINE,msg->line);
@@ -104,14 +106,23 @@ void Localization::changeLookUpTableConfiguration(visionHSVConfig::ConstPtr msg)
 }
 void Localization::changeMirrorConfiguration(mirrorConfig::ConstPtr msg)
 {
-   ROS_INFO("New configuration of mirror will be set");
+   ROS_WARN("New configuration of mirror will be set.");
    //Stop processing mechanism
    processor->updateDists(msg->max_distance,msg->step,msg->pixel_distances);
    processor->generateMirrorConfiguration();
    if(processor->writeMirrorConfig())ROS_INFO("New %s saved!",mirrorFileName);
    //Start processing mechanism
 }
-   
+
+void Localization::changeImageConfiguration(imageConfig::ConstPtr msg)
+{
+   ROS_WARN("New configuration of image will be set.");
+   //Stop processing mechanism
+   processor->setCenter(msg->center_x,msg->center_y,msg->tilt);
+   processor->generateMirrorConfiguration();
+   if(processor->writeImageConfig())ROS_INFO("New %s saved!",imageFileName);
+   //Start processing mechanism
+}
 void Localization::hardwareCallback(const hardwareInfo::ConstPtr &msg)
 {
    //Process hardware information

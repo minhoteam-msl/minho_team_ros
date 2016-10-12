@@ -4,3 +4,4 @@ string request_node_name
 ---
 mirrorConfig mirrorConf
 visionHSVConfig visionConf
+imageConfig imageConf

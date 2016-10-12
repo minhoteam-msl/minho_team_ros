@@ -44,14 +44,6 @@ typedef enum LABEL_t {FIELD = 0, LINE, BALL, OBSTACLE} LABEL_t;
 typedef enum COMPONENT_t { H = 0, S, V} COMPONENT_t;
 typedef enum RANGE_t {MIN = 0, MAX} RANGE_t;
 
-typedef struct labelConfiguration{
-   int lb_calib[3][2] = {{0,180},{0,255},{0,255}};
-} labelConfiguration;
-
-typedef struct lutConfiguration{
-   labelConfiguration lut_calib[4];   
-} lutConfiguration;
-
 /*
 ############################################################################
 ############################################################################   

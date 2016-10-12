@@ -102,6 +102,9 @@ bool ImageProcessor::initWorldMapping()
     QTextStream in2(&file2);
     
     QString image_center = in2.readLine();
+    QString tilt = in2.readLine();
+    image_center = image_center.right(image_center.size()-image_center.indexOf('=')-1);
+    tilt = tilt.right(tilt.size()-tilt.indexOf('=')-1);
     QStringList coords = image_center.split(",");
     
     if(coords.size()!=2) {
@@ -109,19 +112,10 @@ bool ImageProcessor::initWorldMapping()
        return false;
     }
     
-    centerX = coords.at(0).toInt();
-    centerY = coords.at(1).toInt();
+    imageConf.center_x = coords.at(0).toInt();
+    imageConf.center_y = coords.at(1).toInt();
+    imageConf.tilt = tilt.toInt();
     
-    QStringList realBall = in2.readLine().split(",");
-    QStringList pixBall = in2.readLine().split(",");
-    if(realBall.size()!=pixBall.size() || pixBall.size()<=0 || realBall.size()<=0) {
-       ROS_ERROR("Bad Configuration (2) in %s",imageFileName);
-       return false;
-    }
-    
-    for(int i=0;i<realBall.size();i++)ballReal.push_back(realBall[i].toDouble());
-    for(int i=0;i<pixBall.size();i++)ballPix.push_back(pixBall[i].toDouble());
-
     file2.close();
     
     generateMirrorConfiguration();
@@ -164,8 +158,8 @@ void ImageProcessor::rleModInitialization()
 {
     // Create Scan Lines used by RLE Algorithm
     idxImage = Mat(480,480,CV_8UC1,Scalar(0));
-    linesRad = ScanLines(idxImage,UAV_RADIAL, Point(centerX,centerY), 180, 30, 260,2,1);
-    linesCir = ScanLines(idxImage,UAV_CIRCULAR,Point(centerX,centerY),15,60,240,0,0);
+    linesRad = ScanLines(idxImage,UAV_RADIAL, Point(imageConf.center_x,imageConf.center_y), 180, 30, 260,2,1);
+    linesCir = ScanLines(idxImage,UAV_CIRCULAR,Point(imageConf.center_x,imageConf.center_y),15,60,240,0,0);
 }
 
 // Preprocessed current image, preparing it for RLE scan
@@ -255,8 +249,8 @@ void ImageProcessor::generateMirrorConfiguration()
 
     for(int i=0; i<=480; i++){ // columns
         for(int j=0; j<=480; j++){ // rows
-            double dist = d2pWorld(d2p(Point(centerX,centerY),Point(j,i)));
-            double angulo = (atan2((j-centerX),(i-centerY))*(180.0/M_PI))-45;
+            double dist = d2pWorld(d2p(Point(imageConf.center_x,imageConf.center_y),Point(j,i)));
+            double angulo = (atan2((j-imageConf.center_x),(i-imageConf.center_y))*(180.0/M_PI))-imageConf.tilt;
             while(angulo<0.0)angulo+=360.0;
             while(angulo>360.0)angulo-=360.0;
             distLookUpTable[j].push_back(Point2d(dist,angulo));
@@ -404,16 +398,17 @@ int ImageProcessor::getClassifier(int x, int y)
 }
 
 // Sets the center of the image (preferably, 240x240)
-void ImageProcessor::setCenter(int x, int y)
+void ImageProcessor::setCenter(int x, int y,int tilt)
 {
-    centerX = x;
-    centerY = y;
+    imageConf.center_x = x;
+    imageConf.center_y = y;
+    imageConf.tilt = tilt;
 }
 
 // Returns the current center of the image
 Point ImageProcessor::getCenter()
 {
-    return Point(centerX,centerY);
+    return Point(imageConf.center_x,imageConf.center_y);
 }
 
 // Sets the path of the static image
@@ -698,6 +693,24 @@ bool ImageProcessor::writeMirrorConfig()
     return true;   
 }
 
+bool ImageProcessor::writeImageConfig()
+{
+   QFile file(imageParamsPath);
+    if(!file.open(QIODevice::WriteOnly)){
+        ROS_ERROR("Error writing to %s.",imageFileName);
+        return false;
+    }
+    QTextStream in(&file);
+    
+    in<<"IMG_CENTER="<<imageConf.center_x<<","<<imageConf.center_y<<"\r\n";
+    in<<"TILT="<<imageConf.tilt<<"\r\n";
+    
+    QString message = QString("#DONT CHANGE THE ORDER OF THE CONFIGURATIONS");
+    in << message;                   
+    file.close();
+    return true;   
+}
+
 // Resets the look up table (puts everything to zero)
 void ImageProcessor::resetLookUpTable()
 {
@@ -760,4 +773,9 @@ mirrorConfig ImageProcessor::getMirrorConfAsMsg()
 visionHSVConfig ImageProcessor::getVisionConfAsMsg()
 {
    return lutconfig;
+}
+
+imageConfig ImageProcessor::getImageConfAsMsg()
+{
+   return imageConf;
 }

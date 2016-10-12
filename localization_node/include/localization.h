@@ -37,6 +37,7 @@ private slots:
    void changeImageAssigning(uint8_t type);
    void changeLookUpTableConfiguration(visionHSVConfig::ConstPtr msg);
    void changeMirrorConfiguration(mirrorConfig::ConstPtr msg);
+   void changeImageConfiguration(imageConfig::ConstPtr msg);
 public slots:
    void hardwareCallback(const hardwareInfo::ConstPtr &msg);   
    void discoverWorldModel(); // Main Funcition

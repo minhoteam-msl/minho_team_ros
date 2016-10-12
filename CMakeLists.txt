@@ -62,6 +62,7 @@ add_message_files(
       label.msg
       visionHSVConfig.msg
       mirrorConfig.msg
+      imageConfig.msg
 )
 
 ## Generate services in the 'srv' folder

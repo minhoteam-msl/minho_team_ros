@@ -24,10 +24,15 @@ ConfigServer::ConfigServer(ros::NodeHandle *par , QObject *parent) : QObject(par
                                   1000, 
                                   &ConfigServer::processMirrorConfig,
                                   this);
-    vision_sub_ = par->subscribe("visionHSVConfig", 
+   vision_sub_ = par->subscribe("visionHSVConfig", 
                                   1000, 
                                   &ConfigServer::processVisionConfig,
                                   this);
+   image_sub_ = par->subscribe("imageConfig", 
+                                  1000, 
+                                  &ConfigServer::processImageConfig,
+                                  this);
+                                  
    service_ = par->advertiseService("requestOmniVisionConf",
                                   &ConfigServer::omniVisionConfService,
                                   this);
@@ -49,10 +54,11 @@ void ConfigServer::assignImage(Mat *source)
    if(!image_timer_->isActive())image_timer_->start(1000.0/(float)configured_frequency_);
 }
 
-void ConfigServer::setOmniVisionConf(mirrorConfig mirrmsg,visionHSVConfig vismsg)
+void ConfigServer::setOmniVisionConf(mirrorConfig mirrmsg,visionHSVConfig vismsg, imageConfig imgmsg)
 {
    mirrorConfmsg = mirrmsg;
    visionConfmsg = vismsg;
+   imageConfmsg = imgmsg;
 }
 void ConfigServer::getSubscribers()
 {
@@ -84,6 +90,12 @@ void ConfigServer::processVisionConfig(const visionHSVConfig::ConstPtr &msg)
    emit changedLutConfiguration(msg);
    visionConfmsg = *msg;
 }
+
+void ConfigServer::processImageConfig(const imageConfig::ConstPtr &msg)
+{
+   emit changedImageConfiguration(msg);
+   imageConfmsg = *msg;
+}
   
 bool ConfigServer::omniVisionConfService(minho_team_ros::requestOmniVisionConf::Request &req,minho_team_ros::requestOmniVisionConf::Response &res)
 {
@@ -91,6 +103,7 @@ bool ConfigServer::omniVisionConfService(minho_team_ros::requestOmniVisionConf::
    //get data from 
    res.mirrorConf = mirrorConfmsg;
    res.visionConf = visionConfmsg;
+   res.imageConf = imageConfmsg;
    return true;
 }
                                

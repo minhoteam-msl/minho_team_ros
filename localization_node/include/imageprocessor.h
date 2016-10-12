@@ -14,11 +14,13 @@
 #include "ros/ros.h"
 #include "minho_team_ros/mirrorConfig.h"
 #include "minho_team_ros/visionHSVConfig.h"
+#include "minho_team_ros/imageConfig.h"
 #include <iostream>
 
 using namespace std;
 using minho_team_ros::mirrorConfig;
 using minho_team_ros::visionHSVConfig;
+using minho_team_ros::imageConfig;
 
 class ImageProcessor
 {
@@ -56,7 +58,7 @@ public:
    int getClassifier(int x,int y); // Returns classifier given a pixel and LUT configuration
 
    /* Camera-Robot Information */
-   void setCenter(int x,int y); // Sets robot center
+   void setCenter(int x,int y,int tilt); // Sets robot center
    void setBuffer(Mat *buf); // Sets current buffer
    double getRobotHeight(); // Returns robot height
    Point getCenter(); // Returns robot center
@@ -72,9 +74,11 @@ public:
    bool initWorldMapping(); // Inits world mapping variables
    void generateMirrorConfiguration();
    bool writeMirrorConfig();
+   bool writeImageConfig();
    void updateDists(double max, double step, vector<short unsigned int>pix_dists);
    mirrorConfig getMirrorConfAsMsg();
    visionHSVConfig getVisionConfAsMsg();
+   imageConfig getImageConfAsMsg();
    bool initializeBasics();
    QString getField();
 
@@ -88,7 +92,7 @@ public:
 private:    
    /* Camera Driver and parameters*/
    BlackFlyCamera *topCam;
-   int centerX, centerY;
+   imageConfig imageConf;
    
    /*Image Containers */
    Mat *processed, *buffer;
@@ -106,10 +110,8 @@ private:
    vector<double> distPix;
    vector<double> distReal;
    vector<vector<Point2d> >distLookUpTable;
-
    double robotHeight;
-   vector<double> ballPix;
-   vector<double> ballReal;
+
 
    // Implementation USING RLE
    void rleModInitialization(); // Inits RLE Mode sensors and RLE's
