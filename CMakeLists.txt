@@ -164,8 +164,6 @@ link_directories(/usr/lib/x86_64-linux-gnu)
 ########################################
 ######################################################################
 
-set(COMPILE TRUE)
-if(COMPILE)
 ## HARDWARE ##
 ######################################################################
 set(HARDWARE_DIR ${PROJECT_DIRECTORY}/hardware_node)
@@ -180,6 +178,7 @@ add_executable(hardware_node ${hardware_SRC} ${hardware_CPP})
 set_target_properties(hardware_node PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(hardware_node PRIVATE cxx_range_for)
 target_link_libraries(hardware_node ${catkin_LIBRARIES} ${qt_LIBRARIES})
+add_dependencies(hardware_node ${PROJECT_NAME}_gencpp)
 ######################################################################
 
 ## LOCALIZATION ##
@@ -200,5 +199,5 @@ add_executable(localization_node ${localization_SRC} ${localization_CPP})
 set_target_properties(localization_node PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(localization_node PRIVATE cxx_range_for)
 target_link_libraries(localization_node ${catkin_LIBRARIES} ${qt_LIBRARIES} ${opencv_LIBRARIES} ${flycap_LIBRARIES})
+add_dependencies(localization_node ${PROJECT_NAME}_gencpp)
 ######################################################################
-endif(COMPILE)
