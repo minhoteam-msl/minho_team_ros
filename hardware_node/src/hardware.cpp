@@ -1,7 +1,7 @@
 #include "hardware.h"
 #define DEBUG_DISPLAY 0
 
-// *********************
+/// \brief class constructor
 hardware::hardware(QObject *parent) : QObject(parent) // Constructor
 {
    configFilePaths();
@@ -10,10 +10,9 @@ hardware::hardware(QObject *parent) : QObject(parent) // Constructor
    watch_dog = new QTimer();
    initVariables();
 }
-// *********************
 
-// Serial Port
-// *********************
+/// \brief function to open UART communication with UART device (hardware platform)
+/// \params [in] : name -> name of the UART device to be opened
 void hardware::openSerialPort(QString name)
 {
    serial->setPortName(name);
@@ -37,6 +36,7 @@ void hardware::openSerialPort(QString name)
 
 }
 
+/// \brief function to close UART communication
 void hardware::closeSerialPort()
 {
    if (serialOpen){
@@ -47,6 +47,7 @@ void hardware::closeSerialPort()
    serial->close();
 }
 
+/// \brief function to handle (print to stdout) errors ocurred in UART communication
 void hardware::handleError(QSerialPort::SerialPortError error)
 {
    if (error == QSerialPort::ResourceError) {
@@ -56,15 +57,15 @@ void hardware::handleError(QSerialPort::SerialPortError error)
 }
 // *********************
 
-// Configuration and Initializations
-// *********************
+/// \brief function to configure absolute paths for configuration files
 void hardware::configFilePaths()
 {
    QString home = getenv("HOME");
    imuLinFilePath = home+"/"+QString(cfgFolderPath)+"imu.lin";
 }
 
-
+/// \brief function to initialize data to linearize (linear error correction) 
+/// the IMU (orientation) value received by hardware platform over UART
 void hardware::initIMULinearization() // Initializes IMU Linearization Table
 {
    QFile file(imuLinFilePath);
@@ -98,6 +99,10 @@ void hardware::initIMULinearization() // Initializes IMU Linearization Table
    file.close();
 }
 
+/// \brief function to initialize variables and to connect signals and slots.
+/// This function also detects the UART devices, removing known devices like
+/// the Hokuyo (LIDAR) to avoid wrongful connections. If everything checks out
+/// it opens the UART coms and starts watch dog
 void hardware::initVariables() // Initialization of variables and serial port
 {	
    serialOpen = false;
@@ -132,10 +137,8 @@ void hardware::initVariables() // Initialization of variables and serial port
    watch_dog->start(200);
 }
 
-// *********************
-
-// Serial Use
-// *********************
+/// \brief function to write data to serial UART communication
+/// \params [in] : data -> string of data to be written
 void hardware::writeSerial(QString data)
 {
    if (serialOpen) {
@@ -144,6 +147,9 @@ void hardware::writeSerial(QString data)
    }
 }
 
+/// \brief callback function to data received on UART communication by
+/// hardware platform. This function collects and parses all the data
+/// and publishes it over ROS in hardwareInfo.
 void hardware::readSerialData()
 {
    if(serial->canReadLine()){
@@ -169,12 +175,17 @@ void hardware::readSerialData()
    } 
 }
 
+/// \brief function to write existing items waiting on the queue, also making
+/// a check point for the watch dog (safety timeout)
 void hardware::writeSerialQueue()
 {
    if(serialOpen) writeSerial(queue.pop_front());
    barking = true;	
 }
 
+/// \brief function to parse a controlInfo message, which contains actuation 
+/// commands and to enqueue the data to be sent over UART
+/// \params [in] : msg -> controlInfo message to be parsed and sent
 void hardware::addCommandToQueue(const controlInfo::ConstPtr& msg)
 {
    QString cmd = "";
@@ -191,15 +202,17 @@ void hardware::addCommandToQueue(const controlInfo::ConstPtr& msg)
    queue.enqueue(cmd);
    
 }
-// *********************
 
-// ROS
-// *********************
+/// \brief function to set the ROS publisher for hardwareInfo created in main_hardware.cpp
+/// \params [in] : pub -> pointer to the publisher to be used
 void hardware::setROSPublisher(ros::Publisher *pub)
 {
    ros_publisher = pub;
 }
 
+/// \brief ROS callback to receive controlInfo messages. This function only applies
+/// received data if teleop state and message's teleop match.
+/// \params [in] : msg -> controlInfo message to be used/applied
 void hardware::controlInfoCallback(const controlInfo::ConstPtr& msg)
 {
    if((is_teleop_active&&msg->is_teleop) || (!is_teleop_active&&!msg->is_teleop)){
@@ -209,11 +222,17 @@ void hardware::controlInfoCallback(const controlInfo::ConstPtr& msg)
    }
 }
 
+/// \brief ROS callback to receive controlInfo messages. This function
+/// sets the current state of teleop, on or off
+/// \params [in] : msg -> teleop message to be used/applied
 void hardware::teleopCallback(const teleop::ConstPtr& msg)
 {
    is_teleop_active = msg->set_teleop;
 }
 
+/// \brief function to implement timeout safety to avoid uncontrolled robot if something
+/// goes wrong. Fired by a timer, checks if data has been sent at least with a frequency
+/// 10Hz (100ms period)
 void hardware::watch_dog_bark()
 {
    if(!barking){ // watch dog timed out
@@ -224,34 +243,40 @@ void hardware::watch_dog_bark()
    }
    barking = false;
 }
-// *********************
 
-// Hardware data filtering
-// *********************
+/// \brief function to linearize (linear error correction) the imu value received 
+/// by hardware platform over UART, given the tables initialzed in initIMULinearization()
+/// \params [in] : angle -> original imu angle to be corrected
+/// \params [out] : corrected value given linearization table
 int hardware::correctImuAngle(int angle)
 {
    int counter = 0;
    while(angle>imuVals[counter] && counter<imuVals.size()) counter++;
    return (int)b[counter-1]+m[counter-1]*angle;
 }
-// ********************* 
 
+/// \brief class constructor
 serialQueue::serialQueue(QObject *parent) : QObject(parent) // Constructor
 {
    queue.clear();
 }
 
+/// \brief function to add data to the queue
+/// \params: data - QString to be added to queue
 void serialQueue::enqueue(QString data)
 {
    queue.push_back(data);
    emit elementAddedToQueue();
 }
- 
+
+/// \brief function to clear queue
 void serialQueue::flush()
 {
    queue.clear();
 }
 
+/// \brief function to pop (return and delete) the front
+/// elemente of the FIFO queue
 QString serialQueue::pop_front()
 {
    if(queue.size()>0){

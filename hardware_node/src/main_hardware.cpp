@@ -18,14 +18,14 @@ int main(int argc, char **argv)
 	QCoreApplication a(argc, argv);
 	/* This program interfaces MinhoTeam's hardware via QSerialPort
 	 * and uses ROS to communicate with the remaining nodes.     */
-	//Hardware Serial Port Communication Object Declaration
 	ROS_WARN("Attempting to start Serial Port services of hardware_node.");
+	//Hardware Serial Port Communication Object Initialization
 	hd = new hardware(&a);
-	//Initialize ROS
+	//Initialize ROS Node with name hardware_node
 	ros::init(argc, argv, "hardware_node",ros::init_options::NoSigintHandler);
 	//Request node handler
 	ros::NodeHandle hardware_node;
-	//Initialize hardwareInfo publisher
+	//Initialize hardwareInfo publisher and pass it to child class
 	ros::Publisher hardware_info_pub = hardware_node.advertise<hardwareInfo>("hardwareInfo", 1000);
 	hd->setROSPublisher(&hardware_info_pub);
 	//Initialize controlInfo subscriber
@@ -33,6 +33,7 @@ int main(int argc, char **argv)
 	                                                            1000, 
 	                                                            &hardware::controlInfoCallback,
 	                                                            hd);
+	//Initialize teleop subscriber                                                            
 	ros::Subscriber teleop_sub = hardware_node.subscribe("teleop", 
                                                          1000, 
                                                          &hardware::teleopCallback,
@@ -40,6 +41,7 @@ int main(int argc, char **argv)
 	ROS_WARN("MinhoTeam hardware_node started running on ROS.");
 
 
+   //Run ROS AsyncSpinner
 	ros::AsyncSpinner spinner(2);
 	spinner.start();
 	return a.exec();
