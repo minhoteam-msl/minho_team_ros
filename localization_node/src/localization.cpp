@@ -24,7 +24,7 @@ Localization::Localization(ros::NodeHandle *par , QObject *parent) : QObject(par
    //#####################################
    
    //TEST
-   buffer = imread(QString(imgFolderPath+"1.png").toStdString());
+   buffer = imread(QString(imgFolderPath+"temp.png").toStdString());
    parentTimer->start(33);
 }
 

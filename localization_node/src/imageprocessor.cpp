@@ -244,18 +244,18 @@ Point2d ImageProcessor::worldMapping(Point p)
 void ImageProcessor::generateMirrorConfiguration()
 {
    // Initialize Distance look up table
-    distLookUpTable.clear();
-    distLookUpTable = vector<vector<Point2d> >(480*480,vector<Point2d>(0));
+   distLookUpTable.clear();
+   distLookUpTable = vector<vector<Point2d> >(480*480,vector<Point2d>(0));
 
-    for(int i=0; i<=480; i++){ // columns
-        for(int j=0; j<=480; j++){ // rows
-            double dist = d2pWorld(d2p(Point(imageConf.center_x,imageConf.center_y),Point(j,i)));
-            double angulo = (atan2((j-imageConf.center_x),(i-imageConf.center_y))*(180.0/M_PI))-imageConf.tilt;
-            while(angulo<0.0)angulo+=360.0;
-            while(angulo>360.0)angulo-=360.0;
-            distLookUpTable[j].push_back(Point2d(dist,angulo));
-        }
-    }   
+   for(int i=0; i<=480; i++){ // columns
+     for(int j=0; j<=480; j++){ // rows
+         double dist = d2pWorld(d2p(Point(imageConf.center_x,imageConf.center_y),Point(j,i)));
+         double angulo = (atan2((j-imageConf.center_x),(i-imageConf.center_y))*(180.0/M_PI))-imageConf.tilt;
+         while(angulo<0.0)angulo+=360.0;
+         while(angulo>360.0)angulo-=360.0;
+         distLookUpTable[j].push_back(Point2d(dist,angulo));
+     }
+   }   
 }
 
 void ImageProcessor::updateDists(double max, double step, vector<short unsigned int>pix_dists)
