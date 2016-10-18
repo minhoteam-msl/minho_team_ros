@@ -1,0 +1,5 @@
+#This service allows to request the set/get of imuConfig for linearization
+imuConfig imuConf
+bool is_set
+---
+imuConfig imuConf

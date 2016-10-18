@@ -1,0 +1,4 @@
+#This service allows to request the reset encoder values
+bool dummy_var
+---
+bool dummy_var

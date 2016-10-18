@@ -1,0 +1,5 @@
+#This service allows to request the set/get of OMNI 3MD properties (PID,Ramp)
+omniConfig omniConf
+bool is_set
+---
+omniConfig omniConf

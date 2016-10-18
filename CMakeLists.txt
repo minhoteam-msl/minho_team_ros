@@ -63,12 +63,18 @@ add_message_files(
       visionHSVConfig.msg
       mirrorConfig.msg
       imageConfig.msg
+      imuConfig.msg
+      omniConfig.msg
 )
 
 ## Generate services in the 'srv' folder
  add_service_files(
    FILES
    requestOmniVisionConf.srv
+   requestResetEncoders.srv
+   requestResetIMU.srv
+   requestIMULinTable.srv
+   requestOmniProps.srv
  )
 
 ## Generate actions in the 'action' folder
