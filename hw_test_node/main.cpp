@@ -22,7 +22,7 @@ int main(int argc, char **argv)
       control_info_pub.publish(msg);
       ros::spinOnce();
       loop_rate.sleep();
-      if(counter>30) { counter = 0; moveId++; switchMove(&moveId); }
+      if(counter>10) { counter = 0; moveId++; switchMove(&moveId); }
       else counter++;
    }
 }
