@@ -129,11 +129,17 @@ add_message_files(
 set(PROJECT_DIRECTORY ~/catkin_ws/src/minho_team_ros)
 include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 list(APPEND CMAKE_CXX_FLAGS "${GAZEBO_CXX_FLAGS}")
-
+set(username $ENV{USER})
+MESSAGE( STATUS "-----> Compiling MinhoTeam Packages for : " ${username})
 #Linking steps for Qt5
 ########################################
+if(${username} STREQUAL lar)
+set(CURRQTPREFIX /opt/Qt)
+else()
 set(CURRQTPREFIX /opt/Qt/5.7/gcc_64)
-#set(CURRQTPREFIX /opt/Qt)
+endif()
+
+MESSAGE( STATUS "-----> Current Qt Installation Path : " ${CURRQTPREFIX})
 set(CMAKE_PREFIX_PATH ${CURRQTPREFIX})
 set(Qt5SerialPort_DIR ${CURRQTPREFIX}/lib/cmake/Qt5SerialPort)
 find_package(Qt5 COMPONENTS Core SerialPort Network REQUIRED)
