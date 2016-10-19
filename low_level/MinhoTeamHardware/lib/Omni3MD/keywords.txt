@@ -1,0 +1,88 @@
+#######################################
+# Syntax Coloring Map SD
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+Omni3MD	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+i2c_connect	KEYWORD2
+calibrate	KEYWORD2
+set_i2c_timeout	KEYWORD2
+set_i2c_address	KEYWORD2
+set_PID	KEYWORD2
+set_ramp	KEYWORD2
+set_prescaler	KEYWORD2
+set_enc_value	KEYWORD2
+set_differential	KEYWORD2
+read_temperature	KEYWORD2
+read_battery	KEYWORD2
+read_firmware	KEYWORD2
+read_control_rate	KEYWORD2
+read_enc1	KEYWORD2
+read_enc2	KEYWORD2
+read_enc3	KEYWORD2
+read_enc1_max	KEYWORD2
+read_enc2_max	KEYWORD2
+read_enc3_max	KEYWORD2
+read_encoders	KEYWORD2
+read_mov_data	KEYWORD2
+read_all_data	KEYWORD2
+mov_omni	KEYWORD2
+mov_dif_si	KEYWORD2
+mov_dif	KEYWORD2
+mov_pos	KEYWORD2
+mov_lin3m_pid	KEYWORD2
+mov_lin1m_pid	KEYWORD2
+mov_lin3m_nopid	KEYWORD2
+mov_lin1m_nopid	KEYWORD2
+stop_motors	KEYWORD2
+save_position	KEYWORD2
+#######################################
+# Instances (KEYWORD2)
+#######################################
+omni	KEYWORD2
+robot	KEYWORD2
+robo	KEYWORD2
+#######################################
+# Constants (LITERAL1)
+#######################################
+OMNI3MD_ADDRESS	LITERAL1
+BROADCAST_ADDRESS	LITERAL1
+COMMAND_FIRMWARE_INT	LITERAL1
+COMMAND_FIRMWARE_DEC	LITERAL1
+COMMAND_STOP	LITERAL1
+COMMAND_CALIBRATE	LITERAL1
+COMMAND_MOV_OMNI	LITERAL1
+COMMAND_MOV_LIN3M_PID	LITERAL1
+COMMAND_MOV_LIN3M_NOPID	LITERAL1
+COMMAND_MOV_LIN1M_PID	LITERAL1
+COMMAND_MOV_LIN1M_NOPID	LITERAL1
+COMMAND_GAIN_CFG	LITERAL1
+COMMAND_I2C_ADD	LITERAL1
+COMMAND_TIMEOUT_I2C	LITERAL1
+COMMAND_PRESCALER_CFG	LITERAL1
+COMMAND_POS_ENC_PRESET	LITERAL1
+COMMAND_MOV_POS	LITERAL1
+COMMAND_SAVE_POS	LITERAL1
+COMMAND_RAMP_CFG	LITERAL1
+COMMAND_MOV_DIF_SI	LITERAL1
+COMMAND_DIF_SI_CFG	LITERAL1
+COMMAND_ENC1_INC	LITERAL1
+COMMAND_ENC2_INC	LITERAL1
+COMMAND_ENC3_INC	LITERAL1
+COMMAND_BAT	LITERAL1
+COMMAND_TEMP	LITERAL1
+COMMAND_CTRL_RATE	LITERAL1
+COMMAND_ENC1_MAX	LITERAL1
+COMMAND_ENC2_MAX	LITERAL1
+COMMAND_ENC3_MAX	LITERAL1
+M1	LITERAL1
+M2	LITERAL1
+M3	LITERAL1
+

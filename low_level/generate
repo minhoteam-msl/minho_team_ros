@@ -1,0 +1,3 @@
+#!/bin/bash
+rm -rf ./MinhoTeamHardware/lib/ros_lib
+rosrun rosserial_arduino make_libraries.py ./MinhoTeamHardware/lib

@@ -1,0 +1,17 @@
+#!/bin/bash
+#This file installs arduino and ino tools
+echo Installing Arduino ...
+sudo apt-get -y install arduino arduino-core
+sudo usermod -aG dialout $(whoami)
+echo "Added $(whoami) to dialout group"
+sleep 2
+echo Installing ino tools ...
+sudo apt-get -y install phython
+sudo apt-get -y install python-pip
+sudo apt-get -y install picocom
+sudo pip install ino
+sudo rm -rf /usr/share/arduino/libraries WiFi*
+sudo rm -rf /usr/share/arduino/libraries ArduinoWiFi
+sudo rm -rf /usr/share/arduino/Robot_Control
+sleep 2
+

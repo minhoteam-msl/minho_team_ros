@@ -1,0 +1,14 @@
+#!/bin/bash
+echo "Generating ROS Libraries"
+./generate
+echo "Copying source files ..."
+cp ./MinhoTeamHardware/MinhoTeamHardware/MinhoTeamHardware.ino ./MinhoTeamHardware/src/ &&
+echo "Source files successfuly copied"
+
+cd MinhoTeamHardware &&
+ino clean &&
+ino build &&
+
+echo Build done correctly ! &&
+
+ino upload
