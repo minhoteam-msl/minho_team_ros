@@ -191,6 +191,7 @@ void Localization::hardwareCallback(const hardwareInfo::ConstPtr &msg)
    odometry.x += (sin(halfTeta)*v+cos(halfTeta)*vn)*deltaT;
    odometry.y += (cos(halfTeta)*v-sin(halfTeta)*vn)*deltaT;
    odometry.angle -= normalizeAngleRad(w*deltaT)*radToDeg;
+   
    last_hardware_state = current_hardware_state;
 }
 
@@ -211,7 +212,13 @@ float Localization::normalizeAngleDeg(float angle)
 void Localization::fuseEstimates()
 {
    //Fuses Vision(local) with last_state.robot_pose(local)+odometry
-
+  
+   // Temporary, to enable hardware-only localization
+   // ###############################################
+   vision.x += odometry.x; vision.y += odometry.y;
+   // ###############################################
+   
+   vision.angle = current_hardware_state.imu_value;
    // PREDICTION PHASE (Using physical data -> Odometry)
    // X' = A*X + B*u (where B*u is the data from the odometry)
    kalman.predictedState.x = last_state.robot_pose.x + odometry.x;
