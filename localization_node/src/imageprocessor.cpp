@@ -634,6 +634,7 @@ bool ImageProcessor::readLookUpTable()
     }
     
     generateLookUpTable();
+    return true;
 }
 
 // Writes new look up table configuration to vision.cfg file
