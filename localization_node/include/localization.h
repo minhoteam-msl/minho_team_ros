@@ -27,6 +27,7 @@ private:
    QTimer *parentTimer;
    Mat buffer, processed;
    int requiredTiming;
+   float time_interval;
    //Confserver variables
    bool assigning_images;
    uint8_t assigning_type;
@@ -52,6 +53,7 @@ public slots:
    void hardwareCallback(const hardwareInfo::ConstPtr &msg);   
    void discoverWorldModel(); // Main Funcition
    void fuseEstimates();
+   void computeVelocities();
    void initializeKalmanFilter();
    // Math Utilities
    float normalizeAngleRad(float angle);

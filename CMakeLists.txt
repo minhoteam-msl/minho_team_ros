@@ -65,6 +65,7 @@ add_message_files(
       imageConfig.msg
       imuConfig.msg
       omniConfig.msg
+      velocity.msg
 )
 
 ## Generate services in the 'srv' folder

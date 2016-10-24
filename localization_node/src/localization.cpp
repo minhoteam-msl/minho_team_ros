@@ -10,7 +10,8 @@ Localization::Localization(ros::NodeHandle *par , QObject *parent) : QObject(par
    confserver = new ConfigServer(par); 
    confserver->setOmniVisionConf(processor->getMirrorConfAsMsg(),processor->getVisionConfAsMsg(),processor->getImageConfAsMsg());
    parentTimer = new QTimer();
-   requiredTiming = 33;
+   requiredTiming = 33; //ms
+   time_interval = (float)requiredTiming/1000.0;
    connect(parentTimer,SIGNAL(timeout()),this,SLOT(discoverWorldModel()));
    //##################################### 
    
@@ -55,8 +56,10 @@ void Localization::discoverWorldModel() // Main Function
    if(have_image){
       //Publish information   
       fuseEstimates();
+      computeVelocities();
       memset(&odometry,0,sizeof(localizationEstimate));
 		robot_info_pub.publish(current_state);
+		last_state = current_state;
    }  
    
    if(!have_image) parentTimer->start(1);
@@ -249,7 +252,20 @@ void Localization::fuseEstimates()
    kalman.covariance.x = (1-kalman.K.x)*kalman.predictedCovariance.x;
    kalman.covariance.y = (1-kalman.K.y)*kalman.predictedCovariance.y;
    kalman.covariance.z = (1-kalman.K.z)*kalman.predictedCovariance.z;
-	last_state = current_state;
+}
+
+// TODO: Implement a counter to only compute in 100ms+ ?
+void Localization::computeVelocities()
+{
+   float lpf_weight = 0.8;
+   float lpf_minor = 1-lpf_weight;
+   // First, compute the robot velocities based on final localization estimate
+   // ########################################################################
+   // Time interval between estimates is requiredTiming = 33ms/30Hz
+   current_state.robot_velocity.x = lpf_weight*((current_state.robot_pose.x-last_state.robot_pose.x)/time_interval)+lpf_minor*last_state.robot_velocity.x;  
+   current_state.robot_velocity.y = lpf_weight*((current_state.robot_pose.y-last_state.robot_pose.y)/time_interval)+lpf_minor*last_state.robot_velocity.y; 
+   current_state.robot_velocity.w = lpf_weight*((current_state.robot_pose.z-last_state.robot_pose.z)/time_interval)+lpf_minor*last_state.robot_velocity.z; 
+   // ########################################################################
 }
 
 void Localization::initializeKalmanFilter()
