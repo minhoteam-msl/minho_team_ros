@@ -31,6 +31,16 @@ private:
    bool assigning_images;
    uint8_t assigning_type;
    QString imgFolderPath;
+   //Hardware estimate variables
+   bool is_hardware_ready;
+   hardwareInfo current_hardware_state, last_hardware_state;
+   robotInfo current_state, last_state;
+   localizationEstimate odometry;
+   localizationEstimate vision;
+   MTKalmanFilter kalman;
+   //ROS publishers and subscribers
+   ros::Publisher robot_info_pub;
+   ros::Subscriber hardware_info_sub;
 private slots:
    void initVariables();
    void stopImageAssigning();
@@ -41,6 +51,11 @@ private slots:
 public slots:
    void hardwareCallback(const hardwareInfo::ConstPtr &msg);   
    void discoverWorldModel(); // Main Funcition
+   void fuseEstimates();
+   void initializeKalmanFilter();
+   // Math Utilities
+   float normalizeAngleRad(float angle);
+   float normalizeAngleDeg(float angle);
 };
 
 #endif // LOCALIZATION_H

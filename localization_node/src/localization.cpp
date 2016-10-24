@@ -23,6 +23,16 @@ Localization::Localization(ros::NodeHandle *par , QObject *parent) : QObject(par
    connect(confserver,SIGNAL(changedImageConfiguration(imageConfig::ConstPtr)),this,SLOT(changeImageConfiguration(imageConfig::ConstPtr)));
    //#####################################
    
+   //## Setup ROS Pubs and Subs ##
+   //############################# 
+   //Initialize robotInfo publisher
+   robot_info_pub = par->advertise<robotInfo>("robotInfo", 1000);
+	//Initialize hardwareInfo subscriber
+	ros::Subscriber hardware_info_sub = par->subscribe("hardwareInfo", 
+                                                   1000, 
+                                                   &Localization::hardwareCallback,
+                                                   this);
+   //############################# 
    //TEST
    buffer = imread(QString(imgFolderPath+"temp.png").toStdString());
    parentTimer->start(33);
@@ -33,7 +43,7 @@ Localization::~Localization()
 
 }
 
-void Localization::discoverWorldModel() // Main Funcition
+void Localization::discoverWorldModel() // Main Function
 {
    bool have_image = true;
    int timing = 0;
@@ -44,7 +54,9 @@ void Localization::discoverWorldModel() // Main Funcition
    // Localization code
    if(have_image){
       //Publish information   
-      
+      fuseEstimates();
+      memset(&odometry,0,sizeof(localizationEstimate));
+		robot_info_pub.publish(current_state);
    }  
    
    if(!have_image) parentTimer->start(1);
@@ -78,7 +90,9 @@ void Localization::initVariables()
    QString cfgDir = home+QString(configFolderPath);
    imgFolderPath = cfgDir+QString(imageFolderPath);
    
-   assigning_images = false;   
+   assigning_images = false;  
+   is_hardware_ready = false; 
+   initializeKalmanFilter();
 }
 
 void Localization::stopImageAssigning()
@@ -125,5 +139,118 @@ void Localization::changeImageConfiguration(imageConfig::ConstPtr msg)
 }
 void Localization::hardwareCallback(const hardwareInfo::ConstPtr &msg)
 {
-   //Process hardware information
+   // Process hardware information
+   static int receivedFrames = 0;
+   current_hardware_state = *msg;
+   
+   if(!is_hardware_ready){
+		receivedFrames++;
+		if(receivedFrames>10) is_hardware_ready = true;
+		else current_state.robot_pose.z = msg->imu_value;
+		last_hardware_state = current_hardware_state;	
+   }
+   
+   // Perform Odometry Calculations here
+   double v1, v2, v3, v, vn, w, halfTeta;
+   int deltaenc1 = 0.0, deltaenc2 = 0.0, deltaenc3 = 0.0;
+   
+   // Normalize differences in encoder values due to wrap around (overflow)
+   if(current_hardware_state.encoder_1*last_hardware_state.encoder_1<0 && abs(current_hardware_state.encoder_1)>16384){
+       if(current_hardware_state.encoder_1<0){
+            deltaenc1 = 32768+current_hardware_state.encoder_1+32768-last_hardware_state.encoder_1;
+       } else {
+           deltaenc1 = 32768-current_hardware_state.encoder_1+32768+last_hardware_state.encoder_1;
+       }
+   } else deltaenc1 = current_hardware_state.encoder_1-last_hardware_state.encoder_1;
+
+   if(current_hardware_state.encoder_2*last_hardware_state.encoder_2<0 && abs(current_hardware_state.encoder_2)>16384){
+       if(current_hardware_state.encoder_2<0){
+            deltaenc2 = 32768+current_hardware_state.encoder_2+32768-last_hardware_state.encoder_2;
+       } else {
+           deltaenc2 = 32768-current_hardware_state.encoder_2+32768+last_hardware_state.encoder_2;
+       }
+   } else deltaenc2 = current_hardware_state.encoder_2-last_hardware_state.encoder_2;
+
+   if(current_hardware_state.encoder_3*last_hardware_state.encoder_3<0 && abs(current_hardware_state.encoder_3)>16384){
+       if(current_hardware_state.encoder_3<0){
+            deltaenc3 = 32768+current_hardware_state.encoder_3+32768-last_hardware_state.encoder_3;
+       } else {
+           deltaenc3 = 32768-current_hardware_state.encoder_3+32768+last_hardware_state.encoder_3;
+       }
+   } else deltaenc3 = current_hardware_state.encoder_3-last_hardware_state.encoder_3;
+   
+   // KWheels converts encoder ticks to m/s
+   v1 = (deltaenc1)*KWheels; v2 = (deltaenc2)*KWheels; v3 = (deltaenc3)*KWheels;
+   // Compute velocity, normal velocity and angular velocity
+   v  = (-v1+v3)/(2*sint);
+   vn = (v1-2*v2+v3)/(2*(cost+1));
+   w  = (v1+2*cost*v2+v3)/(2*dRob*(cost+1));
+   halfTeta = normalizeAngleRad(w*deltaT_2)-msg->imu_value*degToRad;
+   
+   // Acumulate odometry estimate while not used by other functions
+   odometry.x += (sin(halfTeta)*v+cos(halfTeta)*vn)*deltaT;
+   odometry.y += (cos(halfTeta)*v-sin(halfTeta)*vn)*deltaT;
+   odometry.angle -= normalizeAngleRad(w*deltaT)*radToDeg;
+   last_hardware_state = current_hardware_state;
+}
+
+float Localization::normalizeAngleRad(float angle)
+{
+   while (angle >  M_PI) angle -= M_PI;
+   while (angle < -M_PI) angle += M_PI;
+   return angle;
+}
+
+float Localization::normalizeAngleDeg(float angle)
+{
+   while (angle >  360.0) angle -= 360.0;
+   while (angle < 0.0) angle += 360.0;
+   return angle;
+}
+
+void Localization::fuseEstimates()
+{
+   //Fuses Vision(local) with last_state.robot_pose(local)+odometry
+
+   // PREDICTION PHASE (Using physical data -> Odometry)
+   // X' = A*X + B*u (where B*u is the data from the odometry)
+   kalman.predictedState.x = last_state.robot_pose.x + odometry.x;
+   kalman.predictedState.y = last_state.robot_pose.y + odometry.y;
+   kalman.predictedState.z = last_state.robot_pose.z + odometry.angle;
+   kalman.predictedState.z = normalizeAngleDeg(kalman.predictedState.z);
+   if(vision.angle < 90.0 && kalman.predictedState.z > 270.0) kalman.predictedState.z -= 360.0; 
+   if(vision.angle > 270.0 && kalman.predictedState.z < 90.0) kalman.predictedState.z += 360.0; 
+	
+   // P' = A*Pant*A' + Q
+   kalman.predictedCovariance.x = kalman.lastCovariance.x + kalman.Q.x;
+   kalman.predictedCovariance.y = kalman.lastCovariance.y + kalman.Q.y;
+   kalman.predictedCovariance.z = kalman.lastCovariance.z + kalman.Q.z;
+
+   // CORRECTION PHASE
+   //K = P'/(P'+R)  
+   kalman.K.x = kalman.predictedCovariance.x/(kalman.predictedCovariance.x+kalman.R.x);
+   kalman.K.y = kalman.predictedCovariance.y/(kalman.predictedCovariance.y+kalman.R.y);
+   kalman.K.z = kalman.predictedCovariance.z/(kalman.predictedCovariance.z+kalman.R.z);
+
+   //K = P'/(P'+R)
+   current_state.robot_pose.x = kalman.predictedState.x + kalman.K.x*(vision.x - kalman.predictedState.x);
+   current_state.robot_pose.y = kalman.predictedState.y + kalman.K.y*(vision.y - kalman.predictedState.y);
+   current_state.robot_pose.z = kalman.predictedState.z + kalman.K.z*(vision.angle - kalman.predictedState.z);
+   current_state.robot_pose.z = normalizeAngleDeg(current_state.robot_pose.z);
+
+   //P = (1-K)*P'
+   kalman.covariance.x = (1-kalman.K.x)*kalman.predictedCovariance.x;
+   kalman.covariance.y = (1-kalman.K.y)*kalman.predictedCovariance.y;
+   kalman.covariance.z = (1-kalman.K.z)*kalman.predictedCovariance.z;
+	last_state = current_state;
+}
+
+void Localization::initializeKalmanFilter()
+{
+   memset(&odometry,0,sizeof(localizationEstimate));
+   memset(&vision,0,sizeof(localizationEstimate));
+   kalman.Q.x = kalman.Q.y = 1; kalman.Q.z = 1;
+   kalman.R.x = kalman.R.y = 20; kalman.R.z = 30;
+   kalman.lastCovariance.x = kalman.lastCovariance.y = kalman.lastCovariance.z = 0;
+   kalman.covariance = kalman.predictedCovariance = kalman.lastCovariance;
 }
