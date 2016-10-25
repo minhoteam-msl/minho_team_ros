@@ -27,10 +27,10 @@ Localization::Localization(ros::NodeHandle *par , QObject *parent) : QObject(par
    //## Setup ROS Pubs and Subs ##
    //############################# 
    //Initialize robotInfo publisher
-   robot_info_pub = par->advertise<robotInfo>("robotInfo", 1000);
+   robot_info_pub = par->advertise<robotInfo>("robotInfo", 1);
 	//Initialize hardwareInfo subscriber
 	ros::Subscriber hardware_info_sub = par->subscribe("hardwareInfo", 
-                                                   1000, 
+                                                   1, 
                                                    &Localization::hardwareCallback,
                                                    this);
    //############################# 

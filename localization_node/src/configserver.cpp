@@ -16,20 +16,20 @@ ConfigServer::ConfigServer(ros::NodeHandle *par , QObject *parent) : QObject(par
    // Setup ROS publishers and subscribers
    it_ = new image_transport::ImageTransport(*par);
    img_req_sub_ = par->subscribe("imgRequest", 
-                                  1000, 
+                                  100, 
                                   &ConfigServer::processImageRequest,
                                   this);
    image_pub_ = it_->advertise("camera", 1);
    mirror_sub_ = par->subscribe("mirrorConfig", 
-                                  1000, 
+                                  100, 
                                   &ConfigServer::processMirrorConfig,
                                   this);
    vision_sub_ = par->subscribe("visionHSVConfig", 
-                                  1000, 
+                                  100, 
                                   &ConfigServer::processVisionConfig,
                                   this);
    image_sub_ = par->subscribe("imageConfig", 
-                                  1000, 
+                                  100, 
                                   &ConfigServer::processImageConfig,
                                   this);
                                   
