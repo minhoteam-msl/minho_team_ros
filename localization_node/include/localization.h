@@ -59,6 +59,7 @@ public slots:
    void discoverWorldModel(); // Main Funcition
    void fuseEstimates();
    void computeVelocities();
+   void decideBallPossession();
    void initializeKalmanFilter();
    // Math Utilities
    float normalizeAngleRad(float angle);

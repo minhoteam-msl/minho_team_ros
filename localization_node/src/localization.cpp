@@ -60,6 +60,7 @@ void Localization::discoverWorldModel() // Main Function
       //Publish information   
       fuseEstimates();
       computeVelocities();
+      decideBallPossession();
       memset(&odometry,0,sizeof(localizationEstimate));
 		robot_info_pub.publish(current_state);
 		last_state = current_state;
@@ -301,6 +302,15 @@ void Localization::computeVelocities()
       last_vel_state = current_state;
    }
    
+}
+
+
+void Localization::decideBallPossession()
+{
+   // Use both hardware information and vision information to know
+   // if the robot possesses the ball or not
+   // ######################################################################## 
+   current_state.has_ball = current_hardware_state.ball_sensor;  
 }
 
 void Localization::initializeKalmanFilter()
