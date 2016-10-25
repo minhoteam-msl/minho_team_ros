@@ -76,6 +76,7 @@ add_message_files(
    requestResetIMU.srv
    requestIMULinTable.srv
    requestOmniProps.srv
+   requestReloc.srv
  )
 
 ## Generate actions in the 'action' folder

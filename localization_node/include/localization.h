@@ -6,12 +6,14 @@
 #include "configserver.h"
 #include "minho_team_ros/hardwareInfo.h"
 #include "minho_team_ros/robotInfo.h"
+#include "minho_team_ros/requestReloc.h"
 #include "localization.h"
 
 using namespace ros;
 using namespace cv;
 using minho_team_ros::hardwareInfo; //Namespace for hardware information msg - SUBSCRIBING
 using minho_team_ros::robotInfo; //Namespace for vision information msg - PUBLISHING
+using minho_team_ros::requestReloc;
 
 class Localization : public QObject
 {
@@ -42,6 +44,8 @@ private:
    //ROS publishers and subscribers
    ros::Publisher robot_info_pub;
    ros::Subscriber hardware_info_sub;
+   //ROS Services
+   ros::ServiceServer reloc_service;
 private slots:
    void initVariables();
    void stopImageAssigning();
@@ -49,6 +53,7 @@ private slots:
    void changeLookUpTableConfiguration(visionHSVConfig::ConstPtr msg);
    void changeMirrorConfiguration(mirrorConfig::ConstPtr msg);
    void changeImageConfiguration(imageConfig::ConstPtr msg);
+   bool doReloc(requestReloc::Request &req,requestReloc::Response &res);
 public slots:
    void hardwareCallback(const hardwareInfo::ConstPtr &msg);   
    void discoverWorldModel(); // Main Funcition

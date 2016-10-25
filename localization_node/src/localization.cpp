@@ -33,6 +33,9 @@ Localization::Localization(ros::NodeHandle *par , QObject *parent) : QObject(par
                                                    1, 
                                                    &Localization::hardwareCallback,
                                                    this);
+   reloc_service = par->advertiseService("requestReloc",
+                                    &Localization::doReloc,
+                                    this);
    //############################# 
    //TEST
    buffer = imread(QString(imgFolderPath+"temp.png").toStdString());
@@ -140,6 +143,18 @@ void Localization::changeImageConfiguration(imageConfig::ConstPtr msg)
    if(processor->writeImageConfig())ROS_INFO("New %s saved!",imageFileName);
    //Start processing mechanism
 }
+
+bool Localization::doReloc(requestReloc::Request &req,requestReloc::Response &res)
+{
+   // TODO: Change this to reloc/global localization flag
+   //############################# 
+   current_state.robot_pose.x = 0;
+   current_state.robot_pose.y = 0;
+   last_state.robot_pose = current_state.robot_pose;
+   //############################# 
+   return true;
+}
+
 void Localization::hardwareCallback(const hardwareInfo::ConstPtr &msg)
 {
    // Process hardware information
@@ -257,7 +272,7 @@ void Localization::fuseEstimates()
 // TODO: Implement a counter to only compute in 100ms+ ?
 void Localization::computeVelocities()
 {
-   int it_limit = 6;
+   int it_limit = 4;
    static int iteration = it_limit;
    
    if(iteration<(it_limit-1)) iteration++;
@@ -287,3 +302,5 @@ void Localization::initializeKalmanFilter()
    kalman.lastCovariance.x = kalman.lastCovariance.y = kalman.lastCovariance.z = 0;
    kalman.covariance = kalman.predictedCovariance = kalman.lastCovariance;
 }
+
+
