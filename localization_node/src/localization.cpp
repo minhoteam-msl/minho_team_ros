@@ -115,43 +115,49 @@ void Localization::changeImageAssigning(uint8_t type)
 void Localization::changeLookUpTableConfiguration(visionHSVConfig::ConstPtr msg)
 {
    ROS_WARN("New configuration of Look Up Table will be set.");
-   //Stop processing mechanism
+   //TODO:Stop processing mechanism
    processor->updateLabelLutConf(FIELD,msg->field);
    processor->updateLabelLutConf(LINE,msg->line);
    processor->updateLabelLutConf(BALL,msg->ball);
    processor->updateLabelLutConf(OBSTACLE,msg->obstacle);
    processor->generateLookUpTable();
    if(processor->writeLookUpTable())ROS_INFO("New %s saved!",lutFileName);
-   //Start processing mechanism
+   //TODO:Start processing mechanism
 }
 void Localization::changeMirrorConfiguration(mirrorConfig::ConstPtr msg)
 {
    ROS_WARN("New configuration of mirror will be set.");
-   //Stop processing mechanism
+   //TODO:Stop processing mechanism
    processor->updateDists(msg->max_distance,msg->step,msg->pixel_distances);
    processor->generateMirrorConfiguration();
    if(processor->writeMirrorConfig())ROS_INFO("New %s saved!",mirrorFileName);
-   //Start processing mechanism
+   //TODO:Start processing mechanism
 }
 
 void Localization::changeImageConfiguration(imageConfig::ConstPtr msg)
 {
    ROS_WARN("New configuration of image will be set.");
-   //Stop processing mechanism
+   //TODO:Stop processing mechanism
    processor->setCenter(msg->center_x,msg->center_y,msg->tilt);
    processor->generateMirrorConfiguration();
    if(processor->writeImageConfig())ROS_INFO("New %s saved!",imageFileName);
-   //Start processing mechanism
+   //TODO:Start processing mechanism
 }
 
 bool Localization::doReloc(requestReloc::Request &req,requestReloc::Response &res)
 {
-   // TODO: Change this to reloc/global localization flag
    //############################# 
    current_state.robot_pose.x = 0;
    current_state.robot_pose.y = 0;
+   current_state.robot_velocity.x = 0;
+   current_state.robot_velocity.y = 0;
+   current_state.robot_velocity.w = 0;
+   memset(&odometry,0,sizeof(localizationEstimate));
+   memset(&vision,0,sizeof(localizationEstimate));
    last_state.robot_pose = current_state.robot_pose;
+   last_state.robot_velocity = current_state.robot_velocity;
    //############################# 
+   // TODO: Add reloc/global localization flag
    return true;
 }
 
@@ -164,7 +170,11 @@ void Localization::hardwareCallback(const hardwareInfo::ConstPtr &msg)
    if(!is_hardware_ready){
 		receivedFrames++;
 		if(receivedFrames>10) is_hardware_ready = true;
-		else { current_state.robot_pose.z = msg->imu_value; vision.angle = msg->imu_value; }
+		else { 
+		   current_state.robot_pose.z = msg->imu_value; 
+		   last_state.robot_pose.z = current_state.robot_pose.z;
+		   vision.angle = msg->imu_value; 
+		}
 		last_hardware_state = current_hardware_state;	
    }
    
@@ -231,7 +241,7 @@ void Localization::fuseEstimates()
 {
    //Fuses Vision(local) with last_state.robot_pose(local)+odometry
   
-   // Temporary, to enable hardware-only localization
+   // TODO: Temporary, to enable hardware-only localization
    // ###############################################
    vision.x += odometry.x; vision.y += odometry.y;
    // ###############################################
@@ -269,7 +279,6 @@ void Localization::fuseEstimates()
    kalman.covariance.z = (1-kalman.K.z)*kalman.predictedCovariance.z;
 }
 
-// TODO: Implement a counter to only compute in 100ms+ ?
 void Localization::computeVelocities()
 {
    int it_limit = 4;
@@ -287,7 +296,8 @@ void Localization::computeVelocities()
       current_state.robot_velocity.y = lpf_weight*((current_state.robot_pose.y-last_vel_state.robot_pose.y)/(time_interval*(float)it_limit))+lpf_minor*last_vel_state.robot_velocity.y; 
       current_state.robot_velocity.w = lpf_weight*((current_state.robot_pose.z-last_vel_state.robot_pose.z)/(time_interval*(float)it_limit))+lpf_minor*last_vel_state.robot_velocity.z; 
       // ########################################################################
-      
+      if(current_state.robot_velocity.x>2.5) current_state.robot_velocity.x = 0;
+      if(current_state.robot_velocity.y>2.5) current_state.robot_velocity.y = 0;
       last_vel_state = current_state;
    }
    
