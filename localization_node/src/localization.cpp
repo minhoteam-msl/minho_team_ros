@@ -257,13 +257,13 @@ void Localization::fuseEstimates()
 // TODO: Implement a counter to only compute in 100ms+ ?
 void Localization::computeVelocities()
 {
-   int it_limit = 3;
+   int it_limit = 6;
    static int iteration = it_limit;
    
    if(iteration<(it_limit-1)) iteration++;
    else {
       iteration = 0;
-      float lpf_weight = 0.8;
+      float lpf_weight = 0.9;
       float lpf_minor = 1-lpf_weight;
       // First, compute the robot velocities based on final localization estimate
       // ########################################################################
