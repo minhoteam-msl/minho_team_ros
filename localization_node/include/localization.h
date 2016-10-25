@@ -35,7 +35,7 @@ private:
    //Hardware estimate variables
    bool is_hardware_ready;
    hardwareInfo current_hardware_state, last_hardware_state;
-   robotInfo current_state, last_state;
+   robotInfo current_state, last_state, last_vel_state;
    localizationEstimate odometry;
    localizationEstimate vision;
    MTKalmanFilter kalman;

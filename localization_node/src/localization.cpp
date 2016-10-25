@@ -149,7 +149,7 @@ void Localization::hardwareCallback(const hardwareInfo::ConstPtr &msg)
    if(!is_hardware_ready){
 		receivedFrames++;
 		if(receivedFrames>10) is_hardware_ready = true;
-		else current_state.robot_pose.z = msg->imu_value;
+		else { current_state.robot_pose.z = msg->imu_value; vision.angle = msg->imu_value; }
 		last_hardware_state = current_hardware_state;	
    }
    
@@ -257,15 +257,25 @@ void Localization::fuseEstimates()
 // TODO: Implement a counter to only compute in 100ms+ ?
 void Localization::computeVelocities()
 {
-   float lpf_weight = 0.8;
-   float lpf_minor = 1-lpf_weight;
-   // First, compute the robot velocities based on final localization estimate
-   // ########################################################################
-   // Time interval between estimates is requiredTiming = 33ms/30Hz
-   current_state.robot_velocity.x = lpf_weight*((current_state.robot_pose.x-last_state.robot_pose.x)/time_interval)+lpf_minor*last_state.robot_velocity.x;  
-   current_state.robot_velocity.y = lpf_weight*((current_state.robot_pose.y-last_state.robot_pose.y)/time_interval)+lpf_minor*last_state.robot_velocity.y; 
-   current_state.robot_velocity.w = lpf_weight*((current_state.robot_pose.z-last_state.robot_pose.z)/time_interval)+lpf_minor*last_state.robot_velocity.z; 
-   // ########################################################################
+   int it_limit = 3;
+   static int iteration = it_limit;
+   
+   if(iteration<(it_limit-1)) iteration++;
+   else {
+      iteration = 0;
+      float lpf_weight = 0.8;
+      float lpf_minor = 1-lpf_weight;
+      // First, compute the robot velocities based on final localization estimate
+      // ########################################################################
+      // Time interval between estimates is requiredTiming = 33ms/30Hz
+      current_state.robot_velocity.x = lpf_weight*((current_state.robot_pose.x-last_vel_state.robot_pose.x)/(time_interval*(float)it_limit))+lpf_minor*last_vel_state.robot_velocity.x;  
+      current_state.robot_velocity.y = lpf_weight*((current_state.robot_pose.y-last_vel_state.robot_pose.y)/(time_interval*(float)it_limit))+lpf_minor*last_vel_state.robot_velocity.y; 
+      current_state.robot_velocity.w = lpf_weight*((current_state.robot_pose.z-last_vel_state.robot_pose.z)/(time_interval*(float)it_limit))+lpf_minor*last_vel_state.robot_velocity.z; 
+      // ########################################################################
+      
+      last_vel_state = current_state;
+   }
+   
 }
 
 void Localization::initializeKalmanFilter()
