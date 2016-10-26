@@ -2,8 +2,5 @@
 uint8 linear_velocity
 int8 angular_velocity
 uint16 movement_direction
-uint8 kick_strength
-uint8 kick_direction
-bool kick_is_pass
 bool dribbler_on
 bool is_teleop

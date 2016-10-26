@@ -19,11 +19,14 @@
 #include "minho_team_ros/requestResetIMU.h"
 #include "minho_team_ros/requestIMULinTable.h"
 #include "minho_team_ros/requestOmniProps.h"
+#include "minho_team_ros/requestKick.h"
 
 using minho_team_ros::requestResetEncoders;
 using minho_team_ros::requestResetIMU;
 using minho_team_ros::requestOmniProps;
 using minho_team_ros::requestIMULinTable;
+using minho_team_ros::requestKick;
+
 using namespace std;
 Servo myservo;  // create servo object to control a servo 
 
@@ -81,6 +84,7 @@ void resetEncodersService(const requestResetEncoders::Request &req, requestReset
 void resetIMUReferenceService(const requestResetIMU::Request &req, requestResetIMU::Response &res);
 void OmniPropsService(const requestOmniProps::Request &req, requestOmniProps::Response &res);
 void IMUTableService(const requestIMULinTable::Request &req, requestIMULinTable::Response &res);
+void kickService(const requestKick::Request &req, requestKick::Response &res);
 Omni3MD omni;                       //declaration of object variable to control the Omni3MD
 
 //Variables to read from Omni3MD
@@ -158,7 +162,7 @@ ros::ServiceServer<requestResetEncoders::Request, requestResetEncoders::Response
 ros::ServiceServer<requestResetIMU::Request, requestResetIMU::Response> server_resetIMU("requestResetIMU",&resetIMUReferenceService);
 ros::ServiceServer<requestOmniProps::Request, requestOmniProps::Response> server_OmniProps("requestOmniProps",&OmniPropsService);
 ros::ServiceServer<requestIMULinTable::Request, requestIMULinTable::Response> server_IMULinTable("requestIMULinTable",&IMUTableService);
-
+ros::ServiceServer<requestKick::Request, requestKick::Response> server_Kick("requestKick",&kickService);
 void setup() {
   setupOmni();
   setupMotorsBoard();
@@ -447,20 +451,6 @@ void controlInfoCallback(const minho_team_ros::controlInfo& msg)
     // Velocities to apply to dribblers
     //if(direct_dribler1!="2") analogWrite(DRIBLLER1, vel_dribler1.toInt());     //PWM Speed Control  
     //if(direct_dribler2!="2") analogWrite(DRIBLLER2, vel_dribler2.toInt());     //PWM Speed Control  
-    
-    int maxTime = maxKick;
-    if(msg.kick_is_pass) maxTime = 10;
-    int kickTime = (msg.kick_strength*maxTime)/100;
-    
-    if(kickTime>0 && hwinfo_msg.ball_sensor==1)
-    {
-      if(kickTime>maxTime)kickTime = maxTime;
-      if(kickTime<0)kickTime = 0;
-      
-      digitalWrite(KICKPIN, HIGH);
-      Timer1.initialize(kickTime*1000);
-    }
-      
   }  
 }
 
@@ -565,4 +555,21 @@ int correctImuAngle(int angle)
   int counter = 0;
   while(angle>imu_values[counter] && counter<imu_values.size()) counter++;
   return (int)b[counter-1]+m[counter-1]*angle;
+}
+
+void kickService(const requestKick::Request &req, requestKick::Response &res)
+{   
+  int maxTime = maxKick;
+  if(req.kick_is_pass) maxTime = 10;
+  int kickTime = (req.kick_strength*maxTime)/100;
+  
+  if(kickTime>0 && hwinfo_msg.ball_sensor==1)
+  {
+    if(kickTime>maxTime)kickTime = maxTime;
+    if(kickTime<0)kickTime = 0;
+    
+    digitalWrite(KICKPIN, HIGH);
+    Timer1.initialize(kickTime*1000);
+    res.kicked = true;
+  } else res.kicked = false;
 }

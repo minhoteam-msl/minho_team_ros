@@ -77,6 +77,7 @@ add_message_files(
    requestIMULinTable.srv
    requestOmniProps.srv
    requestReloc.srv
+   requestKick.srv
  )
 
 ## Generate actions in the 'action' folder
@@ -176,23 +177,6 @@ set (opencv_LIBRARIES libopencv_core.so libopencv_highgui.so libopencv_imgproc.s
 link_directories(/usr/local/lib)
 link_directories(/usr/lib/x86_64-linux-gnu)
 ########################################
-######################################################################
-
-## HARDWARE ##
-######################################################################
-set(HARDWARE_DIR ${PROJECT_DIRECTORY}/hardware_node)
-include_directories(${HARDWARE_DIR}/include)
-set(HARDWARE_SRC_DIR ${HARDWARE_DIR}/src)
-# Add new source files to folder /src and add them here for compilation
-set(hardware_SRC ${HARDWARE_SRC_DIR}/main_hardware.cpp ${HARDWARE_SRC_DIR}/hardware.cpp)
-# Add new header files to folder /include and add them here for compilation
-set(hardware_MOC_H ${HARDWARE_DIR}/include/hardware.h)
-qt5_wrap_cpp(hardware_CPP ${hardware_MOC_H})
-add_executable(hardware_node ${hardware_SRC} ${hardware_CPP})
-set_target_properties(hardware_node PROPERTIES COMPILE_FLAGS "-fPIC")
-target_compile_features(hardware_node PRIVATE cxx_range_for)
-target_link_libraries(hardware_node ${catkin_LIBRARIES} ${qt_LIBRARIES})
-add_dependencies(hardware_node ${PROJECT_NAME}_gencpp)
 ######################################################################
 
 ## LOCALIZATION ##

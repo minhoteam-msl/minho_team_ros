@@ -1,0 +1,6 @@
+#This message allows to request a kick from the hardware. If it actually kicks, return variable -kicked- will be true.
+uint8 kick_strength
+uint8 kick_direction
+bool kick_is_pass
+---
+bool kicked
