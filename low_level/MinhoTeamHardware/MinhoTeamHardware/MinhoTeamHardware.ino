@@ -1,3 +1,5 @@
+// ##### INCLUDES #####
+// ####################
 #include <StandardCplusplus.h>
 #include <string>
 #include <sstream>
@@ -8,29 +10,35 @@
 #include <TimerOne.h>
 #include <Servo.h> 
 #include <EEPROM.h>
-// Messages
+// ####################
+
+// ##### ROS MSG INCLUDES #####
+// ############################
 #include "minho_team_ros/hardwareInfo.h"
 #include "minho_team_ros/controlInfo.h"
 #include "minho_team_ros/teleop.h"
 #include "minho_team_ros/imuConfig.h"
 #include "minho_team_ros/omniConfig.h"
-// Services
+// ############################
+
+// ##### ROS SRV INCLUDES #####
+// ############################
 #include "minho_team_ros/requestResetEncoders.h"
 #include "minho_team_ros/requestResetIMU.h"
 #include "minho_team_ros/requestIMULinTable.h"
 #include "minho_team_ros/requestOmniProps.h"
 #include "minho_team_ros/requestKick.h"
+// ############################
 
 using minho_team_ros::requestResetEncoders;
 using minho_team_ros::requestResetIMU;
 using minho_team_ros::requestOmniProps;
 using minho_team_ros::requestIMULinTable;
 using minho_team_ros::requestKick;
-
 using namespace std;
-Servo myservo;  // create servo object to control a servo 
 
-/////////////////////////////MOTORS VARS//////////////////////////
+// ##### MOTOR/KICK PINS #####
+// ###########################
 #define DRIBLLER1 5  
 #define MM1 4 
 #define DRIBLLER2 6                      
@@ -38,24 +46,34 @@ Servo myservo;  // create servo object to control a servo
 #define KICKPIN 8
 #define BALLPIN A3
 #define SERRVOPIN 9
-//////////////////////////////////////////////////////////////////
+// ###########################
+
+// ##### BUZZER/LED PINS #####
+// ###########################
 #define Buzzer 53
 #define Red 23
 #define Green 24
 #define Blue 25
-//////////////////////////////////////////////////////////////////
+// ###########################
+
+// ##### BATTERY READ PINS #####
+// #############################
 #define CamBattery A0
 #define PcBattery A1
 #define FreeWheelButton A2
-////////////////////////////OMNI3MD VARS//////////////////////////
+// #############################
 
-//constants definitions
+// ##### OMNI3MD VARIABLES #####
+// #############################
 #define OMNI3MD_ADDRESS 0x30        //default factory address
 #define BROADCAST_ADDRESS 0x00      //i2c broadcast address
 #define M1  1            //Motor1
 #define M2  2            //Motor2
 #define M3  3            //Motor3
-////////////////////////////EEPROM VARS//////////////////////////
+// #############################
+
+// ##### EEPROM ADDRESSES #####
+// ############################
 #define PMSB 0
 #define PLSB 1
 #define IMSB 2
@@ -70,24 +88,91 @@ Servo myservo;  // create servo object to control a servo
 #define MLSB 11
 #define IMULINSTEP 12
 // EEPROM bytes from addr 12 to (360/read(IMULINSTEP))*2 are reserved
+// ############################
 
+// ##### COMMON FUNCTIONS #####
+// ############################
+/// \brief reads Omni3MD encoders through I2C API
 void readEncoders();
+/// \brief set PID and RAMP parameters of Omni3MD
 void setupOmni();
+/// \brief sets up pin types to control motor board (dribblers), kick and others
 void setupMotorsBoard();
+/// \brief writes current PID, BNM parameters to EEPROM
 void writePIDtoEEPROM();
+/// \brief reads PID,BNM parameters from EEPROM
 void readPIDfromEEPROM();
+/// \brief writes IMU linearization table to EEPROM
 void writeIMUtoEEPROM();
+/// \brief reads IMU linearization table from EEPROM
 void readIMUfromEEPROM();
-void controlInfoCallback(const minho_team_ros::controlInfo& msg);
-void teleopCallback(const minho_team_ros::teleop& msg);
-void resetEncodersService(const requestResetEncoders::Request &req, requestResetEncoders::Response &res);
-void resetIMUReferenceService(const requestResetIMU::Request &req, requestResetIMU::Response &res);
-void OmniPropsService(const requestOmniProps::Request &req, requestOmniProps::Response &res);
-void IMUTableService(const requestIMULinTable::Request &req, requestIMULinTable::Response &res);
-void kickService(const requestKick::Request &req, requestKick::Response &res);
-Omni3MD omni;                       //declaration of object variable to control the Omni3MD
+/// \brief timer ISR to stop the pulse sent to kick board
+void timerIsr();
+/// \brief function to reset (put to 0) the values of the 3 encoders of Omni3MD
+void resetEncoders();
+/// \brief function to publish data into ROS network with the hardware data read
+void publishData();
+// ############################
 
-//Variables to read from Omni3MD
+// ##### ROS CALLBACKS AND SERVICES #####
+// ######################################
+/// \brief callback function for controlInfo topic. This message contains
+/// control information for the platform, as for its movement and dribbling action
+/// \param msg - controlInfo message containing information to control the robot
+void controlInfoCallback(const minho_team_ros::controlInfo& msg);
+/// \brief callback function for teleop topic. This message enables
+/// or disables teleop in the platform
+/// \param msg - teleop message containing information about teleop state
+void teleopCallback(const minho_team_ros::teleop& msg);
+/// \brief service callback for requestResetEncoders to reset encoders values
+/// \param req - empty data
+/// \param res - empty data
+void resetEncodersService(const requestResetEncoders::Request &req, requestResetEncoders::Response &res);
+/// \brief service callback for requestResetIMU to reset imu geo-0º reference. This function sends
+/// a character to the other arduino, that is responsible for acquiring data from the IMU
+/// \param req - empty data
+/// \param res - empty data
+void resetIMUReferenceService(const requestResetIMU::Request &req, requestResetIMU::Response &res);
+/// \brief service callback for requestOmniProps service, in order to set or get the configuration
+/// for the Omni3MD control parameters
+/// \param req - request data, containing the new configuration and a boolean variable to flag
+/// if the operation is a set or get
+/// \param res . response data containing the current configuration of the PID and BNM values
+void OmniPropsService(const requestOmniProps::Request &req, requestOmniProps::Response &res);
+/// \brief service callback for requestIMUTable service, in order to set or get the configuration
+/// for the imu linearization table
+/// \param req - request data, containing the new configuration and a boolean variable to flag
+/// if the operation is a set or get
+/// \param res . response data containing the current configuration of the IMU linearization table
+void IMUTableService(const requestIMULinTable::Request &req, requestIMULinTable::Response &res);
+/// \brief function to actuate kicker, in order to kick the ball. Only kicks if
+/// the robot detects that has the ball inside
+/// \param req - request data received in requestKick service
+/// \param res - response data, flaggin if the kick was taken or not
+void kickService(const requestKick::Request &req, requestKick::Response &res);
+// ######################################
+
+// ##### IMU LINEARIZATION FUNCTIONS #####
+// #######################################
+/// \brief sets up vectors b and m, to compute the linearization functions on the go
+/// correct IMU's "natural" error with standard and equal values
+void setupIMULinearization();
+/// \brief sets up vectors b and m, to compute the linearization functions on the go
+/// correct IMU's "natural" error, given read values from the EEPROM
+void updateIMULinearization();
+/// \brief given defined b and m vectors, corrects the value given by the IMU
+/// \param angle - value read from the IMU, to be corrected by linearization table
+/// \return - corrected value
+int correctImuAngle(int angle);
+// #######################################
+
+// ##### DATA DECLARATION AND INITIALIZATION #####
+// ###############################################
+// ###############################################
+
+// ##### OMNI3MD #####
+// ###################
+Omni3MD omni; //declaration of object variable to control the Omni3MD
 float temperature=0;   // temperature reading
 byte firm_int=0;       // the firmware version of your Omni3MD board (visit http://www.botnroll.com/omni3md/ to check if your version is updated)
 byte firm_dec=0;       // the firmware version of your Omni3MD board (visit http://www.botnroll.com/omni3md/ to check if your version is updated)
@@ -96,62 +181,74 @@ byte ctrl_rate=0;      // the control rate for your motors defined at calibratio
 int enc1_max;          // maximum count for encoder 1 at calibration, for the defined control rate
 int enc2_max;          // maximum count for encoder 2 at calibration, for the defined control rate
 int enc3_max;          // maximum count for encoder 3 at calibration, for the defined control rate
-
 int P = 851;
 int I = 71;
 int D = 101;
 int B = 700;
 int N = 1300;
 int M = 351;
-
-//400,1300,0
 int enc1_old = 0;
 int enc2_old = 0;
 int enc3_old = 0;
-
 int baterryLimitTime = 3000;
 unsigned long baterryTimeStamp = 0;
 boolean batteryLow = false;
 int baterryLowLimitTime = 250;
 unsigned long baterryLowTimeStamp = 0;
-///////////////////////END OMNI3MD VARS///////////////////////////
+// ###################
 
-float bussolaValorNew = 0,bussolaValor = 0,bussolaValorOld = 0;
+// ##### EVENT TIMING DATA #####
+// #############################
 int dataSendLimitTime = 20;
 unsigned long dataSendTimeStamp = 0;
 int encoderLimitTime = 20;
 unsigned long encoderTimeStamp = 0;
+unsigned long loopTime = 0;
+// #############################
+
+// ##### IMU DATA #####
+// ####################
+float bussolaValorNew = 0,bussolaValor = 0,bussolaValorOld = 0;
+// ####################
+
+// ##### KICK DATA #####
+// #####################
 int kickTime = 0;
 int maxKick = 35;
+// #####################
 
-unsigned long loopTime = 0;
-
+// ##### BATTERY MEASUREMENT DATA #####
+// ####################################
 float maxVoltsBatteryPC = 13,maxVoltsBatteryCam = 8;
 float maxBatteryPC = 567,maxBatteryCam = 537;
-
 boolean batteryLowPC = false,batteryLowCam = false;
-
 int baterryLowPCLimitTime = 450;
 unsigned long baterryLowPCTimeStamp = 0;
-
 int baterryLowCamLimitTime = 550;
 unsigned long baterryLowCamTimeStamp = 0;
+// ####################################
 
+// ##### SAFETY TIMEOUT DATA #####
+// ###############################
 int comunicationTimeOutLimitTime = 200;
 unsigned long comunicationTimeOutTimeStamp = 0;
+// ###############################
 
-int servo01 = 180,servo02 = 120;
+// ##### TELEOP DATA #####
+// #######################
 bool teleop_active = false;
-// ######### IMU LINEARIZATION ######### 
-// Standard values
+// ##################################
+
+// ##### IMU LINEARIZATION DATA #####
+// ##################################
 int step = 45;
 vector<unsigned int> imu_values,real_values;
 vector<double> b,m;
 unsigned int *vals;
-void setupIMULinearization();
-void updateIMULinearization();
-int correctImuAngle(int angle);
-// ######### ROS DATA ######### 
+// ##################################
+
+// ##### ROS PUBLISHERS, SUBSCRIBERS AND SERVICES & DATA #####
+// ###########################################################
 ros::NodeHandle  nh;
 minho_team_ros::hardwareInfo hwinfo_msg;
 ros::Publisher hardware_info_pub("hardwareInfo", &hwinfo_msg);
@@ -163,7 +260,12 @@ ros::ServiceServer<requestResetIMU::Request, requestResetIMU::Response> server_r
 ros::ServiceServer<requestOmniProps::Request, requestOmniProps::Response> server_OmniProps("requestOmniProps",&OmniPropsService);
 ros::ServiceServer<requestIMULinTable::Request, requestIMULinTable::Response> server_IMULinTable("requestIMULinTable",&IMUTableService);
 ros::ServiceServer<requestKick::Request, requestKick::Response> server_Kick("requestKick",&kickService);
+// ###########################################################
+
 void setup() {
+  resetEncoders();
+  readPIDfromEEPROM();
+  readIMUfromEEPROM();
   setupOmni();
   setupMotorsBoard();
   setupIMULinearization();
@@ -183,10 +285,6 @@ void setup() {
   tone(Buzzer, 3000,500);
   delay(300);
   tone(Buzzer, 4000,250);
-  
-  resetEncoders();
-  readPIDfromEEPROM();
-  readIMUfromEEPROM();
   
   nh.initNode();
   nh.advertise(hardware_info_pub);
@@ -263,7 +361,7 @@ void loop() {
   if(millis()-dataSendTimeStamp>dataSendLimitTime){
     if(analogRead(BALLPIN)>500) hwinfo_msg.ball_sensor = 1;
     else hwinfo_msg.ball_sensor = 0;
-    sendDados();
+    publishData();
     dataSendTimeStamp = millis();
   }
   
@@ -295,39 +393,13 @@ void loop() {
   nh.spinOnce();
 }
 
-void timerIsr()
-{
-    digitalWrite(KICKPIN, LOW);
-    Timer1.stop();
-}
-
-void resetEncoders()
-{
-   omni.set_enc_value(M1,0); // resets to zero the encoder value [byte encoder, word encValue]
-   delay(1); // waits 1ms for Omni3MD to process information
-   omni.set_enc_value(M2,0);
-   delay(1); // waits 1ms for Omni3MD to process information
-   omni.set_enc_value(M3,0);
-   delay(1); // waits 1ms for Omni3MD to process information
-}
-
-// DataSend.ino
-void sendDados()
-{
-   hardware_info_pub.publish(&hwinfo_msg);
-   enc1_old = hwinfo_msg.encoder_1;
-   enc2_old = hwinfo_msg.encoder_2;
-   enc3_old = hwinfo_msg.encoder_3;
-}
-
-// Encoders.ino
-
+/// \brief reads Omni3MD encoders through I2C API
 void readEncoders()
 {
   omni.read_encoders(&hwinfo_msg.encoder_1,&hwinfo_msg.encoder_2,&hwinfo_msg.encoder_3);
 }
 
-// setupMotorsBoard.ino
+/// \brief sets up pin types to control motor board (dribblers), kick and others
 void setupMotorsBoard()
 {
   //Setup Hardware control Pins
@@ -346,12 +418,9 @@ void setupMotorsBoard()
   
   analogWrite(DRIBLLER1, 0);   //PWM Speed Control
   analogWrite(DRIBLLER2, 0);   //PWM Speed Control
-
-  myservo.attach(SERRVOPIN);  // attaches the servo on pin 22 to the servo object
-  myservo.write(180);
 }
 
-// SetupOmni.ino
+/// \brief set PID and RAMP parameters of Omni3MD
 void setupOmni()
 {
     omni.i2c_connect(OMNI3MD_ADDRESS);  // set i2c connection
@@ -377,6 +446,7 @@ void setupOmni()
     delay(1000);
 }
 
+/// \brief writes current PID, BNM parameters to EEPROM
 void writePIDtoEEPROM()
 {
   EEPROM.write(PMSB,P>>8);
@@ -393,6 +463,7 @@ void writePIDtoEEPROM()
   EEPROM.write(MLSB,M);
 }
 
+/// \brief reads PID,BNM parameters from EEPROM
 void readPIDfromEEPROM()
 {
   P = (EEPROM.read(PMSB)<<8)|(EEPROM.read(PLSB)); 
@@ -403,6 +474,7 @@ void readPIDfromEEPROM()
   M = (EEPROM.read(MMSB)<<8)|(EEPROM.read(MLSB));
 }
 
+/// \brief writes IMU linearization table to EEPROM
 void writeIMUtoEEPROM()
 {
   EEPROM.write(IMULINSTEP,step);
@@ -415,6 +487,7 @@ void writeIMUtoEEPROM()
   } 
 }
 
+/// \brief reads IMU linearization table from EEPROM
 void readIMUfromEEPROM()
 {
   step = EEPROM.read(IMULINSTEP);
@@ -434,6 +507,37 @@ void readIMUfromEEPROM()
   }
   
 }
+
+/// \brief timer ISR to stop the pulse sent to kick board
+void timerIsr()
+{
+    digitalWrite(KICKPIN, LOW);
+    Timer1.stop();
+}
+
+/// \brief function to reset (put to 0) the values of the 3 encoders of Omni3MD
+void resetEncoders()
+{
+   omni.set_enc_value(M1,0); // resets to zero the encoder value [byte encoder, word encValue]
+   delay(1); // waits 1ms for Omni3MD to process information
+   omni.set_enc_value(M2,0);
+   delay(1); // waits 1ms for Omni3MD to process information
+   omni.set_enc_value(M3,0);
+   delay(1); // waits 1ms for Omni3MD to process information
+}
+
+/// \brief function to publish data into ROS network with the hardware data read
+void publishData()
+{
+   hardware_info_pub.publish(&hwinfo_msg);
+   enc1_old = hwinfo_msg.encoder_1;
+   enc2_old = hwinfo_msg.encoder_2;
+   enc3_old = hwinfo_msg.encoder_3;
+}
+
+/// \brief callback function for controlInfo topic. This message contains
+/// control information for the platform, as for its movement and dribbling action
+/// \param msg - controlInfo message containing information to control the robot
 void controlInfoCallback(const minho_team_ros::controlInfo& msg)
 {
   if((teleop_active && msg.is_teleop)||(!teleop_active && !msg.is_teleop)){
@@ -454,12 +558,17 @@ void controlInfoCallback(const minho_team_ros::controlInfo& msg)
   }  
 }
 
+/// \brief callback function for teleop topic. This message enables
+/// or disables teleop in the platform
+/// \param msg - teleop message containing information about teleop state
 void teleopCallback(const minho_team_ros::teleop& msg)
 {
   teleop_active = msg.set_teleop;  
 }
 
-
+/// \brief service callback for requestResetEncoders to reset encoders values
+/// \param req - empty data
+/// \param res - empty data
 void resetEncodersService(const requestResetEncoders::Request &req, requestResetEncoders::Response &res)
 {
   omni.set_enc_value(M1,0); // resets to zero the encoder value [byte encoder, word encValue]
@@ -470,6 +579,10 @@ void resetEncodersService(const requestResetEncoders::Request &req, requestReset
   delay(1); // waits 1ms for Omni3MD to process information   
 } 
 
+/// \brief service callback for requestResetIMU to reset imu geo-0º reference. This function sends
+/// a character to the other arduino, that is responsible for acquiring data from the IMU
+/// \param req - empty data
+/// \param res - empty data
 void resetIMUReferenceService(const requestResetIMU::Request &req, requestResetIMU::Response &res)
 {
   Serial1.write("r");
@@ -477,6 +590,11 @@ void resetIMUReferenceService(const requestResetIMU::Request &req, requestResetI
   Serial1.write("r");
 }
 
+/// \brief service callback for requestOmniProps service, in order to set or get the configuration
+/// for the Omni3MD control parameters
+/// \param req - request data, containing the new configuration and a boolean variable to flag
+/// if the operation is a set or get
+/// \param res . response data containing the current configuration of the PID and BNM values
 void OmniPropsService(const requestOmniProps::Request &req, requestOmniProps::Response &res)
 {
   if(req.is_set){ // set
@@ -500,6 +618,11 @@ void OmniPropsService(const requestOmniProps::Request &req, requestOmniProps::Re
   res.omniConf.B = B; res.omniConf.N = N; res.omniConf.M = M;
 }
 
+/// \brief service callback for requestIMUTable service, in order to set or get the configuration
+/// for the imu linearization table
+/// \param req - request data, containing the new configuration and a boolean variable to flag
+/// if the operation is a set or get
+/// \param res . response data containing the current configuration of the IMU linearization table
 void IMUTableService(const requestIMULinTable::Request &req, requestIMULinTable::Response &res)
 {
   bool changing_step = false;
@@ -528,35 +651,10 @@ void IMUTableService(const requestIMULinTable::Request &req, requestIMULinTable:
   // send meaningful data back in any situation
 }
 
-void setupIMULinearization()
-{
-  // Read from EEPROM
-  imu_values.clear(); real_values.clear();
-  for(int i=0;i<=360;i+= step) { real_values.push_back(i); imu_values.push_back(i); }
-  b.clear(); m.clear();
-  for(int i=0;i<real_values.size()-1;i++){
-    m.push_back((double)(real_values[i+1]-real_values[i])/(double)(imu_values[i+1]-imu_values[i]));
-    b.push_back((double)real_values[i+1]-m[i]*((double)imu_values[i+1]));
-  }
-  vals = (unsigned int*)malloc(sizeof(unsigned int)*(360/step));
-}
-
-void updateIMULinearization()
-{
-  b.clear(); m.clear();
-  for(int i=0;i<real_values.size()-1;i++){
-    m.push_back((double)(real_values[i+1]-real_values[i])/(double)(imu_values[i+1]-imu_values[i]));
-    b.push_back((double)real_values[i+1]-m[i]*((double)imu_values[i+1]));
-  }    
-}
-
-int correctImuAngle(int angle)
-{
-  int counter = 0;
-  while(angle>imu_values[counter] && counter<imu_values.size()) counter++;
-  return (int)b[counter-1]+m[counter-1]*angle;
-}
-
+/// \brief function to actuate kicker, in order to kick the ball. Only kicks if
+/// the robot detects that has the ball inside
+/// \param req - request data received in requestKick service
+/// \param res - response data, flaggin if the kick was taken or not
 void kickService(const requestKick::Request &req, requestKick::Response &res)
 {   
   int maxTime = maxKick;
@@ -572,4 +670,40 @@ void kickService(const requestKick::Request &req, requestKick::Response &res)
     Timer1.initialize(kickTime*1000);
     res.kicked = true;
   } else res.kicked = false;
+}
+
+/// \brief sets up vectors b and m, to compute the linearization functions on the go
+/// correct IMU's "natural" error with standard and equal values
+void setupIMULinearization()
+{
+  // Read from EEPROM
+  imu_values.clear(); real_values.clear();
+  for(int i=0;i<=360;i+= step) { real_values.push_back(i); imu_values.push_back(i); }
+  b.clear(); m.clear();
+  for(int i=0;i<real_values.size()-1;i++){
+    m.push_back((double)(real_values[i+1]-real_values[i])/(double)(imu_values[i+1]-imu_values[i]));
+    b.push_back((double)real_values[i+1]-m[i]*((double)imu_values[i+1]));
+  }
+  vals = (unsigned int*)malloc(sizeof(unsigned int)*(360/step));
+}
+
+/// \brief sets up vectors b and m, to compute the linearization functions on the go
+/// correct IMU's "natural" error, given read values from the EEPROM
+void updateIMULinearization()
+{
+  b.clear(); m.clear();
+  for(int i=0;i<real_values.size()-1;i++){
+    m.push_back((double)(real_values[i+1]-real_values[i])/(double)(imu_values[i+1]-imu_values[i]));
+    b.push_back((double)real_values[i+1]-m[i]*((double)imu_values[i+1]));
+  }    
+}
+
+/// \brief given defined b and m vectors, corrects the value given by the IMU
+/// \param angle - value read from the IMU, to be corrected by linearization table
+/// \return - corrected value
+int correctImuAngle(int angle)
+{
+  int counter = 0;
+  while(angle>imu_values[counter] && counter<imu_values.size()) counter++;
+  return (int)b[counter-1]+m[counter-1]*angle;
 }
