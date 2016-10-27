@@ -21,18 +21,25 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "localization_node",ros::init_options::NoSigintHandler);
 	//Request node handler
 	ros::NodeHandle localization_node;
-	
-	localization = new Localization(&localization_node);
+	bool use_camera = true;
+	QString mode = QString::fromLocal8Bit(argv[1]);
+	if(argc>1 && mode=="-static"){
+	   ROS_WARN("Image acquisition set to static image."); 
+	   use_camera = false;  
+	} else ROS_WARN("Image acquisition set to GigE Camera.");
+	bool correct_initialization = true;
+	localization = new Localization(&localization_node,&correct_initialization,use_camera);
+	if(!correct_initialization) { ros::shutdown(); return 0; }
 
-	ros::Publisher robot_info_pub = localization_node.advertise<robotInfo>("robotInfo", 1000);
+	ros::Publisher robot_info_pub = localization_node.advertise<robotInfo>("robotInfo", 1);
 	ros::Subscriber hardware_info_sub = localization_node.subscribe("hardwareInfo", 
-	                                                            1000, 
-	                                                            &Localization::hardwareCallback
-	                                                            ,localization);
+                                                   1, 
+	                                                &Localization::hardwareCallback
+                                                   ,localization);
 	ROS_WARN("MinhoTeam localization_node started running on ROS.");
 	
 	ros::AsyncSpinner spinner(2);
 	spinner.start();
 	return a.exec();
-	return 0;
+	return 1;
 }

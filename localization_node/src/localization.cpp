@@ -1,13 +1,16 @@
 #include "localization.h"
 
-Localization::Localization(ros::NodeHandle *par , QObject *parent) : QObject(parent)
+Localization::Localization(ros::NodeHandle *par , bool *init_success, bool use_camera, QObject *parent) : QObject(parent)
 {
    initVariables();
    
    //#### Initialize major components ####
    //##################################### 
-   processor = new ImageProcessor(false); 
+   bool correct_initialization = true;
+   processor = new ImageProcessor(use_camera,&correct_initialization); // true -> use camera
+   if(!correct_initialization) { (*init_success) = false; return; }
    confserver = new ConfigServer(par); 
+   
    confserver->setOmniVisionConf(processor->getMirrorConfAsMsg(),processor->getVisionConfAsMsg(),processor->getImageConfAsMsg());
    parentTimer = new QTimer();
    requiredTiming = 33; //ms

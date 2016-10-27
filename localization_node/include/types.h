@@ -1,7 +1,5 @@
 #ifndef TYPES
 #define TYPES
-
-
 /*
 ######### DATA TYPES AND PATHS DEFINITION FOR IMAGEPROCESSOR.H/CPP #########
 ############################################################################

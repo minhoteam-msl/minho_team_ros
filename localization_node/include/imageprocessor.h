@@ -9,7 +9,7 @@
 #include "RLE.h"
 #include "ScanLines.h"
 #include "Vec.h"
-#include "blackflycamera.h"
+#include "blackflycam.h"
 #include "types.h"
 #include "ros/ros.h"
 #include "minho_team_ros/mirrorConfig.h"
@@ -25,7 +25,7 @@ using minho_team_ros::imageConfig;
 class ImageProcessor
 {
 public:
-   ImageProcessor(bool begin);
+   ImageProcessor(bool begin, bool *init_success);
 
    /* Detection Functions */
    void detectInterestPoints(); // Detects linePoints, ballPoints and obstaclePoints
@@ -43,7 +43,6 @@ public:
    /* Camera driver wrapping functions */
    bool frameAvailable(); // Returns true if a new camera frame is available
    bool isReady(); // Returns true if camera is ready
-   bool startCamera(); // Returns true if camera is successfuly started
    bool startImaging(); // Returns true if imaging was successfuly started
    void printCameraInfo(); // Prints in stdout some camera information
    void closeCamera(); // Closes camera feed
@@ -91,7 +90,7 @@ public:
     
 private:    
    /* Camera Driver and parameters*/
-   BlackFlyCamera *topCam;
+   BlackflyCam *omniCamera;
    imageConfig imageConf;
    
    /*Image Containers */

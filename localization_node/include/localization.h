@@ -7,7 +7,6 @@
 #include "minho_team_ros/hardwareInfo.h"
 #include "minho_team_ros/robotInfo.h"
 #include "minho_team_ros/requestReloc.h"
-#include "localization.h"
 
 using namespace ros;
 using namespace cv;
@@ -19,7 +18,7 @@ class Localization : public QObject
 {
    Q_OBJECT
 public:
-   explicit Localization(ros::NodeHandle *par, QObject *parent = 0); // Constructor
+   explicit Localization(ros::NodeHandle *par, bool *init_success, bool use_camera, QObject *parent = 0); // Constructor
    ~Localization();
 
 private:

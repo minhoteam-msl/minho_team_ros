@@ -1,35 +1,38 @@
 #include "imageprocessor.h"
 
 //Constructor of the class
-ImageProcessor::ImageProcessor(bool use_camera)
+ImageProcessor::ImageProcessor(bool use_camera, bool *init_success)
 {
     // Initialize GigE Camera Driver
-    //topCam = new BlackFlyCamera(); //TopCam Handler
+    if(use_camera) { 
+      omniCamera = new BlackflyCam(); //OmniVisionCamera Handler
+      ROS_INFO("Using GigE Camera for image acquisition.");
+    } else ROS_INFO("Using static image for testing.");
 
     // Initialize basic robot and field definitions
     if(!initializeBasics()){
       ROS_ERROR("Error Reading %s.",mainFileName);
-      exit(7);
+      (*init_success) = false; return;
     } else ROS_INFO("Reading information for %s.",agent.toStdString().c_str());
       
     // Assign mask image
     mask = imread(maskPath.toStdString());
     if(mask.empty()){
         ROS_ERROR("Error Reading %s.",maskFileName);
-        exit(1);
+        (*init_success) = false; return;
     }else ROS_INFO("%s Ready.", maskFileName);
 
     // Read color segmentation Look Up Table
     if(!readLookUpTable()){ // Read and Initialize Look Up Table
         memset(&YUVLookUpTable,UAV_NOCOLORS_BIT,LUT_SIZE);
         ROS_ERROR("Error Reading %s.",lutFileName);
-        exit(2);
+        (*init_success) = false; return;
     } else ROS_INFO("%s Ready.",lutFileName);
 
     // Initialize world mapping parameters
     if(!initWorldMapping()){ // Initialize World Mapping
         ROS_ERROR("Error Reading World mapping configurations");
-        exit(3);
+        (*init_success) = false; return;
     } else ROS_INFO("World mapping configurations Ready.");
    
     variablesInitialization(); // Initialize common Variables
@@ -37,12 +40,11 @@ ImageProcessor::ImageProcessor(bool use_camera)
 
     // Initialize GigE Camera Image Feed
     if(use_camera){
-        if(startCamera()) {
-            startImaging();
-        } else {
+        if(!startImaging()){
             ROS_ERROR("Error Starting GigE Camera.");
-            exit(4);
-        }
+            (*init_success) = false; 
+            return;
+        } else printCameraInfo();
     }
 }
 
@@ -439,14 +441,15 @@ int ImageProcessor::d2p(Point p1, Point p2)
 // Returns the availability of new camera frames
 bool ImageProcessor::frameAvailable()
 {
-    return topCam->frameAvailable();
+    return omniCamera->frameAvailable();
 }
 
 // Returns image from camera, *success = true if new image is available
 Mat *ImageProcessor::getImage(bool *success)
 {
-    buffer = topCam->getImage(success);
-    buffer->copyTo(original);
+    buffer = omniCamera->getImage();
+    if(buffer!=NULL) (*success) = true;
+    else (*success) = false;
     return buffer;
 }
 
@@ -538,31 +541,25 @@ Mat* ImageProcessor::getOriginal()
 // Returns true if camera was successfully initialized
 bool ImageProcessor::isReady()
 {
-    return topCam->isCameraReady();
-}
-
-// Returns true if camera's image feed is ready
-bool ImageProcessor::startCamera()
-{
-    return topCam->startCamera();
+    return omniCamera->isCameraReady();
 }
 
 // Prints to stdout camera parameters
 void ImageProcessor::printCameraInfo()
 {
-    topCam->printCameraInfo();
+    omniCamera->printCameraInfo();
 }
 
 // Returns true if imaging procedure was successfuly started
 bool ImageProcessor::startImaging()
 {
-    return topCam->startImaging();
+    return omniCamera->startCapture();
 }
 
 // Closes camera feed
 void ImageProcessor::closeCamera()
 {
-    topCam->closeCamera();
+    omniCamera->closeCamera();
 }
 
 // Returns image in the defined static path
