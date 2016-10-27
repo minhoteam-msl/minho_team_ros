@@ -33,10 +33,11 @@ public:
 
    /* Image Output Functions */
    Mat *getImage(bool *success); // Returns camera image pointer
-   Mat *getStaticImage(bool *success); // Returns camera image pointer
-   Mat *getOriginal(); // Returns original (clean camera image) pointer
+   Mat *getStaticImage(bool *success); // Returns static image pointer
    void getBinary(Mat *in,  minho_team_ros::label labelconf); // Returns thresholded HSV image
    void getSegmentedImage(Mat *buffer); // Returns buffer's segmented image
+   void drawInterestInfo(Mat *buffer);
+   void drawWorldInfo(Mat *buffer);
    void paintPixel(int x, int y, int classifier, Mat *buf); // Paints a certain pixel in the image
    hsv rgbtohsv(rgb in); // Converts rgb to hsv
 
@@ -94,8 +95,8 @@ private:
    BlackflyCam *omniCamera;
    imageConfig imageConf;
    /*Image Containers */
-   Mat *processed, *buffer;
-   Mat original, balls, mask, static_image;
+   Mat *buffer,mask,static_image;
+   Mat original;
    QString staticImgPath;
    Mat element;
 
@@ -114,7 +115,7 @@ private:
 
    // Implementation USING RLE
    void rleModInitialization(); // Inits RLE Mode sensors and RLE's
-   void preProcessIdx(); // Preprocesses image, labeling it for RLE scan
+   void preProcessIndexedImage(); // Preprocesses image, labeling it for RLE scan
    ScanLines linesRad, linesCir; Mat idxImage;
    RLE rleBallRad,rleLinesRad,rleObs,rleBallCir,rleLinesCir;
 

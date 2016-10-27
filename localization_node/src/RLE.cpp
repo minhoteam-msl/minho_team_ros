@@ -90,17 +90,17 @@ RLE::RLE(ScanLines &s_, unsigned colorBefore, unsigned colorOfInterest, unsigned
     }
 }
 
-void RLE::drawLine(int pt1, int pt2, Scalar color, Mat &img)
+void RLE::drawLine(int pt1, int pt2, Scalar color, Mat *img)
 {
-    cv::line(img, cv::Point(pt1 % img.cols, pt1 / img.cols), cv::Point(pt2 % img.cols, pt2 / img.cols), color, 2);
+    cv::line(*img, cv::Point(pt1 % img->cols, pt1 / img->cols), cv::Point(pt2 % img->cols, pt2 / img->cols), color, 2);
 }
 
-void RLE::drawCircle(int pt, int radius, Scalar color, Mat &img)
+void RLE::drawCircle(int pt, int radius, Scalar color, Mat *img)
 {
-    cv::circle(img, cv::Point(pt % img.cols, pt / img.cols), radius, color, 4);
+    cv::circle(*img, cv::Point(pt % img->cols, pt / img->cols), radius, color, 3);
 }
 
-void RLE::drawInterestPoints(Scalar color, Mat &destination, UAV_COLORS_BIT idx)
+void RLE::drawInterestPoints(Scalar color, Mat *destination, UAV_COLORS_BIT idx)
 {
     int target = 0;
     for(unsigned k = 0; k < rlData.size(); k++)
@@ -109,13 +109,14 @@ void RLE::drawInterestPoints(Scalar color, Mat &destination, UAV_COLORS_BIT idx)
         if(idx&UAV_WHITE_BIT || idx&UAV_ORANGE_BIT) target = rlData[k].center;
         else if(idx&UAV_BLACK_BIT) target = rlData[k].start;
 
-        circle(destination,cv::Point(target%destination.cols, target/destination.cols),2,color,2);
+        circle(*destination,cv::Point(target%destination->cols, target/destination->cols),2,color,2);
     }
 }
 
 // Filter found RLE's
 void RLE::pushData(std::vector<Point> &destination,Mat& img, UAV_COLORS_BIT idx)
 {
+    // TODO: Filter by distance - uncertainty
     int target = 0;
     if(idx&UAV_WHITE_BIT){ // for line points
         for(unsigned k = 0; k < rlData.size(); k++){
@@ -145,7 +146,7 @@ void RLE::pushData(std::vector<Point> &destination,Mat& img, UAV_COLORS_BIT idx)
 
 }
 
-void RLE::draw(cv::Scalar colorBefore, cv::Scalar colorOfInterest, cv::Scalar colorAfter, cv::Mat &destination)
+void RLE::draw(cv::Scalar colorBefore, cv::Scalar colorOfInterest, cv::Scalar colorAfter, cv::Mat *destination)
 {
 	for(unsigned k = 0; k < rlData.size(); k++)
 	{

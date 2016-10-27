@@ -64,7 +64,6 @@ ImageProcessor::ImageProcessor(bool use_camera, bool *init_success)
 void ImageProcessor::variablesInitialization()
 {
     robotHeight = 0.74;
-    processed = new Mat(480,480,CV_8UC3,Scalar(0,0,0));
     double morph_size = 1.5;
     element = getStructuringElement(2, Size( 2*morph_size + 1, 2*morph_size+1 ), Point( morph_size, morph_size ) );
     sizeRelThreshold = 0.65;
@@ -177,7 +176,7 @@ void ImageProcessor::rleModInitialization()
 }
 
 // Preprocessed current image, preparing it for RLE scan
-void ImageProcessor::preProcessIdx()
+void ImageProcessor::preProcessIndexedImage()
 {
     vector<int> s;
     Point temp;
@@ -203,15 +202,13 @@ void ImageProcessor::preProcessIdx()
             idxImage.ptr()[s[i]] = getClassifier(temp.x,temp.y);
         }
     }
-
-    buffer->copyTo(original);
 }
 
 // Detects interest points, as line points, ball points and obstacle points using RLE
 void ImageProcessor::detectInterestPoints()
 {
     // Preprocess camera image, indexing it with predefined labels
-    preProcessIdx(); //Optimize this and re-write valid points
+    preProcessIndexedImage(); //Optimize this and re-write valid points
     // Run Different RLE's
     rleBallRad = RLE(linesRad, UAV_GREEN_BIT, UAV_ORANGE_BIT, UAV_GREEN_BIT, 3, 2, 3, 30);
     rleBallCir = RLE(linesCir, UAV_GREEN_BIT, UAV_ORANGE_BIT, UAV_GREEN_BIT, 3, 2, 3, 30);
@@ -220,12 +217,13 @@ void ImageProcessor::detectInterestPoints()
     rleObs = RLE(linesRad, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 2, 10, 0, 20);
 
     //Analyze and parse RLE's
-    linePoints.clear();
-    obstaclePoints.clear();
-    ballPoints.clear();
+    linePoints.clear(); obstaclePoints.clear(); ballPoints.clear();
+    // Lines RLE
     rleLinesRad.pushData(linePoints,idxImage,UAV_WHITE_BIT);
     rleLinesCir.pushData(linePoints,idxImage,UAV_WHITE_BIT);
+    // Obstacles RLE
     rleObs.pushData(obstaclePoints,idxImage,UAV_BLACK_BIT);
+    // Ball RLE
     rleBallCir.pushData(ballPoints,idxImage,UAV_ORANGE_BIT);
     rleBallRad.pushData(ballPoints,idxImage,UAV_ORANGE_BIT);
 
@@ -461,6 +459,7 @@ Mat *ImageProcessor::getImage(bool *success)
 // Returns image from static image, *success = true if new image is available
 Mat *ImageProcessor::getStaticImage(bool *success)
 {
+    buffer = &static_image;
     (*success) = true;
     return &static_image;
 }
@@ -544,10 +543,26 @@ void ImageProcessor::getSegmentedImage(Mat *buffer)
 
 }
 
-// Returns original caemra image
-Mat* ImageProcessor::getOriginal()
+void ImageProcessor::drawInterestInfo(Mat *buffer)
 {
-    return &original;
+   rleBallRad.drawInterestPoints(Scalar(255,0,255),buffer,UAV_ORANGE_BIT);
+   rleBallCir.drawInterestPoints(Scalar(255,0,255),buffer,UAV_ORANGE_BIT);
+   rleObs.drawInterestPoints(Scalar(255,0,0),buffer,UAV_BLACK_BIT);
+   rleLinesRad.drawInterestPoints(Scalar(0,0,255),buffer,UAV_WHITE_BIT);
+   rleLinesCir.drawInterestPoints(Scalar(0,255,255),buffer,UAV_WHITE_BIT);
+}
+
+void ImageProcessor::drawWorldInfo(Mat *buffer)
+{
+   for(int i=0;i<linePoints.size();i++){
+       cv::circle(*buffer, linePoints[i], 2, Scalar(0,0,255), 2);
+   }
+   for(int i=0;i<obstaclePoints.size();i++){
+       cv::circle(*buffer, obstaclePoints[i], 2, Scalar(255,0,255), 2);
+   }
+   for(int i=0;i<ballCentroids.size();i++){
+       cv::circle(*buffer, ballCentroids[i], 2, Scalar(255,0,0), 4);
+   }
 }
 
 // Returns true if camera was successfully initialized

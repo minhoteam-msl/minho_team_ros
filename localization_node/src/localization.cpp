@@ -3,7 +3,7 @@
 Localization::Localization(ros::NodeHandle *par , bool *init_success, bool use_camera, QObject *parent) : QObject(parent)
 {
    initVariables();
-   
+   if(!use_camera) is_hardware_ready = true; // for test purposes
    //#### Initialize major components ####
    //##################################### 
    bool correct_initialization = true;
@@ -59,6 +59,27 @@ void Localization::discoverWorldModel() // Main Function
    buffer = CALL_MEMBER_FN((*processor),processor->acquireImage)(&have_image);
    // Localization code
    if(have_image && is_hardware_ready){
+      processor->detectInterestPoints();   
+      /*
+      if(doGlobalLoc) {
+            // Global Localization
+            currentState.robotPose.z = lastState.robotPose.z = currentHardware.robotAngle;
+            // Correct Initial IMU Heading Estimative
+            angleByHistogramsGlobal();
+            performGlobalLocalization();
+            doGlobalLoc = false;
+        }
+        else {
+            angleByHistograms();// Correct IMU Heading Estimative
+            performLocalLocalization();
+            // Integrate estimates using Kalman Filter
+            fuseEstimates(2);
+        }
+
+        // Extract other features based on current position
+        extractGameBall();
+        extractObstacles();
+      */
       //Publish information   
       fuseEstimates();
       computeVelocities();
@@ -72,12 +93,20 @@ void Localization::discoverWorldModel() // Main Function
    else {
       //Send image to confserver if requested
       if(assigning_images){
-         if(assigning_type==IMG_RAW) {
+         if(assigning_type&IMG_RAW) {
             confserver->assignImage(buffer);  
-         } else {
+         } else if(assigning_type&IMG_SEG) {
             processed = buffer->clone();
             processor->getSegmentedImage(&processed);  
             confserver->assignImage(&processed);     
+         } else if(assigning_type&IMG_INT) {
+            processed = buffer->clone();
+            processor->drawInterestInfo(&processed);  
+            confserver->assignImage(&processed); 
+         } else if(assigning_type&IMG_WRL) {
+            processed = buffer->clone();
+            processor->drawWorldInfo(&processed);  
+            confserver->assignImage(&processed); 
          }
       }
    
@@ -97,11 +126,20 @@ void Localization::initVariables()
    qRegisterMetaType<imageConfig::ConstPtr>("imageConfig::ConstPtr");
    QString home = QString::fromStdString(getenv("HOME"));
    QString cfgDir = home+QString(CONFIGFOLDERPATH);
-   imgFolderPath = cfgDir+QString(IMAGEFOLDERPATH);
    
    assigning_images = false;  
    is_hardware_ready = false; 
    initializeKalmanFilter();
+}
+
+void Localization::initializeKalmanFilter()
+{
+   memset(&odometry,0,sizeof(localizationEstimate));
+   memset(&vision,0,sizeof(localizationEstimate));
+   kalman.Q.x = kalman.Q.y = 1; kalman.Q.z = 1;
+   kalman.R.x = kalman.R.y = 20; kalman.R.z = 30;
+   kalman.lastCovariance.x = kalman.lastCovariance.y = kalman.lastCovariance.z = 0;
+   kalman.covariance = kalman.predictedCovariance = kalman.lastCovariance;
 }
 
 void Localization::stopImageAssigning()
@@ -118,33 +156,33 @@ void Localization::changeImageAssigning(uint8_t type)
 void Localization::changeLookUpTableConfiguration(visionHSVConfig::ConstPtr msg)
 {
    ROS_WARN("New configuration of Look Up Table will be set.");
-   //TODO:Stop processing mechanism
+   parentTimer->stop();
    processor->updateLabelLutConf(FIELD,msg->field);
    processor->updateLabelLutConf(LINE,msg->line);
    processor->updateLabelLutConf(BALL,msg->ball);
    processor->updateLabelLutConf(OBSTACLE,msg->obstacle);
    processor->generateLookUpTable();
    if(processor->writeLookUpTable())ROS_INFO("New %s saved!",LUTFILENAME);
-   //TODO:Start processing mechanism
+   parentTimer->start(requiredTiming);
 }
 void Localization::changeMirrorConfiguration(mirrorConfig::ConstPtr msg)
 {
    ROS_WARN("New configuration of mirror will be set.");
-   //TODO:Stop processing mechanism
+   parentTimer->stop();
    processor->updateDists(msg->max_distance,msg->step,msg->pixel_distances);
    processor->generateMirrorConfiguration();
    if(processor->writeMirrorConfig())ROS_INFO("New %s saved!",MIRRORFILENAME);
-   //TODO:Start processing mechanism
+   parentTimer->start(requiredTiming);
 }
 
 void Localization::changeImageConfiguration(imageConfig::ConstPtr msg)
 {
    ROS_WARN("New configuration of image will be set.");
-   //TODO:Stop processing mechanism
+   parentTimer->stop();
    processor->setCenter(msg->center_x,msg->center_y,msg->tilt);
    processor->generateMirrorConfiguration();
    if(processor->writeImageConfig())ROS_INFO("New %s saved!",IMAGEFILENAME);
-   //TODO:Start processing mechanism
+   parentTimer->start(requiredTiming);
 }
 
 bool Localization::doReloc(requestReloc::Request &req,requestReloc::Response &res)
@@ -315,14 +353,8 @@ void Localization::decideBallPossession()
    current_state.has_ball = current_hardware_state.ball_sensor;  
 }
 
-void Localization::initializeKalmanFilter()
+void detectInterestPoints() // detects line, obstacle and ball points
 {
-   memset(&odometry,0,sizeof(localizationEstimate));
-   memset(&vision,0,sizeof(localizationEstimate));
-   kalman.Q.x = kalman.Q.y = 1; kalman.Q.z = 1;
-   kalman.R.x = kalman.R.y = 20; kalman.R.z = 30;
-   kalman.lastCovariance.x = kalman.lastCovariance.y = kalman.lastCovariance.z = 0;
-   kalman.covariance = kalman.predictedCovariance = kalman.lastCovariance;
+   
 }
-
 

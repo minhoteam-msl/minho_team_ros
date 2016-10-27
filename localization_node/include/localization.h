@@ -31,7 +31,6 @@ private:
    //Confserver variables
    bool assigning_images;
    uint8_t assigning_type;
-   QString imgFolderPath;
    //Hardware estimate variables
    bool is_hardware_ready;
    hardwareInfo current_hardware_state, last_hardware_state;
@@ -46,6 +45,7 @@ private:
    ros::ServiceServer reloc_service;
 private slots:
    void initVariables();
+   void initializeKalmanFilter();
    void stopImageAssigning();
    void changeImageAssigning(uint8_t type);
    void changeLookUpTableConfiguration(visionHSVConfig::ConstPtr msg);
@@ -55,10 +55,9 @@ private slots:
 public slots:
    void hardwareCallback(const hardwareInfo::ConstPtr &msg);   
    void discoverWorldModel(); // Main Funcition
-   void fuseEstimates();
-   void computeVelocities();
-   void decideBallPossession();
-   void initializeKalmanFilter();
+   void fuseEstimates(); // Fuse vision and odometry estimations
+   void computeVelocities(); // Computes ball and robot velocities
+   void decideBallPossession(); // decides wether the robot has or not the ball
    // Math Utilities
    float normalizeAngleRad(float angle);
    float normalizeAngleDeg(float angle);

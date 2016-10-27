@@ -54,7 +54,8 @@ typedef enum RANGE_t {MIN = 0, MAX} RANGE_t;
 */
 #define IMG_RAW 0x01
 #define IMG_SEG 0x02
-#define IMG_WRL 0x03
+#define IMG_INT 0x04
+#define IMG_WRL 0x08
 
 //########## ROBOT PHYSICAL PROPERTIES ########## 
 //###############################################

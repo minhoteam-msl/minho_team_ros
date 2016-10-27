@@ -38,10 +38,10 @@ public:
 		return temp;
     }
 
-    void draw(cv::Scalar colorBefore, cv::Scalar colorOfInterest, cv::Scalar colorAfter, cv::Mat &destination);
-    void drawLine(int pt1, int pt2, cv::Scalar color, cv::Mat &img);
-    void drawCircle(int pt, int radius, cv::Scalar color, cv::Mat &img);
-    void drawInterestPoints(cv::Scalar color,cv::Mat &destination,UAV_COLORS_BIT idx);
+    void draw(cv::Scalar colorBefore, cv::Scalar colorOfInterest, cv::Scalar colorAfter, cv::Mat *destination);
+    void drawLine(int pt1, int pt2, cv::Scalar color, cv::Mat *img);
+    void drawCircle(int pt, int radius, cv::Scalar color, cv::Mat *img);
+    void drawInterestPoints(cv::Scalar color,cv::Mat *destination,UAV_COLORS_BIT idx);
     void pushData(std::vector<Point> &destination, Mat &img, UAV_COLORS_BIT idx);
 };
 
