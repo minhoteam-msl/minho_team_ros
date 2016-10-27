@@ -40,8 +40,6 @@ Localization::Localization(ros::NodeHandle *par , bool *init_success, bool use_c
                                     &Localization::doReloc,
                                     this);
    //############################# 
-   //TEST
-   buffer = imread(QString(imgFolderPath+"temp.png").toStdString());
    parentTimer->start(33);
 }
 
@@ -52,14 +50,15 @@ Localization::~Localization()
 
 void Localization::discoverWorldModel() // Main Function
 {
-   bool have_image = true;
+   bool have_image = false;
    int timing = 0;
    parentTimer->stop();
    QTime measure;
    measure.start();
-   
+   // Acquire image using function pointer
+   buffer = CALL_MEMBER_FN((*processor),processor->acquireImage)(&have_image);
    // Localization code
-   if(have_image){
+   if(have_image && is_hardware_ready){
       //Publish information   
       fuseEstimates();
       computeVelocities();
@@ -74,9 +73,9 @@ void Localization::discoverWorldModel() // Main Function
       //Send image to confserver if requested
       if(assigning_images){
          if(assigning_type==IMG_RAW) {
-            confserver->assignImage(&buffer);  
+            confserver->assignImage(buffer);  
          } else {
-            processed = buffer.clone();
+            processed = buffer->clone();
             processor->getSegmentedImage(&processed);  
             confserver->assignImage(&processed);     
          }
@@ -97,8 +96,8 @@ void Localization::initVariables()
    qRegisterMetaType<visionHSVConfig::ConstPtr>("visionHSVConfig::ConstPtr");
    qRegisterMetaType<imageConfig::ConstPtr>("imageConfig::ConstPtr");
    QString home = QString::fromStdString(getenv("HOME"));
-   QString cfgDir = home+QString(configFolderPath);
-   imgFolderPath = cfgDir+QString(imageFolderPath);
+   QString cfgDir = home+QString(CONFIGFOLDERPATH);
+   imgFolderPath = cfgDir+QString(IMAGEFOLDERPATH);
    
    assigning_images = false;  
    is_hardware_ready = false; 
@@ -125,7 +124,7 @@ void Localization::changeLookUpTableConfiguration(visionHSVConfig::ConstPtr msg)
    processor->updateLabelLutConf(BALL,msg->ball);
    processor->updateLabelLutConf(OBSTACLE,msg->obstacle);
    processor->generateLookUpTable();
-   if(processor->writeLookUpTable())ROS_INFO("New %s saved!",lutFileName);
+   if(processor->writeLookUpTable())ROS_INFO("New %s saved!",LUTFILENAME);
    //TODO:Start processing mechanism
 }
 void Localization::changeMirrorConfiguration(mirrorConfig::ConstPtr msg)
@@ -134,7 +133,7 @@ void Localization::changeMirrorConfiguration(mirrorConfig::ConstPtr msg)
    //TODO:Stop processing mechanism
    processor->updateDists(msg->max_distance,msg->step,msg->pixel_distances);
    processor->generateMirrorConfiguration();
-   if(processor->writeMirrorConfig())ROS_INFO("New %s saved!",mirrorFileName);
+   if(processor->writeMirrorConfig())ROS_INFO("New %s saved!",MIRRORFILENAME);
    //TODO:Start processing mechanism
 }
 
@@ -144,7 +143,7 @@ void Localization::changeImageConfiguration(imageConfig::ConstPtr msg)
    //TODO:Stop processing mechanism
    processor->setCenter(msg->center_x,msg->center_y,msg->tilt);
    processor->generateMirrorConfiguration();
-   if(processor->writeImageConfig())ROS_INFO("New %s saved!",imageFileName);
+   if(processor->writeImageConfig())ROS_INFO("New %s saved!",IMAGEFILENAME);
    //TODO:Start processing mechanism
 }
 
@@ -212,17 +211,17 @@ void Localization::hardwareCallback(const hardwareInfo::ConstPtr &msg)
    } else deltaenc3 = current_hardware_state.encoder_3-last_hardware_state.encoder_3;
    
    // KWheels converts encoder ticks to m/s
-   v1 = (deltaenc1)*KWheels; v2 = (deltaenc2)*KWheels; v3 = (deltaenc3)*KWheels;
+   v1 = (deltaenc1)*KWHEELS; v2 = (deltaenc2)*KWHEELS; v3 = (deltaenc3)*KWHEELS;
    // Compute velocity, normal velocity and angular velocity
-   v  = (-v1+v3)/(2*sint);
-   vn = (v1-2*v2+v3)/(2*(cost+1));
-   w  = (v1+2*cost*v2+v3)/(2*dRob*(cost+1));
-   halfTeta = normalizeAngleRad(w*deltaT_2)-msg->imu_value*degToRad;
+   v  = (-v1+v3)/(2*SINT);
+   vn = (v1-2*v2+v3)/(2*(COST+1));
+   w  = (v1+2*COST*v2+v3)/(2*DROB*(COST+1));
+   halfTeta = normalizeAngleRad(w*DELTA_T_2)-msg->imu_value*DEGTORAD;
    
    // Acumulate odometry estimate while not used by other functions
-   odometry.x += (sin(halfTeta)*v+cos(halfTeta)*vn)*deltaT;
-   odometry.y += (cos(halfTeta)*v-sin(halfTeta)*vn)*deltaT;
-   odometry.angle -= normalizeAngleRad(w*deltaT)*radToDeg;
+   odometry.x += (sin(halfTeta)*v+cos(halfTeta)*vn)*DELTA_T;
+   odometry.y += (cos(halfTeta)*v-sin(halfTeta)*vn)*DELTA_T;
+   odometry.angle -= normalizeAngleRad(w*DELTA_T)*RADTODEG;
    
    last_hardware_state = current_hardware_state;
 }

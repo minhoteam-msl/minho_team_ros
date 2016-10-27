@@ -7,27 +7,30 @@ ImageProcessor::ImageProcessor(bool use_camera, bool *init_success)
     if(use_camera) { 
       omniCamera = new BlackflyCam(); //OmniVisionCamera Handler
       ROS_INFO("Using GigE Camera for image acquisition.");
-    } else ROS_INFO("Using static image for testing.");
-
+      acquireImage = &ImageProcessor::getImage;
+    } else {
+      acquireImage = &ImageProcessor::getStaticImage;
+      ROS_INFO("Using static image for testing.");
+    }
     // Initialize basic robot and field definitions
     if(!initializeBasics()){
-      ROS_ERROR("Error Reading %s.",mainFileName);
+      ROS_ERROR("Error Reading %s.",MAINFILENAME);
       (*init_success) = false; return;
     } else ROS_INFO("Reading information for %s.",agent.toStdString().c_str());
       
     // Assign mask image
     mask = imread(maskPath.toStdString());
     if(mask.empty()){
-        ROS_ERROR("Error Reading %s.",maskFileName);
+        ROS_ERROR("Error Reading %s.",MASKFILENAME);
         (*init_success) = false; return;
-    }else ROS_INFO("%s Ready.", maskFileName);
+    }else ROS_INFO("%s Ready.", MASKFILENAME);
 
     // Read color segmentation Look Up Table
     if(!readLookUpTable()){ // Read and Initialize Look Up Table
         memset(&YUVLookUpTable,UAV_NOCOLORS_BIT,LUT_SIZE);
-        ROS_ERROR("Error Reading %s.",lutFileName);
+        ROS_ERROR("Error Reading %s.",LUTFILENAME);
         (*init_success) = false; return;
-    } else ROS_INFO("%s Ready.",lutFileName);
+    } else ROS_INFO("%s Ready.",LUTFILENAME);
 
     // Initialize world mapping parameters
     if(!initWorldMapping()){ // Initialize World Mapping
@@ -45,6 +48,14 @@ ImageProcessor::ImageProcessor(bool use_camera, bool *init_success)
             (*init_success) = false; 
             return;
         } else printCameraInfo();
+    } else { // Load static image
+      QString path = imgFolderPath+QString("image.png");
+      static_image = imread(path.toStdString().c_str());
+      if(static_image.empty()){
+         ROS_ERROR("Failed to read static image");
+         (*init_success) = false; 
+         return;
+      }
     }
 }
 
@@ -84,7 +95,7 @@ bool ImageProcessor::initWorldMapping()
     QStringList mappedDists = pixel_distances.split(",");
     
     if(expected_args!=mappedDists.size() || expected_args<=0 || mappedDists.size()<=0) {
-       ROS_ERROR("Bad Configuration in %s",mirrorFileName);
+       ROS_ERROR("Bad Configuration in %s",MIRRORFILENAME);
        return false;
     }
     
@@ -110,7 +121,7 @@ bool ImageProcessor::initWorldMapping()
     QStringList coords = image_center.split(",");
     
     if(coords.size()!=2) {
-       ROS_ERROR("Bad Configuration (1) in %s",imageFileName);
+       ROS_ERROR("Bad Configuration (1) in %s",IMAGEFILENAME);
        return false;
     }
     
@@ -127,8 +138,8 @@ bool ImageProcessor::initWorldMapping()
 bool ImageProcessor::initializeBasics()
 {
     QString home = QString::fromStdString(getenv("HOME"));
-    QString cfgDir = home+QString(configFolderPath);
-    QString mainFile = cfgDir+"/"+QString(mainFileName);
+    QString cfgDir = home+QString(CONFIGFOLDERPATH);
+    QString mainFile = cfgDir+"/"+QString(MAINFILENAME);
     
     QFile file(mainFile);
     if(!file.open(QIODevice::ReadOnly)) {
@@ -139,10 +150,11 @@ bool ImageProcessor::initializeBasics()
     agent = in.readLine();
     field = in.readLine();
     
-    mirrorParamsPath = cfgDir+agent+"/"+QString(mirrorFileName);
-    imageParamsPath = cfgDir+agent+"/"+QString(imageFileName);
-    lutPath = cfgDir+agent+"/"+QString(lutFileName);
-    maskPath = cfgDir+agent+"/"+QString(maskFileName);
+    imgFolderPath = cfgDir+QString(IMAGEFOLDERPATH);
+    mirrorParamsPath = cfgDir+agent+"/"+QString(MIRRORFILENAME);
+    imageParamsPath = cfgDir+agent+"/"+QString(IMAGEFILENAME);
+    lutPath = cfgDir+agent+"/"+QString(LUTFILENAME);
+    maskPath = cfgDir+agent+"/"+QString(MASKFILENAME);
    
     ROS_INFO("Looking for config files in %s",cfgDir.toStdString().c_str());
     
@@ -413,13 +425,6 @@ Point ImageProcessor::getCenter()
     return Point(imageConf.center_x,imageConf.center_y);
 }
 
-// Sets the path of the static image
-void ImageProcessor::setStaticImagePath(QString pth)
-{
-    staticImgPath = pth;
-    staticImg = imread(pth.toStdString());
-}
-
 // Sets the image buffer
 void ImageProcessor::setBuffer(Mat *buf)
 {
@@ -451,6 +456,13 @@ Mat *ImageProcessor::getImage(bool *success)
     if(buffer!=NULL) (*success) = true;
     else (*success) = false;
     return buffer;
+}
+
+// Returns image from static image, *success = true if new image is available
+Mat *ImageProcessor::getStaticImage(bool *success)
+{
+    (*success) = true;
+    return &static_image;
 }
 
 // Returns binary image of the buffer, given YUV(or HSV) ranges
@@ -562,13 +574,6 @@ void ImageProcessor::closeCamera()
     omniCamera->closeCamera();
 }
 
-// Returns image in the defined static path
-Mat* ImageProcessor::readStaticImage()
-{
-    buffer = &staticImg;
-    return buffer;
-}
-
 // Updates Look up Table values of the selected pixel, with a radious of rad around it, for the given label
 void ImageProcessor::updateLookUpTable(Mat *buffer, int x, int y, int label, int rad)
 {
@@ -608,7 +613,7 @@ bool ImageProcessor::readLookUpTable()
             QStringList values = line.right(line.size()-line.indexOf('=')-1).split(",");
 
             if(values.size()!=6) { 
-               ROS_ERROR("Bad Configuration (1) in %s",lutFileName); return false; 
+               ROS_ERROR("Bad Configuration (1) in %s",LUTFILENAME); return false; 
             }
             
             LABEL_t label;
@@ -621,7 +626,7 @@ bool ImageProcessor::readLookUpTable()
                lb = &lutconfig.ball;
             } else if(label_name=="OBSTACLE"){
                lb = &lutconfig.obstacle;
-            } else { ROS_ERROR("Bad Configuration (2) in %s",lutFileName); return false; }
+            } else { ROS_ERROR("Bad Configuration (2) in %s",LUTFILENAME); return false; }
             
             lb->H.min = values[0].toInt(); lb->H.max = values[1].toInt();
             lb->S.min = values[2].toInt(); lb->S.max = values[3].toInt();
@@ -639,7 +644,7 @@ bool ImageProcessor::writeLookUpTable()
 {
     QFile file(lutPath);
     if(!file.open(QIODevice::WriteOnly)){
-        ROS_ERROR("Error writing to %s.",lutFileName);
+        ROS_ERROR("Error writing to %s.",LUTFILENAME);
         return false;
     }
     QTextStream in(&file);
@@ -673,7 +678,7 @@ bool ImageProcessor::writeMirrorConfig()
 {
    QFile file(mirrorParamsPath);
     if(!file.open(QIODevice::WriteOnly)){
-        ROS_ERROR("Error writing to %s.",mirrorFileName);
+        ROS_ERROR("Error writing to %s.",MIRRORFILENAME);
         return false;
     }
     QTextStream in(&file);
@@ -695,7 +700,7 @@ bool ImageProcessor::writeImageConfig()
 {
    QFile file(imageParamsPath);
     if(!file.open(QIODevice::WriteOnly)){
-        ROS_ERROR("Error writing to %s.",imageFileName);
+        ROS_ERROR("Error writing to %s.",IMAGEFILENAME);
         return false;
     }
     QTextStream in(&file);

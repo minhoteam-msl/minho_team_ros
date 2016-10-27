@@ -6,16 +6,16 @@
 ############################################################################   
 */
 // DIRECTORY PATHS
-#define imageFolderPath "Images/"
-#define fieldsFolderPath "Fields/"
-#define configFolderPath "/catkin_ws/src/minho_team_ros/localization_node/config/"
+#define IMAGEFOLDERPATH "Images/"
+#define FIELDSFOLDERPATH "Fields/"
+#define CONFIGFOLDERPATH "/catkin_ws/src/minho_team_ros/localization_node/config/"
 
 // FILE NAMES
-#define mirrorFileName "mirror.cfg"
-#define imageFileName "image.cfg"
-#define lutFileName "lut.cfg"
-#define maskFileName "mask.png"
-#define mainFileName "main.cfg"
+#define MIRRORFILENAME "mirror.cfg"
+#define IMAGEFILENAME "image.cfg"
+#define LUTFILENAME "lut.cfg"
+#define MASKFILENAME "mask.png"
+#define MAINFILENAME "main.cfg"
 
 // LUT DEFINES
 #define LUT_SIZE 256*256*256
@@ -55,21 +55,20 @@ typedef enum RANGE_t {MIN = 0, MAX} RANGE_t;
 #define IMG_RAW 0x01
 #define IMG_SEG 0x02
 #define IMG_WRL 0x03
-#define IMG_MAP 0x04
 
 //########## ROBOT PHYSICAL PROPERTIES ########## 
 //###############################################
-#define wheelDiameter 0.1
-#define deltaT 0.022  //20ms
-#define deltaT_2 0.022/2.0  //20ms
-#define degToRad (M_PI)/180.0
-#define radToDeg 180.0/(M_PI)
+#define WHEELDIAMETER 0.1
+#define DELTA_T 0.022  //20ms
+#define DELTA_T_2 DELTA_T/2.0  //20ms
+#define DEGTORAD (M_PI)/180.0
+#define RADTODEG 180.0/(M_PI)
 #define CPR 3036
-#define dRob 0.235
-#define cost 0.5
-#define theta_ 1.0471976
-#define sint 0.866
-#define KWheels ((M_PI*wheelDiameter)/(CPR*deltaT))
+#define DROB 0.235
+#define COST 0.5
+#define THETA_ 1.0471976
+#define SINT 0.866
+#define KWHEELS ((M_PI*WHEELDIAMETER)/(CPR*DELTA_T))
 //###############################################
 //###############################################
 typedef struct localizationEstimate// Estimate of localization (vision, odometry, etc)

@@ -20,13 +20,12 @@ class Localization : public QObject
 public:
    explicit Localization(ros::NodeHandle *par, bool *init_success, bool use_camera, QObject *parent = 0); // Constructor
    ~Localization();
-
 private:
    //Major components
    ImageProcessor *processor;
    ConfigServer *confserver;
    QTimer *parentTimer;
-   Mat buffer, processed;
+   Mat *buffer, processed;
    int requiredTiming;
    float time_interval;
    //Confserver variables

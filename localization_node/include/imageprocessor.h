@@ -16,7 +16,7 @@
 #include "minho_team_ros/visionHSVConfig.h"
 #include "minho_team_ros/imageConfig.h"
 #include <iostream>
-
+#define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
 using namespace std;
 using minho_team_ros::mirrorConfig;
 using minho_team_ros::visionHSVConfig;
@@ -26,15 +26,15 @@ class ImageProcessor
 {
 public:
    ImageProcessor(bool begin, bool *init_success);
-
+   typedef Mat* (ImageProcessor::*imageAcquisitionFunction)(bool *success);
    /* Detection Functions */
    void detectInterestPoints(); // Detects linePoints, ballPoints and obstaclePoints
    void detectBallPosition(); // Given the detected ballRLE find the optimal candidate
 
    /* Image Output Functions */
    Mat *getImage(bool *success); // Returns camera image pointer
+   Mat *getStaticImage(bool *success); // Returns camera image pointer
    Mat *getOriginal(); // Returns original (clean camera image) pointer
-   Mat *readStaticImage(); // RetuFucksrns image read from static system path
    void getBinary(Mat *in,  minho_team_ros::label labelconf); // Returns thresholded HSV image
    void getSegmentedImage(Mat *buffer); // Returns buffer's segmented image
    void paintPixel(int x, int y, int classifier, Mat *buf); // Paints a certain pixel in the image
@@ -61,7 +61,6 @@ public:
    void setBuffer(Mat *buf); // Sets current buffer
    double getRobotHeight(); // Returns robot height
    Point getCenter(); // Returns robot center
-   void setStaticImagePath(QString pth);// Sets path for static image
 
    /* Mathmatic Functions */
    int d2p(Point p1,Point p2); // Returns distance between two points
@@ -87,15 +86,16 @@ public:
    vector<Point>obstaclePoints;
    vector<Point>ballCentroids;
    vector<Point>ballPoints;
-    
+   
+   /* Image Acquisition function pointer */
+   imageAcquisitionFunction acquireImage;
 private:    
    /* Camera Driver and parameters*/
    BlackflyCam *omniCamera;
    imageConfig imageConf;
-   
    /*Image Containers */
    Mat *processed, *buffer;
-   Mat original, balls, mask, staticImg;
+   Mat original, balls, mask, static_image;
    QString staticImgPath;
    Mat element;
 
@@ -121,6 +121,7 @@ private:
    //ConfigFiles strings
    QString field; QString agent;
    QString mirrorParamsPath, imageParamsPath ,maskPath,lutPath;
+   QString imgFolderPath;
 };
 
 #endif // IMAGEPROCESSOR_H
