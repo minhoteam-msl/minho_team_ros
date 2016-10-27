@@ -294,6 +294,7 @@ void setup() {
   nh.advertiseService(server_resetIMU);
   nh.advertiseService(server_OmniProps);
   nh.advertiseService(server_IMULinTable);
+  nh.advertiseService(server_Kick);
   
   while (!nh.connected()){
     nh.spinOnce();
