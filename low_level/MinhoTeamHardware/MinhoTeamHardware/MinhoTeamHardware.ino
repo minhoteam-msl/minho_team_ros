@@ -263,12 +263,12 @@ ros::ServiceServer<requestKick::Request, requestKick::Response> server_Kick("req
 // ###########################################################
 
 void setup() {
-  resetEncoders();
-  readPIDfromEEPROM();
-  readIMUfromEEPROM();
   setupOmni();
   setupMotorsBoard();
   setupIMULinearization();
+  resetEncoders();
+  readPIDfromEEPROM();
+  readIMUfromEEPROM();
   
   pinMode(KICKPIN, OUTPUT);
   digitalWrite(KICKPIN, LOW);
