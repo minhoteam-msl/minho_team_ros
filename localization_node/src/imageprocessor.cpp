@@ -580,7 +580,7 @@ void ImageProcessor::printCameraInfo()
 // Returns true if imaging procedure was successfuly started
 bool ImageProcessor::startImaging()
 {
-    return omniCamera->startCapture();
+    return (omniCamera->connect()&omniCamera->startCapture());
 }
 
 // Closes camera feed

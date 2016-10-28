@@ -46,10 +46,10 @@ void readFrame(Image* pImage, const void* pCallbackData )
 ///
 bool BlackflyCam::startCapture()
 {
-    if(!camera->IsConnected())return false;
+    if(!camera->IsConnected()) { ROS_ERROR("GigE Camera not connected!"); return false; }
     else{
         error=camera->StartCapture(readFrame,this);
-        if(error!=PGRERROR_OK)return false;
+        if(error!=PGRERROR_OK) { ROS_ERROR("Failed to start GigE Capture!"); return false; }
         timer.start();
         return true;
     }
@@ -74,7 +74,8 @@ void BlackflyCam::printCameraInfo()
 {
     if(!(camera->IsConnected())) return;
     else {
-        ROS_INFO("Camera ID: %s by %s",camInfo.modelName,camInfo.vendorName);
+        ROS_INFO("Camera: %s by %s",camInfo.modelName,camInfo.vendorName);
+        ROS_INFO("Serial Nº: %x. Firmware Ver: %s",camInfo.serialNumber,camInfo.firmwareVersion);
     }
 }
 
