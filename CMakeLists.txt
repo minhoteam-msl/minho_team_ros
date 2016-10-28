@@ -158,24 +158,20 @@ add_definitions(-DQT_THREAD_SUPPORT)
 #Linking steps for Flycapture Libraries
 ########################################
 include_directories(/usr/include/flycapture)
-set(flycap_LIBRARIES libflycapture.so)
-link_directories(/usr/lib)
+set(flycap_LIBRARIES /usr/lib/libflycapture.so)
 ########################################
 
 #Linking steps for libfreenect Libraries
 ########################################
 include_directories(/usr/local/include/libfreenect)
 include_directories(/usr/include/libusb-1.0)
-set(freenect_LIBRARIES libfreenect.so libfreenect_sync.so)
-link_directories(/usr/local/lib)
+set(freenect_LIBRARIES /usr/local/lib/libfreenect.so /usr/local/lib/libfreenect_sync.so)
 ########################################
 
 #Linking steps for OpenCV Libraries
 ########################################
 include_directories(/usr/local/include/opencv /usr/local/include/opencv2)
-set (opencv_LIBRARIES libopencv_core.so libopencv_highgui.so libopencv_imgproc.so)
-link_directories(/usr/local/lib)
-link_directories(/usr/lib/x86_64-linux-gnu)
+set (opencv_LIBRARIES /usr/local/lib/libopencv_core.so /usr/local/lib/libopencv_highgui.so /usr/local/lib/libopencv_imgproc.so)
 ########################################
 ######################################################################
 
