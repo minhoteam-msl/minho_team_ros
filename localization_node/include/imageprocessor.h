@@ -92,7 +92,7 @@ public:
    imageAcquisitionFunction acquireImage;
 private:    
    /* Camera Driver and parameters*/
-   BlackflyCam *omniCamera;
+   //BlackflyCam *omniCamera;
    imageConfig imageConf;
    /*Image Containers */
    Mat *buffer,mask,static_image;

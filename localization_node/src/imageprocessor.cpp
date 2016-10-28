@@ -5,7 +5,7 @@ ImageProcessor::ImageProcessor(bool use_camera, bool *init_success)
 {
     // Initialize GigE Camera Driver
     if(use_camera) { 
-      omniCamera = new BlackflyCam(); //OmniVisionCamera Handler
+      //omniCamera = new BlackflyCam(); //OmniVisionCamera Handler
       ROS_INFO("Using GigE Camera for image acquisition.");
       acquireImage = &ImageProcessor::getImage;
     } else {
@@ -444,13 +444,13 @@ int ImageProcessor::d2p(Point p1, Point p2)
 // Returns the availability of new camera frames
 bool ImageProcessor::frameAvailable()
 {
-    return omniCamera->frameAvailable();
+    //return omniCamera->frameAvailable();
 }
 
 // Returns image from camera, *success = true if new image is available
 Mat *ImageProcessor::getImage(bool *success)
 {
-    buffer = omniCamera->getImage();
+    //buffer = omniCamera->getImage();
     if(buffer!=NULL) (*success) = true;
     else (*success) = false;
     return buffer;
@@ -568,25 +568,25 @@ void ImageProcessor::drawWorldInfo(Mat *buffer)
 // Returns true if camera was successfully initialized
 bool ImageProcessor::isReady()
 {
-    return omniCamera->isCameraReady();
+    //return omniCamera->isCameraReady();
 }
 
 // Prints to stdout camera parameters
 void ImageProcessor::printCameraInfo()
 {
-    omniCamera->printCameraInfo();
+    //omniCamera->printCameraInfo();
 }
 
 // Returns true if imaging procedure was successfuly started
 bool ImageProcessor::startImaging()
 {
-    return (omniCamera->connect()&omniCamera->startCapture());
+    //return (omniCamera->connect()&omniCamera->startCapture());
 }
 
 // Closes camera feed
 void ImageProcessor::closeCamera()
 {
-    omniCamera->closeCamera();
+    //omniCamera->closeCamera();
 }
 
 // Updates Look up Table values of the selected pixel, with a radious of rad around it, for the given label
