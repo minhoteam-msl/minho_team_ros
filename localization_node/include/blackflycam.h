@@ -1,15 +1,16 @@
 #ifndef BLACKFLYCAM_H
 #define BLACKFLYCAM_H
 
-#include <QObject>
-#include "ros/ros.h"
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <flycapture/FlyCapture2.h>
+#include <QObject>
 #include <thread>
 #include <mutex>
 #include <QTime>
+#include "ros/ros.h"
+
 using namespace FlyCapture2;
 using namespace cv;
 using namespace std;
