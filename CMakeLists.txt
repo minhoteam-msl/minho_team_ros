@@ -184,7 +184,7 @@ set(LOCALIZATION_SRC_DIR ${LOCALIZATION_DIR}/src)
 set(localization_SRC ${LOCALIZATION_SRC_DIR}/main_localization.cpp ${LOCALIZATION_SRC_DIR}/Angle.cpp 
 ${LOCALIZATION_SRC_DIR}/Vec.cpp ${LOCALIZATION_SRC_DIR}/RLE.cpp ${LOCALIZATION_SRC_DIR}/ScanLines.cpp 
 ${LOCALIZATION_SRC_DIR}/kmeans.cpp ${LOCALIZATION_SRC_DIR}/imageprocessor.cpp
-${LOCALIZATION_SRC_DIR}/configserver.cpp ${LOCALIZATION_SRC_DIR}/localization.cpp)
+${LOCALIZATION_SRC_DIR}/configserver.cpp ${LOCALIZATION_SRC_DIR}/localization.cpp  ${LOCALIZATION_SRC_DIR}/blackflycam.cpp)
 # Add new header files to folder /include and add them here for compilation
 set(localization_MOC_H ${LOCALIZATION_DIR}/include/configserver.h ${LOCALIZATION_DIR}/include/localization.h)
 qt5_wrap_cpp(localization_CPP ${localization_MOC_H})

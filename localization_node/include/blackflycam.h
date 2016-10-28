@@ -5,7 +5,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <flycapture/FlyCapture2.h>
-#include <QObject>
 #include <thread>
 #include <mutex>
 #include <QTime>
@@ -17,16 +16,12 @@ using namespace std;
 
 enum property_cam{BRI=0,SHU=1,GAI=2,EXP=3,GAM=4,HUE_=5,SAT=6,WB=7};
 
-class BlackflyCam : public QObject
+class BlackflyCam
 {
-    Q_OBJECT
 public:
-    explicit BlackflyCam(QObject *parent = 0);
+    explicit BlackflyCam();
     ~BlackflyCam();
 
-signals:
-
-public slots:
     bool connect();
     bool closeCamera();
     bool startCapture();

@@ -1,6 +1,6 @@
 #include "blackflycam.h"
 
-BlackflyCam::BlackflyCam(QObject *parent) : QObject(parent)
+BlackflyCam::BlackflyCam()
 {
     camera = new Camera();
     imageready = false;

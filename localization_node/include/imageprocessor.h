@@ -9,7 +9,7 @@
 #include "RLE.h"
 #include "ScanLines.h"
 #include "Vec.h"
-//#include "blackflycam.h"
+#include "blackflycam.h"
 #include "types.h"
 #include "ros/ros.h"
 #include "minho_team_ros/mirrorConfig.h"
