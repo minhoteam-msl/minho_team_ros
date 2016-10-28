@@ -34,7 +34,6 @@ bool BlackflyCam::closeCamera()
 ///
 void readFrame(Image* pImage, const void* pCallbackData )
 {
-    Q_UNUSED(pImage);
     BlackflyCam *ptr = (BlackflyCam *)pCallbackData;
 
     ptr->setNewFrame(pImage);
@@ -50,7 +49,7 @@ bool BlackflyCam::startCapture()
     else{
         error=camera->StartCapture(readFrame,this);
         if(error!=PGRERROR_OK) { ROS_ERROR("Failed to start GigE Capture!"); return false; }
-        timer.start();
+        //timer.start();
         return true;
     }
 
@@ -85,8 +84,8 @@ void BlackflyCam::printCameraInfo()
 ///
 void BlackflyCam::setNewFrame(Image *pImage)
 {
-    fps = 1000/timer.elapsed();
-    timer.start();
+    //fps = 1000/timer.elapsed();
+    //timer.start();
 
     pImage->Convert( FlyCapture2::PIXEL_FORMAT_BGR, &rawimage );
     rowBytes = (double)rawimage.GetReceivedDataSize()/(double)rawimage.GetRows();

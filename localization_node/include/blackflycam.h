@@ -7,7 +7,7 @@
 #include <flycapture/FlyCapture2.h>
 #include <thread>
 #include <mutex>
-#include <QTime>
+//#include <QTime>
 #include "ros/ros.h"
 
 using namespace FlyCapture2;
@@ -112,7 +112,7 @@ private:
     float rowBytes;
     int frameCounter;
     Mutex mutex;
-    QTime timer;
+    //QTime timer;
     Property props[7];
     int fps;
 
