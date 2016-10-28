@@ -90,10 +90,10 @@ void BlackflyCam::setNewFrame(Image *pImage)
 
     pImage->Convert( FlyCapture2::PIXEL_FORMAT_BGR, &rawimage );
     rowBytes = (double)rawimage.GetReceivedDataSize()/(double)rawimage.GetRows();
-    //{
-        //lock_guard<Mutex> locker(mutex);
+    {
+        lock_guard<Mutex> locker(mutex);
         (*frameBuffer) = Mat(rawimage.GetRows(), rawimage.GetCols(), CV_8UC3, rawimage.GetData(),rowBytes);
-    //}
+    }
     newimage=true;
 }
 
@@ -139,6 +139,7 @@ Mutex *BlackflyCam::getLockingMutex()
 ///
 Mat *BlackflyCam::getImage()
 {
+    buffer = NULL;
     if(newimage==true){
         newimage = false;
         {
@@ -146,7 +147,8 @@ Mat *BlackflyCam::getImage()
             buffer = new Mat(frameBuffer->rows,frameBuffer->cols,CV_8UC3,frameBuffer->data,frameBuffer->step);
         }
     }
-    else { buffer=NULL; return buffer; }
+    
+    return buffer;
 }
 
 ///
