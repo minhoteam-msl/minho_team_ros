@@ -1,7 +1,11 @@
 #ifndef BLACKFLYCAM_H
 #define BLACKFLYCAM_H
 
-#include "types.h"
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <flycapture/FlyCapture2.h>
+#include "ros/ros.h"
 #include <thread>
 #include <mutex>
 //#include <QTime>

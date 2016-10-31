@@ -127,14 +127,15 @@ add_message_files(
 	)
 
 
-## DEPENDENCIES ##
+############################ DEPENDENCIES ############################
 ######################################################################
-set(PROJECT_DIRECTORY ~/catkin_ws/src/minho_team_ros)
+
+set(PROJECT_DIRECTORY ${minho_team_ros_SOURCE_DIR})
 include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
-list(APPEND CMAKE_CXX_FLAGS "${GAZEBO_CXX_FLAGS}")
 set(username $ENV{USER})
 MESSAGE( STATUS "-----> Compiling MinhoTeam Packages for : " ${username})
-#Linking steps for Qt5
+
+######## Linking steps for Qt5 #########
 ########################################
 if(${username} STREQUAL lar)
 set(CURRQTPREFIX /opt/Qt)
@@ -142,7 +143,8 @@ else()
 set(CURRQTPREFIX /opt/Qt/5.7/gcc_64)
 endif()
 
-MESSAGE( STATUS "-----> Current Qt Installation Path : " ${CURRQTPREFIX})
+message( STATUS "-----> Current Qt Installation Path : " ${CURRQTPREFIX})
+message(STATUS "Project Directory ->" ${PROJECT_DIRECTORY})
 set(CMAKE_PREFIX_PATH ${CURRQTPREFIX})
 find_package(Qt5 COMPONENTS Core)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -154,52 +156,81 @@ link_directories(${CURRQTPREFIX}/lib)
 add_definitions(-DQT_THREAD_SUPPORT)
 ########################################
 
-#Linking steps for Flycapture Libraries
+# Linking steps for Flycapture Libraries
 ########################################
 include_directories(/usr/include/flycapture)
 set(flycap_LIBRARIES /usr/lib/libflycapture.so)
 ########################################
 
-#Linking steps for libfreenect Libraries
+# Linking steps for Freenect Libraries #
 ########################################
 include_directories(/usr/local/include/libfreenect)
 include_directories(/usr/include/libusb-1.0)
 set(freenect_LIBRARIES /usr/local/lib/libfreenect.so /usr/local/lib/libfreenect_sync.so)
 ########################################
 
-#Linking steps for OpenCV Libraries
+## Linking steps for OpenCV Libraries ##
 ########################################
 include_directories(/usr/local/include/opencv /usr/local/include/opencv2)
 set (opencv_LIBRARIES /usr/local/lib/libopencv_core.so /usr/local/lib/libopencv_highgui.so /usr/local/lib/libopencv_imgproc.so)
 ########################################
+
 ######################################################################
 
-## LOCALIZATION ##
+
+##################### COMPILING SHARED LIBRARIES ####################
 ######################################################################
+
+############# LOCALIZATION #############
+########################################
 set(LOCALIZATION_DIR ${PROJECT_DIRECTORY}/localization_node)
+set(LOCALIZATION_LIB_DIR ${PROJECT_DIRECTORY}/lib)
 include_directories(${LOCALIZATION_DIR}/include)
 set(LOCALIZATION_SRC_DIR ${LOCALIZATION_DIR}/src)
+
+add_library(blackflycam SHARED ${LOCALIZATION_SRC_DIR}/blackflycam.cpp)
+set_target_properties( blackflycam
+    PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${LOCALIZATION_LIB_DIR}
+)
+target_compile_features(blackflycam PRIVATE cxx_range_for)
+target_link_libraries(blackflycam ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES})
+########################################
+
+
+
+######################################################################
+
+
+####################### COMPILING ROBOT NODES ########################
+######################################################################
+
+############# LOCALIZATION #############
+########################################
 # Add new source files to folder /src and add them here for compilation
 set(localization_SRC ${LOCALIZATION_SRC_DIR}/main_localization.cpp ${LOCALIZATION_SRC_DIR}/Angle.cpp 
 ${LOCALIZATION_SRC_DIR}/Vec.cpp ${LOCALIZATION_SRC_DIR}/RLE.cpp ${LOCALIZATION_SRC_DIR}/ScanLines.cpp 
 ${LOCALIZATION_SRC_DIR}/kmeans.cpp ${LOCALIZATION_SRC_DIR}/imageprocessor.cpp
-${LOCALIZATION_SRC_DIR}/configserver.cpp ${LOCALIZATION_SRC_DIR}/localization.cpp  ${LOCALIZATION_SRC_DIR}/blackflycam.cpp)
+${LOCALIZATION_SRC_DIR}/configserver.cpp ${LOCALIZATION_SRC_DIR}/localization.cpp)
 # Add new header files to folder /include and add them here for compilation
 set(localization_MOC_H ${LOCALIZATION_DIR}/include/configserver.h ${LOCALIZATION_DIR}/include/localization.h)
 qt5_wrap_cpp(localization_CPP ${localization_MOC_H})
 add_executable(localization_node ${localization_SRC} ${localization_CPP})
 set_target_properties(localization_node PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(localization_node PRIVATE cxx_range_for)
-target_link_libraries(localization_node ${catkin_LIBRARIES} ${qt_LIBRARIES} ${opencv_LIBRARIES} ${flycap_LIBRARIES})
-add_dependencies(localization_node ${PROJECT_NAME}_gencpp)
-######################################################################
+set(minho_LIBRARIES ${LOCALIZATION_LIB_DIR}/libblackflycam.so)
+target_link_libraries(localization_node ${catkin_LIBRARIES} ${qt_LIBRARIES} ${opencv_LIBRARIES} ${flycap_LIBRARIES} ${minho_LIBRARIES})
+add_dependencies(localization_node ${PROJECT_NAME}_gencpp blackflycam)
+########################################
 
-## HARDWARE TEST NODE ##
-######################################################################
+########## HARDWARE TEST NODE ##########
+########################################
 set(HW_TEST_DIR ${PROJECT_DIRECTORY}/hw_test_node)
 add_executable(hw_test_node ${HW_TEST_DIR}/main.cpp)
 set_target_properties(hw_test_node PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(hw_test_node PRIVATE cxx_range_for)
 target_link_libraries(hw_test_node ${catkin_LIBRARIES} ${qt_LIBRARIES})
 add_dependencies(hw_test_node ${PROJECT_NAME}_gencpp)
+########################################
+
 ######################################################################

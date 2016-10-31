@@ -1,12 +1,6 @@
 #ifndef TYPES
 #define TYPES
 
-#include <opencv2/opencv.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <flycapture/FlyCapture2.h>
-#include "ros/ros.h"
-
 /*
 ######### DATA TYPES AND PATHS DEFINITION FOR IMAGEPROCESSOR.H/CPP #########
 ############################################################################
