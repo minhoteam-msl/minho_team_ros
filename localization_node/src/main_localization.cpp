@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 	} else ROS_WARN("Image acquisition set to GigE Camera.");
 	bool correct_initialization = true;
 	localization = new Localization(&localization_node,&correct_initialization,use_camera);
-	if(!correct_initialization) { ros::shutdown(); return 0; }
+	if(!correct_initialization) { ROS_ERROR("Killing node on incorrect initialization ..."); ros::shutdown(); a.exit(0); return 0; }
 
 	ros::Publisher robot_info_pub = localization_node.advertise<robotInfo>("robotInfo", 1);
 	ros::Subscriber hardware_info_sub = localization_node.subscribe("hardwareInfo", 

@@ -188,13 +188,22 @@ set(LOCALIZATION_LIB_DIR ${PROJECT_DIRECTORY}/lib)
 include_directories(${LOCALIZATION_DIR}/include)
 set(LOCALIZATION_SRC_DIR ${LOCALIZATION_DIR}/src)
 
-add_library(blackflycam SHARED ${LOCALIZATION_SRC_DIR}/blackflycam.cpp)
-set_target_properties( blackflycam
+add_library(GigECam SHARED ${LOCALIZATION_SRC_DIR}/blackflycam.cpp)
+set_target_properties( GigECam
     PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${LOCALIZATION_LIB_DIR}
 )
-target_compile_features(blackflycam PRIVATE cxx_range_for)
-target_link_libraries(blackflycam ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES})
+target_compile_features(GigECam PRIVATE cxx_range_for)
+target_link_libraries(GigECam ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES})
+
+add_library(RLE SHARED ${LOCALIZATION_SRC_DIR}/Angle.cpp ${LOCALIZATION_SRC_DIR}/Vec.cpp
+${LOCALIZATION_SRC_DIR}/ScanLines.cpp ${LOCALIZATION_SRC_DIR}/RLE.cpp)
+set_target_properties( RLE
+    PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${LOCALIZATION_LIB_DIR}
+)
+target_compile_features(RLE PRIVATE cxx_range_for)
+target_link_libraries(RLE ${opencv_LIBRARIES})
 ########################################
 
 
@@ -208,8 +217,7 @@ target_link_libraries(blackflycam ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catk
 ############# LOCALIZATION #############
 ########################################
 # Add new source files to folder /src and add them here for compilation
-set(localization_SRC ${LOCALIZATION_SRC_DIR}/main_localization.cpp ${LOCALIZATION_SRC_DIR}/Angle.cpp 
-${LOCALIZATION_SRC_DIR}/Vec.cpp ${LOCALIZATION_SRC_DIR}/RLE.cpp ${LOCALIZATION_SRC_DIR}/ScanLines.cpp 
+set(localization_SRC ${LOCALIZATION_SRC_DIR}/main_localization.cpp
 ${LOCALIZATION_SRC_DIR}/kmeans.cpp ${LOCALIZATION_SRC_DIR}/imageprocessor.cpp
 ${LOCALIZATION_SRC_DIR}/configserver.cpp ${LOCALIZATION_SRC_DIR}/localization.cpp)
 # Add new header files to folder /include and add them here for compilation
@@ -218,9 +226,9 @@ qt5_wrap_cpp(localization_CPP ${localization_MOC_H})
 add_executable(localization_node ${localization_SRC} ${localization_CPP})
 set_target_properties(localization_node PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(localization_node PRIVATE cxx_range_for)
-set(minho_LIBRARIES ${LOCALIZATION_LIB_DIR}/libblackflycam.so)
+set(minho_LIBRARIES ${LOCALIZATION_LIB_DIR}/libGigECam.so ${LOCALIZATION_LIB_DIR}/libRLE.so)
 target_link_libraries(localization_node ${catkin_LIBRARIES} ${qt_LIBRARIES} ${opencv_LIBRARIES} ${flycap_LIBRARIES} ${minho_LIBRARIES})
-add_dependencies(localization_node ${PROJECT_NAME}_gencpp blackflycam)
+add_dependencies(localization_node ${PROJECT_NAME}_gencpp GigECam RLE)
 ########################################
 
 ########## HARDWARE TEST NODE ##########
