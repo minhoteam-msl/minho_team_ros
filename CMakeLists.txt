@@ -188,16 +188,22 @@ set(LOCALIZATION_LIB_DIR ${PROJECT_DIRECTORY}/lib)
 include_directories(${LOCALIZATION_DIR}/include)
 set(LOCALIZATION_SRC_DIR ${LOCALIZATION_DIR}/src)
 
-add_library(GigECam SHARED ${LOCALIZATION_SRC_DIR}/blackflycam.cpp)
+### libGigECam ###
+##################
+add_library(GigECam SHARED ${LOCALIZATION_SRC_DIR}/libs/blackflycam.cpp ${LOCALIZATION_SRC_DIR}/libs/cameracalib.cpp ${LOCALIZATION_SRC_DIR}/libs/properties.cpp
+${LOCALIZATION_SRC_DIR}/libs/pid.cpp)
 set_target_properties( GigECam
     PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${LOCALIZATION_LIB_DIR}
 )
 target_compile_features(GigECam PRIVATE cxx_range_for)
-target_link_libraries(GigECam ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(GigECam ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES}
+${qt_LIBRARIES})
 
-add_library(RLE SHARED ${LOCALIZATION_SRC_DIR}/Angle.cpp ${LOCALIZATION_SRC_DIR}/Vec.cpp
-${LOCALIZATION_SRC_DIR}/ScanLines.cpp ${LOCALIZATION_SRC_DIR}/RLE.cpp)
+##### libRLE #####
+##################
+add_library(RLE SHARED ${LOCALIZATION_SRC_DIR}/libs/Angle.cpp ${LOCALIZATION_SRC_DIR}/libs/Vec.cpp
+${LOCALIZATION_SRC_DIR}/libs/ScanLines.cpp ${LOCALIZATION_SRC_DIR}/libs/RLE.cpp)
 set_target_properties( RLE
     PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${LOCALIZATION_LIB_DIR}
