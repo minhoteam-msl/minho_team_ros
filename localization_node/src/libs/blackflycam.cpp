@@ -96,7 +96,7 @@ void BlackflyCam::setNewFrame(Image *pImage)
     if(count_conf>32 || calibrate)
     {
         count_conf=0;
-        //calibrate=camcalib->cameraCalibrate(*frameBuffer);
+        calibrate=camcalib->cameraCalibrate(*frameBuffer);
     }
     else count_conf++;
 
@@ -170,8 +170,8 @@ bool BlackflyCam::connect()
     error = camera->GetCameraInfo( &camInfo );
     if ( error != PGRERROR_OK )return false;
     else{
-        //props = new Properties(camera);
-        //camcalib = new CameraCalib(props,*frameBuffer);
+        props = new Properties(camera);
+        camcalib = new CameraCalib(props,*frameBuffer);
         cout << "GigE Connection successful."<<endl;
         return true;
     }
