@@ -49,7 +49,6 @@ bool BlackflyCam::startCapture()
     else{
         error=camera->StartCapture(readFrame,this);
         if(error!=PGRERROR_OK) { ROS_ERROR("Failed to start GigE Capture!"); return false; }
-        timer.start();
         return true;
     }
 
@@ -93,9 +92,6 @@ void BlackflyCam::setNewFrame(Image *pImage)
         //calibrate=camcalib->cameraCalibrate(*frameBuffer);
     }
     else count_conf++;
-    
-    fps = 1000/timer.elapsed();
-    timer.start();
 
     pImage->Convert( FlyCapture2::PIXEL_FORMAT_BGR, &rawimage );
     rowBytes = (double)rawimage.GetReceivedDataSize()/(double)rawimage.GetRows();
@@ -122,15 +118,6 @@ bool BlackflyCam::frameAvailable()
 bool BlackflyCam::isCameraReady()
 {
     return camera->IsConnected();
-}
-
-///
-/// \brief BlackflyCam::getFPS
-/// \return
-///
-int BlackflyCam::getFPS()
-{
-    return fps;
 }
 
 ///

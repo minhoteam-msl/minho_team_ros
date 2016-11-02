@@ -8,7 +8,6 @@
 #include "ros/ros.h"
 #include <thread>
 #include <mutex>
-#include <QTime>
 #include "cameracalib.h"
 #include "properties.h"
 
@@ -30,7 +29,6 @@ public:
     void setNewFrame(Image *pImage);
     bool frameAvailable();
     bool isCameraReady(); //Returns the sate of the camera
-    int getFPS();
     Mutex *getLockingMutex();
     Mat *getImage();
 
@@ -45,8 +43,6 @@ private:
     float rowBytes;
     int frameCounter;
     Mutex mutex;
-    QTime timer;
-    int fps;
     Properties *props;
     CameraCalib *camcalib;
 };
