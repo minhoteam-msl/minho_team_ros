@@ -90,7 +90,7 @@ void BlackflyCam::setNewFrame(Image *pImage)
     if(count_conf>32 || calibrate)
     {
         count_conf=0;
-        calibrate=camcalib->cameraCalibrate(*frameBuffer);
+        //calibrate=camcalib->cameraCalibrate(*frameBuffer);
     }
     else count_conf++;
     
