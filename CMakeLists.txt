@@ -190,8 +190,7 @@ set(LOCALIZATION_SRC_DIR ${LOCALIZATION_DIR}/src)
 
 ### libGigECam ###
 ##################
-add_library(GigECam SHARED ${LOCALIZATION_SRC_DIR}/libs/blackflycam.cpp ${LOCALIZATION_SRC_DIR}/libs/cameracalib.cpp ${LOCALIZATION_SRC_DIR}/libs/properties.cpp
-${LOCALIZATION_SRC_DIR}/libs/pid.cpp)
+add_library(GigECam SHARED ${LOCALIZATION_SRC_DIR}/libs/blackflycam.cpp )# ${LOCALIZATION_SRC_DIR}/libs/cameracalib.cpp ${LOCALIZATION_SRC_DIR}/libs/properties.cpp ${LOCALIZATION_SRC_DIR}/libs/pid.cpp)
 set_target_properties( GigECam
     PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${LOCALIZATION_LIB_DIR}
@@ -210,8 +209,6 @@ set_target_properties( RLE
 target_compile_features(RLE PRIVATE cxx_range_for)
 target_link_libraries(RLE ${opencv_LIBRARIES})
 ########################################
-
-
 
 ######################################################################
 

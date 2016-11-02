@@ -170,8 +170,8 @@ bool BlackflyCam::connect()
     error = camera->GetCameraInfo( &camInfo );
     if ( error != PGRERROR_OK )return false;
     else{
-        props = new Properties(camera);
-        camcalib = new CameraCalib(props,*frameBuffer);
+        //props = new Properties(camera);
+        //camcalib = new CameraCalib(props,*frameBuffer);
         cout << "GigE Connection successful."<<endl;
         return true;
     }
