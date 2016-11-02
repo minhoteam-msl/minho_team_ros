@@ -197,8 +197,7 @@ set_target_properties( GigECam
     LIBRARY_OUTPUT_DIRECTORY ${LOCALIZATION_LIB_DIR}
 )
 target_compile_features(GigECam PRIVATE cxx_range_for)
-target_link_libraries(GigECam ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES}
-${qt_LIBRARIES})
+target_link_libraries(GigECam ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES})
 
 ##### libRLE #####
 ##################

@@ -1,15 +1,8 @@
 #ifndef CAMERACALIB_H
 #define CAMERACALIB_H
 
-
-#include <QFile>
-#include <QString>
-#include <QTextStream>
-#include <QStringList>
 #include <opencv2/opencv.hpp>
 #include "properties.h"
-#include <flycapture/FlyCapture2.h>
-#include <iostream>
 
 using namespace std;
 using namespace cv;
@@ -31,8 +24,6 @@ public:
     Mat image_roi_white,image_roi_black,image;
     void setRegions(Mat &image);
 private:
-
-    //Camera *camera;
     Properties *Proper;
     Rect region_of_interest;
     int x, y, w, h,x2, y2, w2, h2;

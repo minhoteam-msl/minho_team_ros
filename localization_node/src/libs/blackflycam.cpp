@@ -85,7 +85,14 @@ void BlackflyCam::setNewFrame(Image *pImage)
 {  
     static int count = 0;
     static int count_conf=0;
-
+    
+    /// Time measure
+    clock_gettime(CLOCK_MONOTONIC,&present);
+    float temp = 1000000000.0/((float)(present.tv_nsec-past.tv_nsec));
+    if(temp>0.0 && temp<=31.0) fps = temp;
+    past = present;
+    
+    /// Counter for auto calibration
     if(count_conf>32 || calibrate)
     {
         count_conf=0;
@@ -168,5 +175,10 @@ bool BlackflyCam::connect()
         cout << "GigE Connection successful."<<endl;
         return true;
     }
+}
+
+float BlackflyCam::getFPS()
+{
+    return fps;
 }
 

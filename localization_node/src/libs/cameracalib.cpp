@@ -3,7 +3,6 @@
 
 CameraCalib::CameraCalib(Properties *pro,Mat &imagePassed)
 {
-    //camera=cam;
     imagePassed.copyTo(image);
     x = y = w = h = x2 = y2 = w2 = h2 =0;
     minError=127*0.05;
@@ -26,9 +25,7 @@ void CameraCalib::calcLumiHistogram(Mat &image)
     histvalue.resize(256);
 
     for(int i=0;i<gray.cols*image.rows;i++)
-    {
-            histvalue[(int)gray.ptr()[i]]++;
-    }
+      histvalue[(int)gray.ptr()[i]]++;
 }
 
 ///
@@ -45,9 +42,7 @@ void CameraCalib::calcSatHistogram(Mat &image)
     histvalue.resize(256);
 
     for(int i=0;i<Hsv.cols*Hsv.rows;i++)
-    {
-        histvalue[(int)Hsv.ptr()[i]]++;
-    }
+      histvalue[(int)Hsv.ptr()[i]]++;
 }
 
 ///
@@ -263,7 +258,6 @@ bool CameraCalib::cameraCalibrate(Mat &mask)
     }
 
     return changed;
-
 }
 
 

@@ -10,6 +10,7 @@
 #include <mutex>
 #include "cameracalib.h"
 #include "properties.h"
+#include <time.h>
 
 using namespace FlyCapture2;
 using namespace cv;
@@ -31,7 +32,7 @@ public:
     bool isCameraReady(); //Returns the sate of the camera
     Mutex *getLockingMutex();
     Mat *getImage();
-
+    float getFPS();
 private:
     Camera *camera;
     CameraInfo camInfo;
@@ -42,9 +43,12 @@ private:
     bool imageready,newimage,calibrate;
     float rowBytes;
     int frameCounter;
+    float fps;
     Mutex mutex;
     Properties *props;
     CameraCalib *camcalib;
+    
+    struct timespec past,present;
 };
 
 #endif // BLACKFLYCAM_H
