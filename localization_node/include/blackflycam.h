@@ -8,8 +8,8 @@
 #include "ros/ros.h"
 #include <thread>
 #include <mutex>
-#include "cameracalib.h"
-#include "properties.h"
+//#include "cameracalib.h"
+//#include "properties.h"
 #include <time.h>
 
 using namespace FlyCapture2;
@@ -46,8 +46,8 @@ private:
     int frameCounter;
     float fps;
     Mutex mutex;
-    Properties *props;
-    CameraCalib *camcalib;
+    //Properties *props;
+   // CameraCalib *camcalib;
     
     struct timespec past,present;
 };
