@@ -188,15 +188,6 @@ set(MLIB_DIR ${PROJECT_DIRECTORY}/lib)
 include_directories(${LOCALIZATION_DIR}/include)
 set(LOCALIZATION_SRC_DIR ${LOCALIZATION_DIR}/src)
 
-### libCamCalib ###
-###################
-add_library(CamCalib SHARED ${LOCALIZATION_SRC_DIR}/libs/pid.cpp ${LOCALIZATION_SRC_DIR}/libs/properties.cpp ${LOCALIZATION_SRC_DIR}/libs/cameracalib.cpp)
-set_target_properties( CamCalib
-    PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${MLIB_DIR}
-)
-target_compile_features(CamCalib PRIVATE cxx_range_for)
-
 ##### libRLE #####
 ##################
 add_library(RLE SHARED ${LOCALIZATION_SRC_DIR}/libs/Angle.cpp ${LOCALIZATION_SRC_DIR}/libs/Vec.cpp
@@ -210,14 +201,14 @@ target_link_libraries(RLE ${opencv_LIBRARIES})
 
 ### libGigECam ###
 ##################
-add_library(GigECam SHARED ${LOCALIZATION_SRC_DIR}/libs/blackflycam.cpp )
+add_library(GigECam SHARED ${LOCALIZATION_SRC_DIR}/libs/blackflycam.cpp ${LOCALIZATION_SRC_DIR}/libs/pid.cpp)
 set_target_properties( GigECam
     PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${MLIB_DIR}
 )
 target_compile_features(GigECam PRIVATE cxx_range_for)
-target_link_libraries(GigECam ${MLIB_DIR}/libCamCalib.so ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES})
-add_dependencies(GigECam CamCalib RLE)
+target_link_libraries(GigECam ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES})
+add_dependencies(GigECam RLE)
 ########################################
 
 ######################################################################
