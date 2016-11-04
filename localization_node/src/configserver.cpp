@@ -19,7 +19,7 @@ ConfigServer::ConfigServer(ros::NodeHandle *par , QObject *parent) : QObject(par
                                   100, 
                                   &ConfigServer::processImageRequest,
                                   this);
-   image_pub_ = it_->advertise("camera", 1);
+   image_pub_ = it_->advertise("camera/image", 1);
    mirror_sub_ = par->subscribe("mirrorConfig", 
                                   100, 
                                   &ConfigServer::processMirrorConfig,
