@@ -66,6 +66,7 @@ void ImageProcessor::variablesInitialization()
     robotHeight = 0.74;
     double morph_size = 1.5;
     element = getStructuringElement(2, Size( 2*morph_size + 1, 2*morph_size+1 ), Point( morph_size, morph_size ) );
+    buffer = new Mat(480,480,CV_8UC3,Scalar(0,0,0));
     sizeRelThreshold = 0.65;
     piThreshold = 0.6;
 }
