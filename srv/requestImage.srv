@@ -1,0 +1,7 @@
+#This service allows to call for an image request from the robots camera
+bool is_multiple
+uint8 frequency
+uint8 type
+bool is_kinect
+---
+bool success

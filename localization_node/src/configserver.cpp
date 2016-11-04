@@ -15,10 +15,6 @@ ConfigServer::ConfigServer(ros::NodeHandle *par , QObject *parent) : QObject(par
    init_mock_image();
    // Setup ROS publishers and subscribers
    it_ = new image_transport::ImageTransport(*par);
-   img_req_sub_ = par->subscribe("imgRequest", 
-                                  100, 
-                                  &ConfigServer::processImageRequest,
-                                  this);
    image_pub_ = it_->advertise("camera/image", 1);
    mirror_sub_ = par->subscribe("mirrorConfig", 
                                   100, 
@@ -33,8 +29,12 @@ ConfigServer::ConfigServer(ros::NodeHandle *par , QObject *parent) : QObject(par
                                   &ConfigServer::processImageConfig,
                                   this);
                                   
-   service_ = par->advertiseService("requestOmniVisionConf",
+   service_omniconf = par->advertiseService("requestOmniVisionConf",
                                   &ConfigServer::omniVisionConfService,
+                                  this);
+                                  
+   service_imgrequest = par->advertiseService("requestImage",
+                                  &ConfigServer::processImageRequest,
                                   this);
    watchdog_timer_->start(100);
    ROS_WARN("ConfigServer running on ROS ...");
@@ -69,14 +69,17 @@ void ConfigServer::getSubscribers()
    }
 }
 
-void ConfigServer::processImageRequest(const imgRequest::ConstPtr &msg)
+bool ConfigServer::processImageRequest(requestImage::Request &req, requestImage::Response &res)
 {
-   emit changedImageRequest(msg->type); // Tells the upper class to assign Images
-   configured_frequency_ = msg->frequency;
+   emit changedImageRequest(req.type); // Tells the upper class to assign Images
+   configured_frequency_ = req.frequency;
    if(configured_frequency_<=0) configured_frequency_ = 1;
    if(configured_frequency_>30) configured_frequency_ = 30;
-   multiple_sends_ = msg->is_multiple;
+   multiple_sends_ = req.is_multiple;
    if(!multiple_sends_) configured_frequency_ = 30; // This is to send the single image as fast as possible
+   
+   res.success = true;
+   return true;
 }
 
 void ConfigServer::processMirrorConfig(const mirrorConfig::ConstPtr &msg)

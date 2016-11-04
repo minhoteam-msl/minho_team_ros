@@ -6,25 +6,23 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
-
-#include "minho_team_ros/imgRequest.h"
 #include "minho_team_ros/mirrorConfig.h"
 #include "minho_team_ros/visionHSVConfig.h"
 #include "minho_team_ros/imageConfig.h"
 #include "minho_team_ros/requestOmniVisionConf.h"
+#include "minho_team_ros/requestImage.h"
 #include "types.h"
 #include "ros/topic_manager.h"
 #include <QTime>
 
 // Config messages
-using minho_team_ros::imgRequest;
 using minho_team_ros::mirrorConfig;
 using minho_team_ros::visionHSVConfig;
 using minho_team_ros::imageConfig;
 
+using minho_team_ros::requestImage;
 using namespace cv;
 using namespace std;
 class ConfigServer : public QObject
@@ -52,12 +50,12 @@ private:
    //SEND
    image_transport::Publisher image_pub_; // Publisher for image_transport
    //RECEIVE
-   ros::Subscriber img_req_sub_; // Subscriber for image requests (imgRequest.msg)
    ros::Subscriber mirror_sub_; // Subscriber for mirror configuration (mirrorConfig.msg)
    ros::Subscriber image_sub_; // Subscriber for image configuration (imageConfig.msg)
    ros::Subscriber vision_sub_; // Subscriber for vision[lut] configuration (visionHSVConfig.msg)
    //SERVICES AND DATA
-   ros::ServiceServer service_; // Service to relay the configuration
+   ros::ServiceServer service_omniconf; // Service to relay the configuration
+   ros::ServiceServer service_imgrequest; // Service to relay the configuration
    mirrorConfig mirrorConfmsg; // Data to hold current mirrorConfig
    visionHSVConfig visionConfmsg; // Data to hold current visionHSVConfig
    imageConfig imageConfmsg; // Data to hold current imageConfig
@@ -65,7 +63,7 @@ private:
    cv::Mat mock_image;
 private slots:
    void getSubscribers();
-   void processImageRequest(const imgRequest::ConstPtr &msg);
+   bool processImageRequest(requestImage::Request &req, requestImage::Response &res);
    void processMirrorConfig(const mirrorConfig::ConstPtr &msg);
    void processVisionConfig(const visionHSVConfig::ConstPtr &msg);
    void processImageConfig(const imageConfig::ConstPtr &msg);

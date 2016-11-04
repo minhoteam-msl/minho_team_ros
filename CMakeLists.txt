@@ -57,7 +57,6 @@ add_message_files(
       refBoxInfo.msg
       teleop.msg
       hardwareInfo.msg
-      imgRequest.msg
       range.msg
       label.msg
       visionHSVConfig.msg
@@ -78,6 +77,7 @@ add_message_files(
    requestOmniProps.srv
    requestReloc.srv
    requestKick.srv
+   requestImage.srv
  )
 
 ## Generate actions in the 'action' folder
