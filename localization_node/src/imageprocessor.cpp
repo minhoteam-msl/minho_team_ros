@@ -450,8 +450,8 @@ bool ImageProcessor::frameAvailable()
 // Returns image from camera, *success = true if new image is available
 Mat *ImageProcessor::getImage(bool *success)
 {
-    buffer = omniCamera->getImage();
-    if(buffer!=NULL) (*success) = true;
+    Mat *cambuf = omniCamera->getImage();
+    if(cambuf!=NULL) { (*success) = true; cambuf->copyTo(*buffer); }
     else (*success) = false;
     return buffer;
 }
