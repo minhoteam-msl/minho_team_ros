@@ -95,7 +95,7 @@ void BlackflyCam::setNewFrame(Image *pImage)
     bool do_calibration = false;
     
     /// Counter for auto calibration
-    if(count_conf>32 || calibrate){
+    if(count_conf>32 && calibrate){
         count_conf=0; firsttime=false; do_calibration = true;
     } else count_conf++;
     
