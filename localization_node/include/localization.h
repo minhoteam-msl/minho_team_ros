@@ -43,6 +43,8 @@ private:
    ros::Subscriber hardware_info_sub;
    //ROS Services
    ros::ServiceServer reloc_service;
+   ros::ServiceServer ext_debug_service;
+   bool send_extended_debug_info;
 private slots:
    void initVariables();
    void initializeKalmanFilter();

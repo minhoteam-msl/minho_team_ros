@@ -65,6 +65,8 @@ add_message_files(
       imuConfig.msg
       omniConfig.msg
       velocity.msg
+      interestPoint.msg
+      goalKeeperInfo.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -78,6 +80,7 @@ add_message_files(
    requestReloc.srv
    requestKick.srv
    requestImage.srv
+   requestExtendedDebug.srv
  )
 
 ## Generate actions in the 'action' folder
