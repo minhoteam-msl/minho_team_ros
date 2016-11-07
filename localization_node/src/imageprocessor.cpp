@@ -241,7 +241,7 @@ double ImageProcessor::d2pWorld(int pixeis)
     while(pixeis>distPix[index] && index<(distPix.size()-1))index++;
     if(index<=0)return 0;
     if(pixeis>distPix[distPix.size()-1]){
-        return -1;
+        return 100;
     }
     else return distReal[index-1]+(((pixeis-distPix[index-1])*(distReal[index]-distReal[index-1]))/(distPix[index]-distPix[index-1]));
     
@@ -250,7 +250,7 @@ double ImageProcessor::d2pWorld(int pixeis)
 // Maps a point (pixel) to world values, returning world distance and angle
 Point2d ImageProcessor::worldMapping(Point p)
 {
-    if(p.x<0 || p.x>=480 || p.y<0 || p.y>=480) return Point2d(100.0,100.00);
+    if(p.x<0 || p.x>=480 || p.y<0 || p.y>=480) return Point2d(100.0,0.00);
     return Point2d(distLookUpTable[p.x][p.y].x,distLookUpTable[p.x][p.y].y);
 }
 

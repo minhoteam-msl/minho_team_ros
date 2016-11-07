@@ -39,6 +39,9 @@ Localization::Localization(ros::NodeHandle *par , bool *init_success, bool use_c
    reloc_service = par->advertiseService("requestReloc",
                                     &Localization::doReloc,
                                     this);
+   ext_debug_service = par->advertiseService("requestExtendedDebug",
+                                    &Localization::setExtDebug,
+                                    this);                                 
    //############################# 
    parentTimer->start(33);
 }
@@ -60,30 +63,13 @@ void Localization::discoverWorldModel() // Main Function
    // Localization code
    if(have_image && is_hardware_ready){
       processor->detectInterestPoints();   
-      /*
-      if(doGlobalLoc) {
-            // Global Localization
-            currentState.robotPose.z = lastState.robotPose.z = currentHardware.robotAngle;
-            // Correct Initial IMU Heading Estimative
-            angleByHistogramsGlobal();
-            performGlobalLocalization();
-            doGlobalLoc = false;
-        }
-        else {
-            angleByHistograms();// Correct IMU Heading Estimative
-            performLocalLocalization();
-            // Integrate estimates using Kalman Filter
-            fuseEstimates(2);
-        }
 
-        // Extract other features based on current position
-        extractGameBall();
-        extractObstacles();
-      */
+
       //Publish information   
       fuseEstimates();
       computeVelocities();
       decideBallPossession();
+      generateDebugData();
       memset(&odometry,0,sizeof(localizationEstimate));
 		robot_info_pub.publish(current_state);
 		last_state = current_state;
@@ -129,6 +115,8 @@ void Localization::initVariables()
    
    assigning_images = false;  
    is_hardware_ready = false; 
+   generate_extended_debug = false;
+   service_call_counter = 0;
    initializeKalmanFilter();
 }
 
@@ -201,6 +189,15 @@ bool Localization::doReloc(requestReloc::Request &req,requestReloc::Response &re
    // TODO: Add reloc/global localization flag
    return true;
 }
+
+
+bool Localization::setExtDebug(requestExtendedDebug::Request &req,requestExtendedDebug::Response &res){
+   generate_extended_debug = req.requested;
+   res.success = true; 
+   service_call_counter++;
+   return true;  
+}
+
 
 void Localization::hardwareCallback(const hardwareInfo::ConstPtr &msg)
 {
@@ -353,8 +350,71 @@ void Localization::decideBallPossession()
    current_state.has_ball = current_hardware_state.ball_sensor;  
 }
 
-void detectInterestPoints() // detects line, obstacle and ball points
+void Localization::generateDebugData()
 {
+   static int info_counter = 0;
+   static unsigned int last_counter;
+   Point2d robot_world_pos = Point2d(current_state.robot_pose.x,
+                                     current_state.robot_pose.y);
+   if(info_counter<33 && generate_extended_debug){
+      float max_distance = processor->getMaxDistance();
+      current_state.interest_points.clear();
+      interestPoint temp;
+      Point2d point,mirror_map;
+      temp.type = 0;
+      for(unsigned int i = 0; i<processor->linePoints.size();i++){
+         mirror_map = processor->worldMapping(processor->linePoints[i]);
+         if(mirror_map.x<=max_distance){
+            point = mapPointToRobot(current_state.robot_pose.z,mirror_map);
+            temp.pos.x = point.x+robot_world_pos.x;
+            temp.pos.y = point.y+robot_world_pos.y; 
+            current_state.interest_points.push_back(temp);   
+         }                   
+      }
+      
+      temp.type = 1;
+      for(unsigned int i = 0; i<processor->ballPoints.size();i++){
+         mirror_map = processor->worldMapping(processor->ballPoints[i]);
+         if(mirror_map.x<=max_distance){
+            point = mapPointToRobot(current_state.robot_pose.z,mirror_map);
+            temp.pos.x = point.x+robot_world_pos.x;
+            temp.pos.y = point.y+robot_world_pos.y; 
+            current_state.interest_points.push_back(temp);   
+         }                     
+      }
+      
+      temp.type = 2;
+      for(unsigned int i = 0; i<processor->obstaclePoints.size();i++){
+         mirror_map = processor->worldMapping(processor->obstaclePoints[i]);
+         if(mirror_map.x<=max_distance){
+            point = mapPointToRobot(current_state.robot_pose.z,mirror_map);
+            temp.pos.x = point.x+robot_world_pos.x;
+            temp.pos.y = point.y+robot_world_pos.y; 
+            current_state.interest_points.push_back(temp);   
+         }                       
+      }
+      info_counter++;
+   }
    
+   if(info_counter>=33 && generate_extended_debug){
+      info_counter = 0;
+      if(service_call_counter<=last_counter){
+         generate_extended_debug = false;
+      }
+      last_counter = service_call_counter;
+   }
+   
+   if(!generate_extended_debug) current_state.interest_points.clear();
+}
+
+Point2d Localization::mapPointToRobot(double orientation, Point2d dist_lut)
+{
+   // Always mapped in relation to (0,0)
+   double pointRelX = dist_lut.x*cos((dist_lut.y)*DEGTORAD);
+   double pointRelY = dist_lut.x*sin((dist_lut.y)*DEGTORAD);
+   double ang = orientation*DEGTORAD;
+   
+   return Point2d(cos(ang)*pointRelX-sin(ang)*pointRelY,
+                  sin(ang)*pointRelX+cos(ang)*pointRelY);
 }
 

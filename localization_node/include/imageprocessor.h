@@ -76,6 +76,7 @@ public:
    bool writeImageConfig();
    void updateDists(double max, double step, vector<short unsigned int>pix_dists);
    mirrorConfig getMirrorConfAsMsg();
+   inline double getMaxDistance() { return mirrorConf.max_distance; }
    visionHSVConfig getVisionConfAsMsg();
    imageConfig getImageConfAsMsg();
    bool initializeBasics();

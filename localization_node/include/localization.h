@@ -7,12 +7,17 @@
 #include "minho_team_ros/hardwareInfo.h"
 #include "minho_team_ros/robotInfo.h"
 #include "minho_team_ros/requestReloc.h"
+#include "minho_team_ros/interestPoint.h"
+#include "minho_team_ros/requestExtendedDebug.h"
+
 
 using namespace ros;
 using namespace cv;
 using minho_team_ros::hardwareInfo; //Namespace for hardware information msg - SUBSCRIBING
 using minho_team_ros::robotInfo; //Namespace for vision information msg - PUBLISHING
 using minho_team_ros::requestReloc;
+using minho_team_ros::interestPoint;
+using minho_team_ros::requestExtendedDebug;
 
 class Localization : public QObject
 {
@@ -44,7 +49,8 @@ private:
    //ROS Services
    ros::ServiceServer reloc_service;
    ros::ServiceServer ext_debug_service;
-   bool send_extended_debug_info;
+   bool generate_extended_debug;
+   unsigned int service_call_counter;
 private slots:
    void initVariables();
    void initializeKalmanFilter();
@@ -54,15 +60,18 @@ private slots:
    void changeMirrorConfiguration(mirrorConfig::ConstPtr msg);
    void changeImageConfiguration(imageConfig::ConstPtr msg);
    bool doReloc(requestReloc::Request &req,requestReloc::Response &res);
+   bool setExtDebug(requestExtendedDebug::Request &req,requestExtendedDebug::Response &res);
 public slots:
    void hardwareCallback(const hardwareInfo::ConstPtr &msg);   
    void discoverWorldModel(); // Main Funcition
    void fuseEstimates(); // Fuse vision and odometry estimations
    void computeVelocities(); // Computes ball and robot velocities
    void decideBallPossession(); // decides wether the robot has or not the ball
+   void generateDebugData(); // if requested, puts extended debug data on robotInfo
    // Math Utilities
    float normalizeAngleRad(float angle);
    float normalizeAngleDeg(float angle);
+   Point2d mapPointToRobot(double orientation, Point2d dist_lut);
 };
 
 #endif // LOCALIZATION_H
