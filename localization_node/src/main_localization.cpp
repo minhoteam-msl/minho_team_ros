@@ -31,11 +31,6 @@ int main(int argc, char **argv)
 	localization = new Localization(&localization_node,&correct_initialization,use_camera);
 	if(!correct_initialization) { ROS_ERROR("Killing node on incorrect initialization ..."); ros::shutdown(); a.exit(0); return 0; }
 
-	ros::Publisher robot_info_pub = localization_node.advertise<robotInfo>("robotInfo", 1);
-	ros::Subscriber hardware_info_sub = localization_node.subscribe("hardwareInfo", 
-                                                   1, 
-	                                                &Localization::hardwareCallback
-                                                   ,localization);
 	ROS_WARN("MinhoTeam localization_node started running on ROS.");
 	
 	ros::AsyncSpinner spinner(2);
