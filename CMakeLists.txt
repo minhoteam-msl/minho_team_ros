@@ -222,7 +222,7 @@ add_dependencies(GigECam RLE)
 ############# LOCALIZATION #############
 ########################################
 # Add new source files to folder /src and add them here for compilation
-set(localization_SRC ${LOCALIZATION_SRC_DIR}/main_localization.cpp
+set(localization_SRC ${LOCALIZATION_SRC_DIR}/main.cpp
 ${LOCALIZATION_SRC_DIR}/kmeans.cpp ${LOCALIZATION_SRC_DIR}/imageprocessor.cpp
 ${LOCALIZATION_SRC_DIR}/configserver.cpp ${LOCALIZATION_SRC_DIR}/localization.cpp)
 # Add new header files to folder /include and add them here for compilation
@@ -244,6 +244,16 @@ set_target_properties(hw_test_node PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(hw_test_node PRIVATE cxx_range_for)
 target_link_libraries(hw_test_node ${catkin_LIBRARIES} ${qt_LIBRARIES})
 add_dependencies(hw_test_node ${PROJECT_NAME}_gencpp)
+########################################
+
+############### COMS NODE ##############
+########################################
+set(COMS_DIR ${PROJECT_DIRECTORY}/coms_node)
+add_executable(coms_node ${COMS_DIR}/src/main.cpp)
+set_target_properties(coms_node PROPERTIES COMPILE_FLAGS "-fPIC")
+target_compile_features(coms_node PRIVATE cxx_range_for)
+target_link_libraries(coms_node ${catkin_LIBRARIES} )
+add_dependencies(coms_node ${PROJECT_NAME}_gencpp)
 ########################################
 
 ######################################################################
