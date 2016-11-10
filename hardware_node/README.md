@@ -16,6 +16,7 @@ This node published the following messages:
 	* IMU (orientation)
 	* Ball detection sensor
 	* Free-wheel operation
-	
-TODO : Re-write I2C libraries to run the node directly using a RaspberryPi as the host controller for the hardware.   
+
+
+##This node has been replaced with low_level node running directly in Arduino 
 *Developed by MinhoTeam @2016*
