@@ -72,17 +72,23 @@ void robotInfoCallback(const robotInfo::ConstPtr &msg);
 /// \param msg - message containing received data of goalKeeperInfo topic
 void goalKeeperInfoCallback(const goalKeeperInfo::ConstPtr &msg);
 
-/// \brief serializes an interAgentInfo message to send over UDP as a string
+/// \brief serializes a message to send over UDP as a string
 /// of bytes.
+/// \typename Message - type of ROS mesasge to serialize
 /// \param msg - pointer to interAgentInfo object to be serialized
 /// \param packet - uint8_t vector containing the serialized message
 /// \param packet_size - size of the generated packet
-void serializeInterAgentInfo(interAgentInfo *msg, uint8_t **packet, uint32_t *packet_size);
+/// WARN : ONLY FOR INTERAGENT MESSAGES (SENT WITH UDP)
+template<typename Message>
+void serializeROSMessage(Message *msg, uint8_t **packet, uint32_t *packet_size);
 
-/// \brief deserializes a string of bytes into a interAgentInfo message
+/// \brief deserializes a string of bytes into a message
+/// \typename Message - type of ROS mesasge to deserialize
 /// \param packet - uint8_t vector containing message to deserialize
 /// \param msg - pointer to interAgentInfo destination object
-void deserializeInterAgentInfo(uint8_t *packet, interAgentInfo *msg);
+/// WARN : ONLY FOR INTERAGENT MESSAGES (SENT WITH UDP)
+template<typename Message>
+void deserializeROSMessage(uint8_t *packet, void *msg);
 
 /// \brief main thread to send robot information update over UDP socket
 /// \param signal - system signal for timing purposes
@@ -205,11 +211,15 @@ void goalKeeperInfoCallback(const goalKeeperInfo::ConstPtr &msg)
    pthread_mutex_unlock (&message_mutex); //Unlock mutex
 }
 
-/// \brief serializes an interAgentInfo message to send over UDP as a string
+/// \brief serializes a message to send over UDP as a string
 /// of bytes.
+/// \typename Message - type of ROS mesasge to serialize
 /// \param msg - pointer to interAgentInfo object to be serialized
 /// \param packet - uint8_t vector containing the serialized message
-void serializeInterAgentInfo(interAgentInfo *msg, uint8_t **packet,  uint32_t *packet_size)
+/// \param packet_size - size of the generated packet
+/// WARN : ONLY FOR INTERAGENT MESSAGES (SENT WITH UDP)
+template<typename Message>
+void serializeROSMessage(Message *msg, uint8_t **packet,  uint32_t *packet_size)
 {  
    pthread_mutex_lock (&message_mutex); //Lock mutex
    uint32_t serial_size = ros::serialization::serializationLength( *msg );
@@ -222,10 +232,13 @@ void serializeInterAgentInfo(interAgentInfo *msg, uint8_t **packet,  uint32_t *p
 	pthread_mutex_unlock (&message_mutex); //Unlock mutex
 }
 
-/// \brief deserializes a string of bytes into a interAgentInfo message
+/// \brief deserializes a string of bytes into a message
+/// \typename Message - type of ROS mesasge to deserialize
 /// \param packet - uint8_t vector containing message to deserialize
 /// \param msg - pointer to interAgentInfo destination object
-void deserializeInterAgentInfo(uint8_t *packet, interAgentInfo *msg)
+/// WARN : ONLY FOR INTERAGENT MESSAGES (SENT WITH UDP)
+template<typename Message>
+void deserializeROSMessage(uint8_t *packet, Message *msg)
 {  
    std_msgs::UInt16 packet_size;
    ros::serialization::IStream psize_stream(packet, 2);
@@ -241,9 +254,8 @@ static void sendRobotInformationUpdate(int signal)
    if(signal==SIGALRM){
       uint8_t *packet;
       uint32_t packet_size;
-      serializeInterAgentInfo(&message,&packet,&packet_size);
+      serializeROSMessage<interAgentInfo>(&message,&packet,&packet_size);
       // Send packet of size packet_size through UDP
-
 	}
 }
 // #########################
