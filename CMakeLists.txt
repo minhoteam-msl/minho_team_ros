@@ -67,6 +67,7 @@ add_message_files(
       velocity.msg
       interestPoint.msg
       goalKeeperInfo.msg
+      interAgentInfo.msg
 )
 
 ## Generate services in the 'srv' folder
