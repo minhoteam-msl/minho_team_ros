@@ -17,13 +17,15 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <signal.h>
+#include<arpa/inet.h>
+#include<sys/socket.h>
 
 using namespace ros;
 using minho_team_ros::hardwareInfo; //Namespace for hardwareInfo msg - SUBSCRIBING
 using minho_team_ros::robotInfo; //Namespace for robotInfo msg - SUBSCRIBING
 using minho_team_ros::goalKeeperInfo; //Namespace for goalKeeperInfo msg - SUBSCRIBING
 using minho_team_ros::interAgentInfo; //Namespace for interAgentInfo msg - SENDING OVER UDP/SUBSCRIBING OVER UDP
-using minho_team_ros::position;
+
 // ###### GLOBAL DATA ######
 // \brief subscriber for hardwareInfo message
 ros::Subscriber hw_sub;
@@ -54,9 +56,21 @@ interAgentInfo message;
 boost::shared_array<uint8_t> serialization_buffer;
 // #########################
 
-// ######## THREADS ########
+
+// ###### SOCKET DATA#######
+struct sockaddr_in si_me, si_other;
+int slen = sizeof(si_other);
+int socket_fd;
+int port_number = 23416;
+std::string multicast_address = "127.0.0.255";
+// #########################
+
+
+// ###### THREAD DATA ######
 /// \brief a mutex to avoid multi-thread access to message
 pthread_mutex_t message_mutex = PTHREAD_MUTEX_INITIALIZER;
+/// \brief a mutex to avoid multi-thread access to socket
+pthread_mutex_t socket_mutex = PTHREAD_MUTEX_INITIALIZER;
 // #########################
 
 // ### FUNCTION HEADERS ####
@@ -93,15 +107,24 @@ void deserializeROSMessage(uint8_t *packet, void *msg);
 /// \brief main thread to send robot information update over UDP socket
 /// \param signal - system signal for timing purposes
 static void sendRobotInformationUpdate(int signal);
+
+/// \brief wrapper function for error and exit
+/// \param msg - message to print error
+void die(std::string msg);
+
+/// \brief initializes multicast socket for sending information to 
+/// multicast address
+void setupSenderMultiCastSocket();
 // #########################
+
 
 /// \brief this node acts as a bridge between the other agents (robots and base
 /// station) and each robot's ROS. It uses UDP broadcast transmission and sends
 /// serialized ROS messages.
-
 int main(int argc, char **argv)
 {
-
+   //Setup robotid and mode
+   // #########################
    if(argc>1 && argc!=3) { 
       ROS_ERROR("Must enter robot id and mode as parameter for the simulated robot.\n \
                 Please use -s for simulation, followed by the robot's ID.");
@@ -130,16 +153,18 @@ int main(int argc, char **argv)
       node_name << robot_id;
       ROS_INFO("Running Teleop for Robot %d in simulation.",robot_id);
    }
-
+   // #########################
+   
+   //Setup Sockets
+   // #########################
+   setupSenderMultiCastSocket();   
+	// #########################
 	
 	//Initialize ROS
+	// #########################
 	ros::init(argc, argv, node_name.str().c_str(),ros::init_options::NoSigintHandler);
 	//Request node handler
 	ros::NodeHandle coms_node;
-	
-	//Setup sockets
-	
-	
 	//Setup ROS
 	if(!mode_real){
 	   hw_topic_name << "/minho_gazebo_robot" << robot_id;
@@ -157,24 +182,27 @@ int main(int argc, char **argv)
 	                             1,&robotInfoCallback);
 	gk_sub = coms_node.subscribe(gk_topic_name.str().c_str(),
 	                             1,&goalKeeperInfoCallback);
-	//Setup Threads
-	/*--- setup the timer 30ms---*/
+   // #########################
+   
+	//Setup Updated timer thread
+	// #########################
 	struct itimerval timer;
 	signal(SIGALRM,sendRobotInformationUpdate);
 	timer.it_interval.tv_sec = 0;
 	timer.it_interval.tv_usec = 33000;
 	timer.it_value.tv_sec = 0;
 	timer.it_value.tv_usec = 33000;
+	// #########################
 	
-	
+	// Run functions and join threads
+	// #########################
 	ROS_WARN("MinhoTeam coms_node started running on ROS.");
-	
-	// Run spinner
 	ros::AsyncSpinner spinner(2);
 	spinner.start();
 	setitimer (ITIMER_REAL, &timer, NULL);
 	while(ros::ok());
 	pthread_exit(NULL);
+	// #########################
 }
 
 // ###### FUNCTIONS ########
@@ -256,6 +284,36 @@ static void sendRobotInformationUpdate(int signal)
       uint32_t packet_size;
       serializeROSMessage<interAgentInfo>(&message,&packet,&packet_size);
       // Send packet of size packet_size through UDP
+      pthread_mutex_lock (&socket_mutex); //Lock mutex
+      if (sendto(socket_fd, packet, packet_size , 0 , (struct sockaddr *) &si_other, slen) < 0){
+         die("Failed to send a packet.");
+      }
+      pthread_mutex_unlock (&socket_mutex); //Unlock mutex
 	}
+}
+
+/// \brief wrapper function for error and exit
+/// \param msg - message to print error
+void die(std::string msg) {
+    ROS_ERROR("%s",msg.c_str());
+    exit(0);
+}
+
+/// \brief initializes multicast socket for sending information to 
+/// multicast address
+void setupSenderMultiCastSocket()
+{
+   if ((socket_fd=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0){
+      die("Failed to create UDP socket.");
+   }
+   
+   memset((char *) &si_other, 0, sizeof(si_other));
+   si_other.sin_family = AF_INET;
+   si_other.sin_port = htons(port_number);
+   if (inet_aton(multicast_address.c_str() , &si_other.sin_addr) == 0){
+      die("Failed to set multicast address.");
+   }
+   
+   ROS_INFO("UDP Multicast System started.");
 }
 // #########################
