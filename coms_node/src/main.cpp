@@ -223,7 +223,7 @@ int main(int argc, char **argv)
 	//Setup Thread pool and rece
 	// iving thread
 	// #########################
-	thpool_t = thpool_init(12); //2 threads per agent ?
+	thpool_t = thpool_init(6); //5 threads per agent ?
 	pthread_create(&recv_monitor_thread, NULL, udpReceivingThread, &socket_fd);
 	// #########################
 	
