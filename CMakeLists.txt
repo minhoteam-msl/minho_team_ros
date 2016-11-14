@@ -250,7 +250,8 @@ add_dependencies(hw_test_node ${PROJECT_NAME}_gencpp)
 ############### COMS NODE ##############
 ########################################
 set(COMS_DIR ${PROJECT_DIRECTORY}/coms_node)
-add_executable(coms_node ${COMS_DIR}/src/main.cpp)
+include_directories(${PROJECT_DIRECTORY}/coms_node/include)
+add_executable(coms_node ${COMS_DIR}/src/main.cpp ${COMS_DIR}/src/thpool.c ${COMS_DIR}/src/multicast.cpp)
 set_target_properties(coms_node PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(coms_node PRIVATE cxx_range_for)
 target_link_libraries(coms_node ${catkin_LIBRARIES} )

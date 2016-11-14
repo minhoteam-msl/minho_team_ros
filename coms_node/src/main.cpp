@@ -19,6 +19,17 @@
 #include <signal.h>
 #include<arpa/inet.h>
 #include<sys/socket.h>
+#include "thpool.h"
+#include "multicast.h"
+
+#define BUFFER_SIZE 1024
+#define DATA_UPDATE_HZ 40
+#define DATA_UPDATE_USEC 1000000/DATA_UPDATE_HZ
+
+typedef struct udp_packet{
+   uint8_t *packet;
+   uint32_t packet_size;
+}udp_packet;
 
 using namespace ros;
 using minho_team_ros::hardwareInfo; //Namespace for hardwareInfo msg - SUBSCRIBING
@@ -58,11 +69,10 @@ boost::shared_array<uint8_t> serialization_buffer;
 
 
 // ###### SOCKET DATA#######
-struct sockaddr_in si_me, si_other;
-int slen = sizeof(si_other);
+/// \brief UDP socket descriptor
 int socket_fd;
-int port_number = 23416;
-std::string multicast_address = "127.0.0.255";
+/// \brief received datagram size variable
+int recvlen = 0;
 // #########################
 
 
@@ -71,6 +81,12 @@ std::string multicast_address = "127.0.0.255";
 pthread_mutex_t message_mutex = PTHREAD_MUTEX_INITIALIZER;
 /// \brief a mutex to avoid multi-thread access to socket
 pthread_mutex_t socket_mutex = PTHREAD_MUTEX_INITIALIZER;
+/// \brief thread pool to allow dynamic task assignment
+threadpool thpool_t;
+///  \brief buffer to hold received data
+uint8_t buffer[BUFFER_SIZE];
+/// \brief main udp data receiving thread
+pthread_t recv_monitor_thread;
 // #########################
 
 // ### FUNCTION HEADERS ####
@@ -102,7 +118,7 @@ void serializeROSMessage(Message *msg, uint8_t **packet, uint32_t *packet_size);
 /// \param msg - pointer to interAgentInfo destination object
 /// WARN : ONLY FOR INTERAGENT MESSAGES (SENT WITH UDP)
 template<typename Message>
-void deserializeROSMessage(uint8_t *packet, void *msg);
+void deserializeROSMessage(udp_packet *packet, void *msg);
 
 /// \brief main thread to send robot information update over UDP socket
 /// \param signal - system signal for timing purposes
@@ -112,9 +128,19 @@ static void sendRobotInformationUpdate(int signal);
 /// \param msg - message to print error
 void die(std::string msg);
 
-/// \brief initializes multicast socket for sending information to 
+/// \brief initializes multicast socket for sending/receiveing information to 
 /// multicast address
-void setupSenderMultiCastSocket();
+void setupMultiCastSocket();
+
+/// \brief main udp receiving thread. This thread deals with datagram reception
+/// and sends the received data to be dealt by a thread using threadpool
+/// \param socket - pointer to socket descriptor to use 
+void* udpReceivingThread(void *socket);
+
+/// \brief function used by threadpool threads to process incoming data
+/// sent by other agents. Thread returns to pool after doing its work
+/// \param packet - data packet to be deserialized into a ROS message
+void processReceivedData(void *packet);
 // #########################
 
 
@@ -157,7 +183,7 @@ int main(int argc, char **argv)
    
    //Setup Sockets
    // #########################
-   setupSenderMultiCastSocket();   
+   setupMultiCastSocket();   
 	// #########################
 	
 	//Initialize ROS
@@ -189,9 +215,16 @@ int main(int argc, char **argv)
 	struct itimerval timer;
 	signal(SIGALRM,sendRobotInformationUpdate);
 	timer.it_interval.tv_sec = 0;
-	timer.it_interval.tv_usec = 33000;
+	timer.it_interval.tv_usec = DATA_UPDATE_USEC;
 	timer.it_value.tv_sec = 0;
-	timer.it_value.tv_usec = 33000;
+	timer.it_value.tv_usec = DATA_UPDATE_USEC;
+	// #########################
+	
+	//Setup Thread pool and rece
+	// iving thread
+	// #########################
+	thpool_t = thpool_init(12); //2 threads per agent ?
+	pthread_create(&recv_monitor_thread, NULL, udpReceivingThread, &socket_fd);
 	// #########################
 	
 	// Run functions and join threads
@@ -201,8 +234,13 @@ int main(int argc, char **argv)
 	spinner.start();
 	setitimer (ITIMER_REAL, &timer, NULL);
 	while(ros::ok());
-	pthread_exit(NULL);
+	pthread_join(recv_monitor_thread, NULL);
+	thpool_destroy(thpool_t);
+	closeSocket(socket_fd);
+   pthread_exit(NULL);
 	// #########################
+	
+	return 0;
 }
 
 // ###### FUNCTIONS ########
@@ -252,7 +290,6 @@ void serializeROSMessage(Message *msg, uint8_t **packet,  uint32_t *packet_size)
    pthread_mutex_lock (&message_mutex); //Lock mutex
    uint32_t serial_size = ros::serialization::serializationLength( *msg );
    serialization_buffer.reset(new uint8_t[serial_size]);
-   msg->packet_size = serial_size; 
    (*packet_size) = serial_size;
    ros::serialization::OStream stream( serialization_buffer.get(), serial_size );
    ros::serialization::serialize( stream, *msg);
@@ -266,12 +303,9 @@ void serializeROSMessage(Message *msg, uint8_t **packet,  uint32_t *packet_size)
 /// \param msg - pointer to interAgentInfo destination object
 /// WARN : ONLY FOR INTERAGENT MESSAGES (SENT WITH UDP)
 template<typename Message>
-void deserializeROSMessage(uint8_t *packet, Message *msg)
+void deserializeROSMessage(udp_packet *packet, Message *msg)
 {  
-   std_msgs::UInt16 packet_size;
-   ros::serialization::IStream psize_stream(packet, 2);
-   ros::serialization::deserialize(psize_stream, packet_size);
-   ros::serialization::IStream istream(packet, packet_size.data);
+   ros::serialization::IStream istream(packet->packet, packet->packet_size);
    ros::serialization::deserialize(istream, *msg);
 }
 
@@ -279,15 +313,16 @@ void deserializeROSMessage(uint8_t *packet, Message *msg)
 /// \param signal - system signal for timing purposes
 static void sendRobotInformationUpdate(int signal)
 {
-   if(signal==SIGALRM){
+   if(signal==SIGALRM){ // Takes 0.08ms to do
+   
       uint8_t *packet;
       uint32_t packet_size;
       serializeROSMessage<interAgentInfo>(&message,&packet,&packet_size);
       // Send packet of size packet_size through UDP
       pthread_mutex_lock (&socket_mutex); //Lock mutex
-      if (sendto(socket_fd, packet, packet_size , 0 , (struct sockaddr *) &si_other, slen) < 0){
+      if (sendData(socket_fd,packet,packet_size) <= 0){
          die("Failed to send a packet.");
-      }
+      } 
       pthread_mutex_unlock (&socket_mutex); //Unlock mutex
 	}
 }
@@ -301,19 +336,45 @@ void die(std::string msg) {
 
 /// \brief initializes multicast socket for sending information to 
 /// multicast address
-void setupSenderMultiCastSocket()
+void setupMultiCastSocket()
 {
-   if ((socket_fd=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0){
-      die("Failed to create UDP socket.");
-   }
-   
-   memset((char *) &si_other, 0, sizeof(si_other));
-   si_other.sin_family = AF_INET;
-   si_other.sin_port = htons(port_number);
-   if (inet_aton(multicast_address.c_str() , &si_other.sin_addr) == 0){
-      die("Failed to set multicast address.");
-   }
-   
+   socket_fd = openSocket("wls1");
+   if(socket_fd<0) exit(0);
    ROS_INFO("UDP Multicast System started.");
+}
+
+/// \brief main udp receiving thread. This thread deals with datagram reception
+/// and sends the received data to be dealt by a thread using threadpool
+/// \param socket - pointer to socket descriptor to use 
+void* udpReceivingThread(void *socket)
+{
+   while(ros::ok()){
+      bzero(buffer, BUFFER_SIZE);   
+      if((recvlen = recv(*(int*)socket, buffer, BUFFER_SIZE,0)) > 0 ){
+         udp_packet *relay_packet = new udp_packet;
+         relay_packet->packet = new uint8_t[recvlen];
+         relay_packet->packet_size = recvlen;
+         memcpy(relay_packet->packet,buffer,recvlen);
+         thpool_add_work(thpool_t, processReceivedData, relay_packet);
+      }
+   }
+   
+   return NULL;
+}
+
+/// \brief function used by threadpool threads to process incoming data
+/// sent by other agents. Thread returns to pool after doing its work
+/// \param packet - data packet to be deserialized into a ROS message
+void processReceivedData(void *packet)
+{
+   // deserialize message
+   interAgentInfo incoming_data;
+   deserializeROSMessage<interAgentInfo>((udp_packet *)packet,&incoming_data); 
+   delete((udp_packet *)packet);
+   //work out stuff here
+   /*ROS_INFO("%.2f %.2f %.2f",incoming_data.agent_info.robot_info.robot_pose.x,
+                             incoming_data.agent_info.robot_info.robot_pose.y,
+                             incoming_data.agent_info.robot_info.robot_pose.z);*/
+           
 }
 // #########################
