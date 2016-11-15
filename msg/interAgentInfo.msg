@@ -2,3 +2,4 @@
 hardwareInfo hardware_info
 goalKeeperInfo agent_info
 bool is_goalkeeper
+uint8 agent_id

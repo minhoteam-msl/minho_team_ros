@@ -23,8 +23,9 @@
 #include "multicast.h"
 
 #define BUFFER_SIZE 1024
-#define DATA_UPDATE_HZ 40
+#define DATA_UPDATE_HZ 33
 #define DATA_UPDATE_USEC 1000000/DATA_UPDATE_HZ
+#define MAX_DELAY_TIME_US 5000
 
 typedef struct udp_packet{
    uint8_t *packet;
@@ -73,6 +74,12 @@ boost::shared_array<uint8_t> serialization_buffer;
 int socket_fd;
 /// \brief received datagram size variable
 int recvlen = 0;
+/// \brief used ip address in multicast interface : has to be "172.16.49.X"
+std::string ip_base; 
+/// \brief agent id, based on ip. ip_base.agent_id build up the ip address
+/// of the machine. for oficial robots this ranges from 1 to 6, basestation
+/// is 7 and the above are dummy id's
+uint8_t agent_id;
 // #########################
 
 
@@ -87,6 +94,8 @@ threadpool thpool_t;
 uint8_t buffer[BUFFER_SIZE];
 /// \brief main udp data receiving thread
 pthread_t recv_monitor_thread;
+/// \brief struct to specify timer options for sending thread
+struct itimerval timer;
 // #########################
 
 // ### FUNCTION HEADERS ####
@@ -141,6 +150,9 @@ void* udpReceivingThread(void *socket);
 /// sent by other agents. Thread returns to pool after doing its work
 /// \param packet - data packet to be deserialized into a ROS message
 void processReceivedData(void *packet);
+
+/// \brief function to generate a random delay between 0 and MAX_DELAY_TIME_US
+uint16_t generateRandomDelay();
 // #########################
 
 
@@ -174,17 +186,19 @@ int main(int argc, char **argv)
    
    ROS_WARN("Attempting to start Coms services of coms_node.");
    node_name << "coms_node";
-   if(mode_real) ROS_INFO("Running Teleop for Robot %d.",robot_id);
-   else { 
-      node_name << robot_id;
-      ROS_INFO("Running Teleop for Robot %d in simulation.",robot_id);
-   }
    // #########################
    
    //Setup Sockets
    // #########################
-   setupMultiCastSocket();   
+   setupMultiCastSocket();  
+   srand(time(NULL)); 
 	// #########################
+	
+	if(mode_real) { robot_id = agent_id; ROS_INFO("Running coms_node for Robot %d.",robot_id); }
+   else { 
+      node_name << robot_id;
+      ROS_INFO("Running coms_node for Robot %d in simulation.",robot_id);
+   }
 	
 	//Initialize ROS
 	// #########################
@@ -208,11 +222,11 @@ int main(int argc, char **argv)
 	                             1,&robotInfoCallback);
 	gk_sub = coms_node.subscribe(gk_topic_name.str().c_str(),
 	                             1,&goalKeeperInfoCallback);
+	message.agent_id = robot_id;                             
    // #########################
    
 	//Setup Updated timer thread
 	// #########################
-	struct itimerval timer;
 	signal(SIGALRM,sendRobotInformationUpdate);
 	timer.it_interval.tv_sec = 0;
 	timer.it_interval.tv_usec = DATA_UPDATE_USEC;
@@ -314,16 +328,16 @@ void deserializeROSMessage(udp_packet *packet, Message *msg)
 static void sendRobotInformationUpdate(int signal)
 {
    if(signal==SIGALRM){ // Takes 0.08ms to do
-   
       uint8_t *packet;
       uint32_t packet_size;
       serializeROSMessage<interAgentInfo>(&message,&packet,&packet_size);
       // Send packet of size packet_size through UDP
-      pthread_mutex_lock (&socket_mutex); //Lock mutex
       if (sendData(socket_fd,packet,packet_size) <= 0){
          die("Failed to send a packet.");
       } 
-      pthread_mutex_unlock (&socket_mutex); //Unlock mutex
+      // Add rng time to avoid collisions with other robots
+      timer.it_interval.tv_usec = DATA_UPDATE_USEC+generateRandomDelay();
+      ROS_INFO("%lu",timer.it_interval.tv_usec);
 	}
 }
 
@@ -338,7 +352,7 @@ void die(std::string msg) {
 /// multicast address
 void setupMultiCastSocket()
 {
-   socket_fd = openSocket("wlan0");
+   socket_fd = openSocket("wlan0",&ip_base,&agent_id);
    if(socket_fd<0) exit(0);
    ROS_INFO("UDP Multicast System started.");
 }
@@ -372,9 +386,17 @@ void processReceivedData(void *packet)
    deserializeROSMessage<interAgentInfo>((udp_packet *)packet,&incoming_data); 
    delete((udp_packet *)packet);
    //work out stuff here
-   /*ROS_INFO("%.2f %.2f %.2f",incoming_data.agent_info.robot_info.robot_pose.x,
+   ROS_INFO("Robot %d : %.2f %.2f %.2f", incoming_data.agent_id,
+                             incoming_data.agent_info.robot_info.robot_pose.x,
                              incoming_data.agent_info.robot_info.robot_pose.y,
-                             incoming_data.agent_info.robot_info.robot_pose.z);*/
+                             incoming_data.agent_info.robot_info.robot_pose.z);
+   return;
            
+}
+
+/// \brief function to generate a random delay between 0 and MAX_DELAY_TIME_US
+uint16_t generateRandomDelay()
+{
+   return (rand()%(MAX_DELAY_TIME_US));
 }
 // #########################

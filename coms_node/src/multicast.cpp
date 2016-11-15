@@ -83,13 +83,13 @@ int if_NameToIndex(std::string ifname, char *address)
 	
 	close(fd);
 
-	sprintf(address, "%d.%d.%d.%d\n",
+	sprintf(address, "%d.%d.%d.%d",
 		(int) ((unsigned char *) if_info.ifr_hwaddr.sa_data)[2],
 		(int) ((unsigned char *) if_info.ifr_hwaddr.sa_data)[3],
 		(int) ((unsigned char *) if_info.ifr_hwaddr.sa_data)[4],
 		(int) ((unsigned char *) if_info.ifr_hwaddr.sa_data)[5]);
 	
-	ROS_WARN("Using device %s : IP -> %s", if_info.ifr_name, address);
+	ROS_WARN("Using device %s : Agent IP -> %s", if_info.ifr_name, address);
 
 	return if_index;
 }
@@ -98,7 +98,7 @@ int if_NameToIndex(std::string ifname, char *address)
 //	*************************
 //  Open Socket
 //
-int openSocket(std::string interface)
+int openSocket(std::string interface, std::string *ip_base, uint8_t *agent_id)
 {
    struct sockaddr_in multicastAddress;
    struct ip_mreqn mreqn;
@@ -125,6 +125,11 @@ int openSocket(std::string interface)
 
 	memset((void *) &mreqn, 0, sizeof(mreqn));
 	mreqn.imr_ifindex=if_NameToIndex(interface, address);
+	ip_base->assign(address,20);
+	std::string temp = ip_base->substr(ip_base->find_last_of(".")+1,ip_base->size());
+	(*ip_base) = ip_base->substr(0,ip_base->find_last_of("."));
+	(*agent_id) = std::stoi(temp);
+	ROS_INFO("Ip Base: %s | Agent ID: %d",ip_base->c_str(),*agent_id);
 	if((setsockopt(multiSocket, SOL_IP, IP_MULTICAST_IF, &mreqn, sizeof(mreqn))) == -1)
 	{
 	   ROS_ERROR("Error setting socket option 1: %s",strerror(errno));
