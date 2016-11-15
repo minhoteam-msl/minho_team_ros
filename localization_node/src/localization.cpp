@@ -32,10 +32,10 @@ Localization::Localization(ros::NodeHandle *par , bool *init_success, bool use_c
    //Initialize robotInfo publisher
    robot_info_pub = par->advertise<robotInfo>("robotInfo", 1);
 	//Initialize hardwareInfo subscriber
-	ros::Subscriber hardware_info_sub = par->subscribe("hardwareInfo", 
-                                                   1, 
-                                                   &Localization::hardwareCallback,
-                                                   this);
+	hardware_info_sub = par->subscribe("hardwareInfo", 
+                                       1, 
+                                       &Localization::hardwareCallback,
+                                       this);
    reloc_service = par->advertiseService("requestReloc",
                                     &Localization::doReloc,
                                     this);
