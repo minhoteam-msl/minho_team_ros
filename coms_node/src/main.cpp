@@ -6,7 +6,6 @@
 #include "minho_team_ros/goalKeeperInfo.h"
 #include "minho_team_ros/interAgentInfo.h"
 #include "minho_team_ros/position.h"
-#include "std_msgs/UInt16.h"
 #include <iostream>
 #include <string.h>
 #include <sstream>
@@ -27,6 +26,8 @@
 #define DATA_UPDATE_USEC 1000000/DATA_UPDATE_HZ
 #define MAX_DELAY_TIME_US 5000
 
+/// \brief struct to represet a udp packet, containing
+/// a serialized ROS message
 typedef struct udp_packet{
    uint8_t *packet;
    uint32_t packet_size;
@@ -150,9 +151,6 @@ void* udpReceivingThread(void *socket);
 /// sent by other agents. Thread returns to pool after doing its work
 /// \param packet - data packet to be deserialized into a ROS message
 void processReceivedData(void *packet);
-
-/// \brief function to generate a random delay between 0 and MAX_DELAY_TIME_US
-uint16_t generateRandomDelay();
 // #########################
 
 
@@ -335,9 +333,6 @@ static void sendRobotInformationUpdate(int signal)
       if (sendData(socket_fd,packet,packet_size) <= 0){
          die("Failed to send a packet.");
       } 
-      // Add rng time to avoid collisions with other robots
-      timer.it_interval.tv_usec = DATA_UPDATE_USEC+generateRandomDelay();
-      ROS_INFO("%lu",timer.it_interval.tv_usec);
 	}
 }
 
@@ -386,17 +381,11 @@ void processReceivedData(void *packet)
    deserializeROSMessage<interAgentInfo>((udp_packet *)packet,&incoming_data); 
    delete((udp_packet *)packet);
    //work out stuff here
-   ROS_INFO("Robot %d : %.2f %.2f %.2f", incoming_data.agent_id,
+   /*ROS_INFO("Robot %d : %.2f %.2f %.2f", incoming_data.agent_id,
                              incoming_data.agent_info.robot_info.robot_pose.x,
                              incoming_data.agent_info.robot_info.robot_pose.y,
-                             incoming_data.agent_info.robot_info.robot_pose.z);
+                             incoming_data.agent_info.robot_info.robot_pose.z);*/
    return;
            
-}
-
-/// \brief function to generate a random delay between 0 and MAX_DELAY_TIME_US
-uint16_t generateRandomDelay()
-{
-   return (rand()%(MAX_DELAY_TIME_US));
 }
 // #########################

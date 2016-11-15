@@ -24,7 +24,7 @@
 #define MULTICAST_PORT	64646
 #define TTL				64
 #include "ros/ros.h"
-#define RECEIVE_OUR_DATA 1
+#define RECEIVE_OUR_DATA 0
 
 
 //	*************************
