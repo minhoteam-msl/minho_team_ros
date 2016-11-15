@@ -140,7 +140,9 @@ void die(std::string msg);
 
 /// \brief initializes multicast socket for sending/receiveing information to 
 /// multicast address
-void setupMultiCastSocket();
+/// \param receive_own_packets - boolean value to define whether the robot 
+/// receives or not its own packets (for simulated robots)
+void setupMultiCastSocket(uint8_t receive_own_packets);
 
 /// \brief main udp receiving thread. This thread deals with datagram reception
 /// and sends the received data to be dealt by a thread using threadpool
@@ -184,19 +186,23 @@ int main(int argc, char **argv)
    
    ROS_WARN("Attempting to start Coms services of coms_node.");
    node_name << "coms_node";
-   // #########################
+   int receive_own_packets = 0;
+   if(!mode_real) receive_own_packets = 1;
    
    //Setup Sockets
    // #########################
-   setupMultiCastSocket();  
+   setupMultiCastSocket(receive_own_packets);  
    srand(time(NULL)); 
 	// #########################
-	
-	if(mode_real) { robot_id = agent_id; ROS_INFO("Running coms_node for Robot %d.",robot_id); }
-   else { 
-      node_name << robot_id;
-      ROS_INFO("Running coms_node for Robot %d in simulation.",robot_id);
+   
+   if(mode_real){ 
+      ROS_INFO("Running coms_node for Robot %d.",agent_id);
+   }else { 
+      agent_id = robot_id;
+      node_name << (int)agent_id;
+      ROS_INFO("Running coms_node for Robot %d in simulation.",agent_id);
    }
+   // #########################
 	
 	//Initialize ROS
 	// #########################
@@ -205,9 +211,9 @@ int main(int argc, char **argv)
 	ros::NodeHandle coms_node;
 	//Setup ROS
 	if(!mode_real){
-	   hw_topic_name << "/minho_gazebo_robot" << robot_id;
-	   robot_topic_name << "/minho_gazebo_robot" << robot_id;
-	   gk_topic_name << "/minho_gazebo_robot" << robot_id;
+	   hw_topic_name << "/minho_gazebo_robot" << (int)agent_id;
+	   robot_topic_name << "/minho_gazebo_robot" << (int)agent_id;
+	   gk_topic_name << "/minho_gazebo_robot" << (int)agent_id;
 	}
 	
 	hw_topic_name << "/hardwareInfo";
@@ -220,7 +226,7 @@ int main(int argc, char **argv)
 	                             1,&robotInfoCallback);
 	gk_sub = coms_node.subscribe(gk_topic_name.str().c_str(),
 	                             1,&goalKeeperInfoCallback);
-	message.agent_id = robot_id;                             
+	message.agent_id = agent_id;                             
    // #########################
    
 	//Setup Updated timer thread
@@ -345,9 +351,11 @@ void die(std::string msg) {
 
 /// \brief initializes multicast socket for sending information to 
 /// multicast address
-void setupMultiCastSocket()
+/// \param receive_own_packets - boolean value to define whether the robot 
+/// receives or not its own packets (for simulated robots)
+void setupMultiCastSocket(uint8_t receive_own_packets)
 {
-   socket_fd = openSocket("wlan0",&ip_base,&agent_id);
+   socket_fd = openSocket("wlan0",&ip_base,&agent_id,receive_own_packets);
    if(socket_fd<0) exit(0);
    ROS_INFO("UDP Multicast System started.");
 }
@@ -380,11 +388,12 @@ void processReceivedData(void *packet)
    interAgentInfo incoming_data;
    deserializeROSMessage<interAgentInfo>((udp_packet *)packet,&incoming_data); 
    delete((udp_packet *)packet);
+   if(incoming_data.agent_id==agent_id) return;
    //work out stuff here
-   /*ROS_INFO("Robot %d : %.2f %.2f %.2f", incoming_data.agent_id,
+   ROS_INFO("Robot %d : %.2f %.2f %.2f", incoming_data.agent_id,
                              incoming_data.agent_info.robot_info.robot_pose.x,
                              incoming_data.agent_info.robot_info.robot_pose.y,
-                             incoming_data.agent_info.robot_info.robot_pose.z);*/
+                             incoming_data.agent_info.robot_info.robot_pose.z);
    return;
            
 }

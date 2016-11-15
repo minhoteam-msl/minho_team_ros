@@ -24,8 +24,7 @@
 #define MULTICAST_PORT	64646
 #define TTL				64
 #include "ros/ros.h"
-#define RECEIVE_OUR_DATA 0
-
+#define RECEIVE_OUR_DATA 1
 
 //	*************************
 //  Open Socket
@@ -35,7 +34,7 @@
 //	Output:
 //		int multiSocket = socket descriptor
 //
-int openSocket(std::string interface, std::string *ip_base, uint8_t *agent_id);
+int openSocket(std::string interface, std::string *ip_base, uint8_t *agent_id,int recv_own_data);
 
 
 

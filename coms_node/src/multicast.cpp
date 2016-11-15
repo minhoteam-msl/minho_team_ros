@@ -98,7 +98,7 @@ int if_NameToIndex(std::string ifname, char *address)
 //	*************************
 //  Open Socket
 //
-int openSocket(std::string interface, std::string *ip_base, uint8_t *agent_id)
+int openSocket(std::string interface, std::string *ip_base, uint8_t *agent_id,int recv_own_data)
 {
    struct sockaddr_in multicastAddress;
    struct ip_mreqn mreqn;
@@ -125,10 +125,13 @@ int openSocket(std::string interface, std::string *ip_base, uint8_t *agent_id)
 
 	memset((void *) &mreqn, 0, sizeof(mreqn));
 	mreqn.imr_ifindex=if_NameToIndex(interface, address);
+	
 	ip_base->assign(address,20);
 	std::string temp = ip_base->substr(ip_base->find_last_of(".")+1,ip_base->size());
 	(*ip_base) = ip_base->substr(0,ip_base->find_last_of("."));
-	(*agent_id) = std::stoi(temp);
+	if(strcmp("172.16.49",ip_base->c_str())!=0) (*agent_id) = 0;
+	else (*agent_id) = std::stoi(temp);
+	
 	ROS_INFO("Ip Base: %s | Agent ID: %d",ip_base->c_str(),*agent_id);
 	if((setsockopt(multiSocket, SOL_IP, IP_MULTICAST_IF, &mreqn, sizeof(mreqn))) == -1)
 	{
@@ -154,7 +157,7 @@ int openSocket(std::string interface, std::string *ip_base, uint8_t *agent_id)
 	}
 						
 	/* Disable reception of our own multicast */
-	opt = RECEIVE_OUR_DATA;
+	opt = recv_own_data;
 	if((setsockopt(multiSocket, IPPROTO_IP, IP_MULTICAST_LOOP, &opt, sizeof(opt))) == -1)
 	{
 		ROS_ERROR("Error setting socket option 4: %s",strerror(errno));
