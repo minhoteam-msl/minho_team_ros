@@ -338,7 +338,7 @@ void die(std::string msg) {
 /// multicast address
 void setupMultiCastSocket()
 {
-   socket_fd = openSocket("wls1");
+   socket_fd = openSocket("wlan0");
    if(socket_fd<0) exit(0);
    ROS_INFO("UDP Multicast System started.");
 }
