@@ -155,10 +155,24 @@ bool ImageProcessor::initializeBasics()
     imageParamsPath = cfgDir+agent+"/"+QString(IMAGEFILENAME);
     lutPath = cfgDir+agent+"/"+QString(LUTFILENAME);
     maskPath = cfgDir+agent+"/"+QString(MASKFILENAME);
-   
+    fieldMapPath = cfgDir+QString(FIELDSFOLDERPATH)+field+".map";
+    
+    ROS_INFO("System Configuration : %s in %s Field",agent.toStdString().c_str(),
+    field.toStdString().c_str());
     ROS_INFO("Looking for config files in %s",cfgDir.toStdString().c_str());
     
     file.close();
+    
+    QFile file2(fieldMapPath);
+    if(!file2.open(QIODevice::ReadOnly)) {
+        ROS_ERROR("Error reading %s",fieldMapPath.toStdString().c_str());
+        return false;
+    }
+    QTextStream in2(&file2);
+    
+    QStringList mapConfigs = in2.readLine().split(",");
+    
+    ROS_INFO("WorldMap for %s field has been initialized.",field.toStdString().c_str());
     return true;
 }
 
@@ -173,7 +187,7 @@ void ImageProcessor::rleModInitialization()
     // Create Scan Lines used by RLE Algorithm
     idxImage = Mat(480,480,CV_8UC1,Scalar(0));
     linesRad = ScanLines(idxImage,UAV_RADIAL, Point(imageConf.center_x,imageConf.center_y), 180, 30, 260,2,1);
-    linesCir = ScanLines(idxImage,UAV_CIRCULAR,Point(imageConf.center_x,imageConf.center_y),15,60,240,0,0);
+    linesCir = ScanLines(idxImage,UAV_CIRCULAR,Point(imageConf.center_x,imageConf.center_y),20,60,200,0,0);
 }
 
 // Preprocessed current image, preparing it for RLE scan
@@ -211,10 +225,10 @@ void ImageProcessor::detectInterestPoints()
     // Preprocess camera image, indexing it with predefined labels
     preProcessIndexedImage(); //Optimize this and re-write valid points
     // Run Different RLE's
+    rleLinesRad = RLE(linesRad, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 10, 2, 10, 15);
+    rleLinesCir = RLE(linesCir, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 10, 5, 10, 15);
     rleBallRad = RLE(linesRad, UAV_GREEN_BIT, UAV_ORANGE_BIT, UAV_GREEN_BIT, 3, 2, 3, 30);
     rleBallCir = RLE(linesCir, UAV_GREEN_BIT, UAV_ORANGE_BIT, UAV_GREEN_BIT, 3, 2, 3, 30);
-    rleLinesCir = RLE(linesCir, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 5, 2, 3, 30);
-    rleLinesRad = RLE(linesRad, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 2, 2, 1, 10);
     rleObs = RLE(linesRad, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 2, 10, 0, 20);
 
     //Analyze and parse RLE's

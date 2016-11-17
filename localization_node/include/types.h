@@ -1,6 +1,7 @@
 #ifndef TYPES
 #define TYPES
 
+#include <QString>
 /*
 ######### DATA TYPES AND PATHS DEFINITION FOR IMAGEPROCESSOR.H/CPP #########
 ############################################################################
@@ -107,6 +108,25 @@ typedef struct Position{
     double heading;
     double error;
 }Position;
+
+typedef struct field// Current field definitions
+{
+    unsigned int FIELD_POSITIONS;
+    double FIELD_WIDTH,FIELD_LENGTH;
+    double HALF_FIELD_WIDTH, HALF_FIELD_LENGTH;
+    float TERM1, TERM2, TERM3;
+    unsigned int MAX_LINE_POINTS;
+    QString FIELD_NAME;
+}field;
+
+typedef struct nodo //World Map point of view
+{
+    float x;
+    float y;
+    float closestDistance;
+    Vec2 gradient;
+}nodo;
+
 /*
 ############################################################################
 ############################################################################   

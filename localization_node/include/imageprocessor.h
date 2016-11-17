@@ -81,6 +81,7 @@ public:
    imageConfig getImageConfAsMsg();
    bool initializeBasics();
    QString getField();
+   inline QString getWorldFileName() { return fieldMapPath;}
 
    /* WORLD STATE INFORMATION Buffers */
    vector<Point3d>ballCandidates;
@@ -113,7 +114,6 @@ private:
    vector<vector<Point2d> >distLookUpTable;
    double robotHeight;
 
-
    // Implementation USING RLE
    void rleModInitialization(); // Inits RLE Mode sensors and RLE's
    void preProcessIndexedImage(); // Preprocesses image, labeling it for RLE scan
@@ -123,6 +123,7 @@ private:
    //ConfigFiles strings
    QString field; QString agent;
    QString mirrorParamsPath, imageParamsPath ,maskPath,lutPath;
+   QString fieldMapPath;
    QString imgFolderPath;
 };
 

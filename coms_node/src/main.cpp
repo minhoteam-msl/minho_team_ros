@@ -390,10 +390,10 @@ void processReceivedData(void *packet)
    delete((udp_packet *)packet);
    if(incoming_data.agent_id==agent_id) return;
    //work out stuff here
-   ROS_INFO("Robot %d : %.2f %.2f %.2f", incoming_data.agent_id,
+   /*ROS_INFO("Robot %d : %.2f %.2f %.2f", incoming_data.agent_id,
                              incoming_data.agent_info.robot_info.robot_pose.x,
                              incoming_data.agent_info.robot_info.robot_pose.y,
-                             incoming_data.agent_info.robot_info.robot_pose.z);
+                             incoming_data.agent_info.robot_info.robot_pose.z);*/
    return;
            
 }
