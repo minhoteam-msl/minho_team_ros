@@ -137,14 +137,18 @@ add_message_files(
 set(PROJECT_DIRECTORY ${minho_team_ros_SOURCE_DIR})
 include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 set(username $ENV{USER})
+set(home $ENV{HOME})
 MESSAGE( STATUS "-----> Compiling MinhoTeam Packages for : " ${username})
 
-######## Linking steps for Qt5 #########
-########################################
-if(${username} STREQUAL lar)
+
+if(EXISTS "/opt/Qt" AND IS_DIRECTORY "/opt/Qt")
 set(CURRQTPREFIX /opt/Qt)
-else()
+endif()
+if(EXISTS "/opt/Qt/5.7/gcc_64" AND IS_DIRECTORY "/opt/Qt/5.7/gcc_64")
 set(CURRQTPREFIX /opt/Qt/5.7/gcc_64)
+endif()
+if(EXISTS "${home}/Qt/5.7/gcc_64" AND IS_DIRECTORY "${home}/Qt/5.7/gcc_64")
+set(CURRQTPREFIX ${home}/Qt/5.7/gcc_64)
 endif()
 
 message( STATUS "-----> Current Qt Installation Path : " ${CURRQTPREFIX})
