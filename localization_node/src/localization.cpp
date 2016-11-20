@@ -65,7 +65,6 @@ void Localization::discoverWorldModel() // Main Function
    measure.start();
    // Acquire image using function pointer
    buffer = CALL_MEMBER_FN((*processor),processor->acquireImage)(&have_image);
-   current_hardware_state.imu_value = 8;
    // Localization code
    if(have_image && is_hardware_ready){
       processor->detectInterestPoints();   
@@ -78,7 +77,7 @@ void Localization::discoverWorldModel() // Main Function
          computeGlobalLocalization(0);
       } else { // Local localization
          // Do local localization   
-         computeLocalLocalization ();
+         computeLocalLocalization();
          fuseEstimates();
       }
       //Publish information 

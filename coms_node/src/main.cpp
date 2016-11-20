@@ -25,7 +25,8 @@
 #define DATA_UPDATE_HZ 33
 #define DATA_UPDATE_USEC 1000000/DATA_UPDATE_HZ
 #define MAX_DELAY_TIME_US 5000
-
+#define NUM_ROBOT_AGENTS 5
+#define TOTAL_AGENTS NUM_ROBOT_AGENTS+1
 /// \brief struct to represet a udp packet, containing
 /// a serialized ROS message
 typedef struct udp_packet{
@@ -55,6 +56,12 @@ std::stringstream robot_topic_name;
 std::stringstream gk_topic_name;
 /// \brief variable to build the node name
 std::stringstream node_name;
+
+/// \brief vector of publishers for all 6 agents of the game
+ros::Publisher publishers[TOTAL_AGENTS];
+/// \brief vector counting the number of subscribers for all
+/// \6 published topics by the coms_node
+uint8_t num_subscribers[TOTAL_AGENTS] = {0,0,0,0,0,0};
 
 /// \brief message to store most recent hardwareInfo message received
 /// and to store the most recent goalKeeperInfo or robotInfo received. 
@@ -89,6 +96,8 @@ uint8_t agent_id;
 pthread_mutex_t message_mutex = PTHREAD_MUTEX_INITIALIZER;
 /// \brief a mutex to avoid multi-thread access to socket
 pthread_mutex_t socket_mutex = PTHREAD_MUTEX_INITIALIZER;
+/// \brief a mutex to avoid multi-thread access to ROS publishers
+pthread_mutex_t publishers_mutex = PTHREAD_MUTEX_INITIALIZER;
 /// \brief thread pool to allow dynamic task assignment
 threadpool thpool_t;
 ///  \brief buffer to hold received data
@@ -155,7 +164,6 @@ void* udpReceivingThread(void *socket);
 void processReceivedData(void *packet);
 // #########################
 
-
 /// \brief this node acts as a bridge between the other agents (robots and base
 /// station) and each robot's ROS. It uses UDP broadcast transmission and sends
 /// serialized ROS messages.
@@ -209,16 +217,20 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, node_name.str().c_str(),ros::init_options::NoSigintHandler);
 	//Request node handler
 	ros::NodeHandle coms_node;
+	std::stringstream base_relay_topic;
 	//Setup ROS
 	if(!mode_real){
 	   hw_topic_name << "/minho_gazebo_robot" << (int)agent_id;
 	   robot_topic_name << "/minho_gazebo_robot" << (int)agent_id;
 	   gk_topic_name << "/minho_gazebo_robot" << (int)agent_id;
+	   base_relay_topic << "/minho_gazebo_robot" << (int)agent_id;
 	}
 	
 	hw_topic_name << "/hardwareInfo";
 	robot_topic_name << "/robotInfo";
 	gk_topic_name << "/goalKeeperInfo";
+	std::string relay_topic_name = "/interAgentInfo";
+	   
 	
 	hw_sub = coms_node.subscribe(hw_topic_name.str().c_str(),
 	                             1,&hardwareInfoCallback);
@@ -226,7 +238,18 @@ int main(int argc, char **argv)
 	                             1,&robotInfoCallback);
 	gk_sub = coms_node.subscribe(gk_topic_name.str().c_str(),
 	                             1,&goalKeeperInfoCallback);
-	message.agent_id = agent_id;                             
+	message.agent_id = agent_id;   
+	// for robot agents (1 to NUM_ROBOT_AGENTS) -> 0 to NUM_ROBOT_AGENTS-1
+   for(int a = 0; a < NUM_ROBOT_AGENTS; a++){
+      std::stringstream rl_agent_topic;
+      rl_agent_topic << base_relay_topic.str() << "/agent" << a+1 << relay_topic_name;
+      publishers[a] = coms_node.advertise<interAgentInfo>(rl_agent_topic.str().c_str(),1);
+   }
+   // for base station agent (NUM_ROBOT_AGENTS+1) -> NUM_ROBOT_AGENTS
+   std::stringstream rl_agent_topic;
+   rl_agent_topic << base_relay_topic.str() << "/basestation" << relay_topic_name;
+   publishers[NUM_ROBOT_AGENTS] = coms_node.advertise<interAgentInfo>(rl_agent_topic.str().c_str(),1);
+	                             
    // #########################
    
 	//Setup Updated timer thread
@@ -241,7 +264,7 @@ int main(int argc, char **argv)
 	//Setup Thread pool and rece
 	// iving thread
 	// #########################
-	thpool_t = thpool_init(6); //5 threads per agent ?
+	thpool_t = thpool_init(TOTAL_AGENTS); //5 threads per agent ?
 	pthread_create(&recv_monitor_thread, NULL, udpReceivingThread, &socket_fd);
 	// #########################
 	
@@ -339,6 +362,12 @@ static void sendRobotInformationUpdate(int signal)
       if (sendData(socket_fd,packet,packet_size) <= 0){
          die("Failed to send a packet.");
       } 
+      
+      for(int a = 0; a < TOTAL_AGENTS; a++){
+         pthread_mutex_lock(&publishers_mutex); //Lock mutex
+         num_subscribers[a] = publishers[a].getNumSubscribers();
+         pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
+      }
 	}
 }
 
@@ -389,11 +418,15 @@ void processReceivedData(void *packet)
    deserializeROSMessage<interAgentInfo>((udp_packet *)packet,&incoming_data); 
    delete((udp_packet *)packet);
    if(incoming_data.agent_id==agent_id) return;
-   //work out stuff here
-   /*ROS_INFO("Robot %d : %.2f %.2f %.2f", incoming_data.agent_id,
-                             incoming_data.agent_info.robot_info.robot_pose.x,
-                             incoming_data.agent_info.robot_info.robot_pose.y,
-                             incoming_data.agent_info.robot_info.robot_pose.z);*/
+   // Publish to matching topic
+   if(incoming_data.agent_id>=1 && incoming_data.agent_id<=TOTAL_AGENTS){
+      pthread_mutex_lock(&publishers_mutex); //Lock mutex
+      if(num_subscribers[incoming_data.agent_id-1]>0){
+         publishers[incoming_data.agent_id-1].publish(incoming_data);
+         ROS_INFO("Republished stuff over ROS for agent %d",incoming_data.agent_id);
+      }
+      pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
+   }
    return;
            
 }
