@@ -422,7 +422,6 @@ void processReceivedData(void *packet)
       pthread_mutex_lock(&publishers_mutex); //Lock mutex
       if(num_subscribers[incoming_data.agent_id-1]>0){
          publishers[incoming_data.agent_id-1].publish(incoming_data);
-         //ROS_INFO("Republished stuff over ROS for agent %d",incoming_data.agent_id);
       }
       pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
    }
