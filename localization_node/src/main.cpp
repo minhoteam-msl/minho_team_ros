@@ -5,6 +5,8 @@
 #include "minho_team_ros/hardwareInfo.h"
 #include "minho_team_ros/robotInfo.h"
 #include "localization.h"
+
+//Network includes for getRobotIdByIP()
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
