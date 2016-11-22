@@ -271,10 +271,9 @@ int main(int argc, char **argv)
 	// Run functions and join threads
 	// #########################
 	ROS_WARN("MinhoTeam coms_node started running on ROS.");
-	ros::AsyncSpinner spinner(2);
-	spinner.start();
+	//ros::AsyncSpinner spinner(2);
+	//spinner.start();
 	setitimer (ITIMER_REAL, &timer, NULL);
-	while(ros::ok());
 	pthread_join(recv_monitor_thread, NULL);
 	thpool_destroy(thpool_t);
 	closeSocket(socket_fd);
