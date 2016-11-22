@@ -25,7 +25,7 @@ using minho_team_ros::imageConfig;
 class ImageProcessor
 {
 public:
-   ImageProcessor(bool begin, bool *init_success);
+   ImageProcessor(int rob_id, bool begin, bool *init_success);
    typedef Mat* (ImageProcessor::*imageAcquisitionFunction)(bool *success);
    /* Detection Functions */
    void detectInterestPoints(); // Detects linePoints, ballPoints and obstaclePoints
@@ -79,7 +79,7 @@ public:
    inline double getMaxDistance() { return mirrorConf.max_distance; }
    visionHSVConfig getVisionConfAsMsg();
    imageConfig getImageConfAsMsg();
-   bool initializeBasics();
+   bool initializeBasics(int rob_id);
    QString getField();
    inline QString getWorldFileName() { return fieldMapPath;}
 

@@ -1,13 +1,13 @@
 #include "localization.h"
 
-Localization::Localization(ros::NodeHandle *par , bool *init_success, bool use_camera, QObject *parent) : QObject(parent)
+Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success, bool use_camera, QObject *parent) : QObject(parent)
 {
    initVariables();
    if(!use_camera) is_hardware_ready = true; // for test purposes
    //#### Initialize major components ####
    //##################################### 
    bool correct_initialization = true;
-   processor = new ImageProcessor(use_camera,&correct_initialization); // true -> use camera
+   processor = new ImageProcessor(rob_id,use_camera,&correct_initialization); // true -> use camera
    if(!correct_initialization) { (*init_success) = false; return; }
    confserver = new ConfigServer(par); 
    
@@ -139,7 +139,7 @@ void Localization::initializeKalmanFilter()
    memset(&odometry,0,sizeof(localizationEstimate));
    memset(&vision,0,sizeof(localizationEstimate));
    kalman.Q.x = kalman.Q.y = 1; kalman.Q.z = 1;
-   kalman.R.x = kalman.R.y = 20; kalman.R.z = 30;
+   kalman.R.x = kalman.R.y = 20; kalman.R.z = 20;
    kalman.lastCovariance.x = kalman.lastCovariance.y = kalman.lastCovariance.z = 0;
    kalman.covariance = kalman.predictedCovariance = kalman.lastCovariance;
 }
@@ -244,7 +244,6 @@ bool Localization::doReloc(requestReloc::Request &req,requestReloc::Response &re
    last_state.robot_pose = current_state.robot_pose;
    last_state.robot_velocity = current_state.robot_velocity;
    //############################# 
-   // TODO: Add reloc/global localization flag
    reloc = true;
    return true;
 }

@@ -23,7 +23,7 @@ class Localization : public QObject
 {
    Q_OBJECT
 public:
-   explicit Localization(ros::NodeHandle *par, bool *init_success, bool use_camera, QObject *parent = 0); // Constructor
+   explicit Localization(int rob_id, ros::NodeHandle *par, bool *init_success, bool use_camera, QObject *parent = 0); // Constructor
    ~Localization();
 private:
    //Major components

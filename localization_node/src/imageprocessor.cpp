@@ -1,7 +1,7 @@
 #include "imageprocessor.h"
 
 //Constructor of the class
-ImageProcessor::ImageProcessor(bool use_camera, bool *init_success)
+ImageProcessor::ImageProcessor(int rob_id, bool use_camera, bool *init_success)
 {
     // Initialize GigE Camera Driver
     if(use_camera) { 
@@ -13,7 +13,7 @@ ImageProcessor::ImageProcessor(bool use_camera, bool *init_success)
       ROS_INFO("Using static image for testing.");
     }
     // Initialize basic robot and field definitions
-    if(!initializeBasics()){
+    if(!initializeBasics(rob_id)){
       ROS_ERROR("Error Reading %s.",MAINFILENAME);
       (*init_success) = false; return;
     } else ROS_INFO("Reading information for %s.",agent.toStdString().c_str());
@@ -135,7 +135,7 @@ bool ImageProcessor::initWorldMapping()
     return true;
 }
 
-bool ImageProcessor::initializeBasics()
+bool ImageProcessor::initializeBasics(int rob_id)
 {
     QString home = QString::fromStdString(getenv("HOME"));
     QString cfgDir = home+QString(CONFIGFOLDERPATH);
@@ -147,7 +147,7 @@ bool ImageProcessor::initializeBasics()
     }
     QTextStream in(&file);
 
-    agent = in.readLine();
+    agent = "Robot"+QString::number(rob_id);
     field = in.readLine();
     
     imgFolderPath = cfgDir+QString(IMAGEFOLDERPATH);
