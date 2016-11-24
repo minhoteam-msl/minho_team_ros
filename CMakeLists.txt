@@ -68,6 +68,7 @@ add_message_files(
       interestPoint.msg
       goalKeeperInfo.msg
       interAgentInfo.msg
+      aiInfo.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -183,6 +184,12 @@ include_directories(/usr/local/include/opencv /usr/local/include/opencv2)
 set (opencv_LIBRARIES /usr/local/lib/libopencv_core.so /usr/local/lib/libopencv_highgui.so /usr/local/lib/libopencv_imgproc.so)
 ########################################
 
+## Linking steps for CGAL Libraries ##
+########################################
+set (cgal_LIBRARIES /usr/lib/x86_64-linux-gnu/libCGAL.so /usr/lib/x86_64-linux-gnu/libCGAL_Core.so /usr/lib/x86_64-linux-gnu/libgmp.so /usr/lib/x86_64-linux-gnu/libmpfr.so)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -frounding-math")
+########################################
+
 ######################################################################
 
 
@@ -250,6 +257,17 @@ set_target_properties(coms_node PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(coms_node PRIVATE cxx_range_for)
 target_link_libraries(coms_node ${catkin_LIBRARIES} )
 add_dependencies(coms_node ${PROJECT_NAME}_gencpp)
+########################################
+
+############# CONTROL NODE #############
+########################################
+set(CONTROL_DIR ${PROJECT_DIRECTORY}/control_node)
+include_directories(${PROJECT_DIRECTORY}/control_node/include)
+add_executable(control_node ${CONTROL_DIR}/src/main.cpp ${CONTROL_DIR}/src/behavior.cpp)
+set_target_properties(control_node PROPERTIES COMPILE_FLAGS "-fPIC")
+target_compile_features(control_node PRIVATE cxx_range_for)
+target_link_libraries(control_node ${catkin_LIBRARIES} ${qt_LIBRARIES} ${cgal_LIBRARIES})
+add_dependencies(control_node ${PROJECT_NAME}_gencpp)
 ########################################
 
 ######################################################################
