@@ -259,7 +259,7 @@ add_dependencies(coms_node ${PROJECT_NAME}_gencpp)
 ########################################
 set(CONTROL_DIR ${PROJECT_DIRECTORY}/control_node)
 include_directories(${PROJECT_DIRECTORY}/control_node/include)
-add_executable(control_node ${CONTROL_DIR}/src/main.cpp ${CONTROL_DIR}/src/behavior.cpp)
+add_executable(control_node ${CONTROL_DIR}/src/main.cpp ${CONTROL_DIR}/src/behavior.cpp ${CONTROL_DIR}/src/comsmatlab.cpp)
 set_target_properties(control_node PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_features(control_node PRIVATE cxx_range_for)
 target_link_libraries(control_node ${catkin_LIBRARIES} ${qt_LIBRARIES} ${cgal_LIBRARIES})

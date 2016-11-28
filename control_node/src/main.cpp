@@ -35,14 +35,13 @@ void* doWork(void*)
 
 int main(int argc, char **argv)
 {
-   
-   if(argc>1 && argc!=3) { 
-      ROS_ERROR("Must enter robot id and mode as parameter for the simulated robot.\n \
-                Please use -s for simulation, followed by the robot's ID.");
+   if((argc>1 && argc!=3) && (argc>1 && argc!=2)) { 
+      ROS_ERROR("Must enter robot id and mode as parameter for the simulated robot.\n Please use -s for simulation, followed by the robot's ID. Flag -m to run Matlab UDP bridge [-m or -sm]. [1]");
       exit(1); 
    }
    
    bool mode_real = true;
+   bool run_matlab = false;
    int robot_id = 0;
    if(argc==3){
       robot_id = atoi(argv[2]);
@@ -51,8 +50,15 @@ int main(int argc, char **argv)
          exit(2);     
       }
       if(!strcmp(argv[1],"-s")) mode_real = false;
+      else if(!strcmp(argv[1],"-sm")) { run_matlab = true; mode_real = false; }
       else { 
-         ROS_ERROR("Must enter mode correctly. Please use -s for simulation.");
+         ROS_ERROR("Must enter mode correctly. Please use -s for simulation and/or -m to run Matlab UDP bridge [-m or -sm].");
+         exit(3); 
+      }
+   } else if(argc==2){
+      if(!strcmp(argv[1],"-m")) run_matlab = true;
+      else { 
+         ROS_ERROR("Must enter mode correctly. Please use -s for simulation and/or -m to run Matlab UDP bridge [-m or -sm] followed by robot's ID.");
          exit(3); 
       }
    }
@@ -62,7 +68,10 @@ int main(int argc, char **argv)
    stringstream topic_base_name;
    node_name << "control_node";
    
-   if(!mode_real) { node_name << robot_id; topic_base_name << "minho_gazebo_robot" << robot_id; } 
+   if(!mode_real) { 
+      ROS_INFO("Running control_node for Simulated Robot %d",robot_id);
+      node_name << robot_id; topic_base_name << "minho_gazebo_robot" << robot_id; 
+   } 
 
    //Initialize ROS
 	// #########################
@@ -70,7 +79,7 @@ int main(int argc, char **argv)
 	//Request node handler
 	ros::NodeHandle control_node;
 	
-	behavior = new Behavior(topic_base_name.str(), &control_node);
+	behavior = new Behavior(topic_base_name.str(), run_matlab, &control_node);
 	ROS_WARN("MinhoTeam control_node started running on ROS.");
 	ros::AsyncSpinner spinner(2);
 	spinner.start(); 

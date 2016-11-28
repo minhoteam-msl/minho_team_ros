@@ -3,7 +3,7 @@
 pthread_mutex_t robot_info_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t ai_info_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-Behavior::Behavior(std::string topics_base_name, ros::NodeHandle *par)
+Behavior::Behavior(std::string topics_base_name, bool run_matlab, ros::NodeHandle *par)
 {
    parent = par;
    
@@ -36,6 +36,11 @@ Behavior::Behavior(std::string topics_base_name, ros::NodeHandle *par)
    error = previous_error = 0.0;
    derivative = integral = 0.0;
    kp_rot = 0.45; ki_rot = 0.00; kd_rot = 0.0;
+   
+   if(run_matlab){
+      matlab = new ComsMatlab();
+      matlab->openComs();
+   }
 }
 
 void Behavior::robotInfoCallback(const robotInfo::ConstPtr &msg)

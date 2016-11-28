@@ -17,6 +17,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <signal.h>
+#include "comsmatlab.h"
 
 //include CGAL for Voronoi Diagram
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
@@ -42,7 +43,7 @@ typedef CGAL::Delaunay_triangulation_2<K> Delaunay_triangulation_2;
 class Behavior
 {
 public:
-   Behavior(std::string topics_base_name, ros::NodeHandle *par);
+   Behavior(std::string topics_base_name, bool run_matlab, ros::NodeHandle *par);
    
    void robotInfoCallback(const robotInfo::ConstPtr &msg);
    void aiInfoCallback(const aiInfo::ConstPtr &msg);
@@ -72,6 +73,9 @@ private:
    float error, previous_error;
    float derivative, integral;
    float kp_rot, ki_rot, kd_rot;
+   
+   // MATLAB VARIABLES
+   ComsMatlab *matlab;
    
    // MATH FUNCTIONS
    float Distance(float positionAX, float positionAY, float positionBX, float positionBY);
