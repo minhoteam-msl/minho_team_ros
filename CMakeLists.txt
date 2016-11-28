@@ -142,55 +142,48 @@ set(home $ENV{HOME})
 MESSAGE( STATUS "-----> Compiling MinhoTeam Packages for : " ${username})
 
 
-if(EXISTS "/opt/Qt" AND IS_DIRECTORY "/opt/Qt")
-set(CURRQTPREFIX /opt/Qt)
-endif()
-if(EXISTS "/opt/Qt/5.7/gcc_64" AND IS_DIRECTORY "/opt/Qt/5.7/gcc_64")
-set(CURRQTPREFIX /opt/Qt/5.7/gcc_64)
-endif()
-if(EXISTS "/opt/Qt/5.5/gcc_64" AND IS_DIRECTORY "/opt/Qt/5.5/gcc_64")
-set(CURRQTPREFIX /opt/Qt/5.5/gcc_64)
-endif()
-if(EXISTS "${home}/Qt/5.7/gcc_64" AND IS_DIRECTORY "${home}/Qt/5.7/gcc_64")
-set(CURRQTPREFIX ${home}/Qt/5.7/gcc_64)
-endif()
-
-message( STATUS "-----> Current Qt Installation Path : " ${CURRQTPREFIX})
-message(STATUS "Project Directory ->" ${PROJECT_DIRECTORY})
-set(CMAKE_PREFIX_PATH ${CURRQTPREFIX})
-find_package(Qt5 COMPONENTS Core)
+#Linking steps for Qt Libraries
+########################################
+find_package(Qt5 COMPONENTS Core REQUIRED)
+add_definitions (${QT_DEFINITIONS})
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
-set(QT_DIR ${CURRQTPREFIX}/include)
-include_directories(${QT_DIR} ${QT_DIR}/QtCore)
-set(qt_LIBRARIES libQt5Core.so )
-link_directories(${CURRQTPREFIX}/lib)
-add_definitions(-DQT_THREAD_SUPPORT)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
+set(qt_LIBRARIES Qt5::Core)
+include_directories(${Qt5Core_INCLUDE_DIRS})
 ########################################
 
 # Linking steps for Flycapture Libraries
 ########################################
 include_directories(/usr/include/flycapture)
 set(flycap_LIBRARIES /usr/lib/libflycapture.so)
-########################################
+########################################ca
 
 # Linking steps for Freenect Libraries #
 ########################################
-include_directories(/usr/local/include/libfreenect)
+find_package(libfreenect REQUIRED)
 include_directories(/usr/include/libusb-1.0)
-set(freenect_LIBRARIES /usr/local/lib/libfreenect.so /usr/local/lib/libfreenect_sync.so)
+include_directories(${FREENECT_INCLUDE_DIRS})
+set(freenect_LIBRARIES ${FREENECT_LIBRARIES})
 ########################################
 
-## Linking steps for OpenCV Libraries ##
+#Linking steps for OpenCV Libraries
 ########################################
-include_directories(/usr/local/include/opencv /usr/local/include/opencv2)
-set (opencv_LIBRARIES /usr/local/lib/libopencv_core.so /usr/local/lib/libopencv_highgui.so /usr/local/lib/libopencv_imgproc.so)
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+set (opencv_LIBRARIES ${OpenCV_LIBS})
 ########################################
 
 ## Linking steps for CGAL Libraries ##
 ########################################
-set (cgal_LIBRARIES /usr/lib/x86_64-linux-gnu/libCGAL.so /usr/lib/x86_64-linux-gnu/libCGAL_Core.so /usr/lib/x86_64-linux-gnu/libgmp.so /usr/lib/x86_64-linux-gnu/libmpfr.so)
+find_package(CGAL REQUIRED)
+include_directories (${CGAL_INCLUDE_DIRS})
+include_directories (${GMP_INCLUDE_DIRS})
+include_directories (${MPFR_INCLUDE_DIRS})
+set (cgal_LIBRARIES ${CGAL_LIBRARY} ${CGAL_Core_LIBRARY} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -frounding-math")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -frounding-math")
 ########################################
 
 ######################################################################
