@@ -21,7 +21,7 @@
 #include "thpool.h"
 #include "multicast.h"
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 5120
 #define DATA_UPDATE_HZ 33
 #define DATA_UPDATE_USEC 1000000/DATA_UPDATE_HZ
 #define MAX_DELAY_TIME_US 5000
