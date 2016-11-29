@@ -1,4 +1,4 @@
-# artificialintelligence_node
+# ai_node
 
 * This repository is currently unitialized.
 
