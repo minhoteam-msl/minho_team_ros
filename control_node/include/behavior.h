@@ -40,6 +40,9 @@ typedef K::Ray_2 Ray_2;
 typedef K::Line_2 Line_2;
 typedef CGAL::Delaunay_triangulation_2<K> Delaunay_triangulation_2;
 
+enum ROLE {GOALKEEPER = 0, DEFENSE, SUP_ATTACKER, ATTACKER };
+enum ACTION {STOP = 0, GO_TO_POSITION, ENGAGE, KICK };
+
 class Behavior
 {
 public:
