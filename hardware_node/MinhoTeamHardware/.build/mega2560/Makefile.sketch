@@ -1,0 +1,14 @@
+
+
+
+
+
+.build/mega2560/src/MinhoTeamHardware.cpp : src/MinhoTeamHardware.ino
+	@mkdir -p .build/mega2560/src
+	@echo [93msrc/MinhoTeamHardware.ino[0m
+	@/home/pedro/.local/bin/ino preproc  -o $@ $^
+
+
+all : .build/mega2560/src/MinhoTeamHardware.cpp
+	@true
+

@@ -1,0 +1,34 @@
+
+
+
+
+
+
+
+
+	
+
+
+
+.build/mega2560/ros_lib/duration.d : lib/ros_lib/duration.cpp
+	@mkdir -p .build/mega2560/ros_lib
+	@/usr/share/arduino/hardware/tools/avr/bin/avr-gcc -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=105 -I/usr/share/arduino/hardware/arduino/cores/arduino -ffunction-sections -fdata-sections -g -Os -w -I/usr/share/arduino/hardware/arduino/variants/mega -I/usr/share/arduino/hardware/arduino/cores/arduino -I/usr/share/arduino/hardware/arduino/cores/arduino/avr-libc -Ilib/Omni3MD -Ilib/ros_lib -Ilib/ros_lib/roscpp_tutorials -Ilib/ros_lib/diagnostic_msgs -Ilib/ros_lib/std_srvs -Ilib/ros_lib/rosgraph_msgs -Ilib/ros_lib/actionlib_msgs -Ilib/ros_lib/rosserial_arduino -Ilib/ros_lib/actionlib -Ilib/ros_lib/sensor_msgs -Ilib/ros_lib/ros -Ilib/ros_lib/geometry_msgs -Ilib/ros_lib/nodelet -Ilib/ros_lib/turtlesim -Ilib/ros_lib/roscpp -Ilib/ros_lib/nav_msgs -Ilib/ros_lib/tf2_msgs -Ilib/ros_lib/std_msgs -Ilib/ros_lib/bond -Ilib/ros_lib/trajectory_msgs -Ilib/ros_lib/dynamic_reconfigure -Ilib/ros_lib/visualization_msgs -Ilib/ros_lib/tf -Ilib/ros_lib/polled_camera -Ilib/ros_lib/gazebo_msgs -Ilib/ros_lib/shape_msgs -Ilib/ros_lib/tests -Ilib/ros_lib/actionlib_tutorials -Ilib/ros_lib/topic_tools -Ilib/ros_lib/turtle_actionlib -Ilib/ros_lib/stereo_msgs -Ilib/ros_lib/rospy_tutorials -Ilib/ros_lib/smach_msgs -Ilib/ros_lib/control_msgs -Ilib/ros_lib/map_msgs -Ilib/ros_lib/rosserial_mbed -Ilib/ros_lib/rosserial_msgs -Ilib/ros_lib/minho_team_ros -Ilib/ros_lib/tests/float64_test -Ilib/ros_lib/tests/time_test -Ilib/ros_lib/tests/array_test -Ilib/TimerOne -Ilib/TimerOne/config -Ilib/stdCpp -I/usr/share/arduino/libraries/Ethernet -I/usr/share/arduino/libraries/Ethernet/utility -I/usr/share/arduino/libraries/TFT -I/usr/share/arduino/libraries/TFT/utility -I/usr/share/arduino/libraries/Esplora -I/usr/share/arduino/libraries/GSM -I/usr/share/arduino/libraries/Firmata -I/usr/share/arduino/libraries/Servo -I/usr/share/arduino/libraries/Wire -I/usr/share/arduino/libraries/Wire/utility -I/usr/share/arduino/libraries/WiFi -I/usr/share/arduino/libraries/WiFi/utility -I/usr/share/arduino/libraries/LiquidCrystal -I/usr/share/arduino/libraries/SD -I/usr/share/arduino/libraries/SD/utility -I/usr/share/arduino/libraries/EEPROM -I/usr/share/arduino/libraries/Robot_Motor -I/usr/share/arduino/libraries/SPI -I/usr/share/arduino/libraries/SoftwareSerial -I/usr/share/arduino/libraries/Stepper -I/usr/share/arduino/libraries/Robot_Control -I/usr/share/arduino/libraries/Robot_Control/utility  -MM $^ > $@
+	
+	@printf ".build/mega2560/ros_lib/duration.d .build/mega2560/ros_lib/" | cat - $@ > $@~ && mv $@~ $@
+
+.build/mega2560/ros_lib/time.d : lib/ros_lib/time.cpp
+	@mkdir -p .build/mega2560/ros_lib
+	@/usr/share/arduino/hardware/tools/avr/bin/avr-gcc -mmcu=atmega2560 -DF_CPU=16000000L -DARDUINO=105 -I/usr/share/arduino/hardware/arduino/cores/arduino -ffunction-sections -fdata-sections -g -Os -w -I/usr/share/arduino/hardware/arduino/variants/mega -I/usr/share/arduino/hardware/arduino/cores/arduino -I/usr/share/arduino/hardware/arduino/cores/arduino/avr-libc -Ilib/Omni3MD -Ilib/ros_lib -Ilib/ros_lib/roscpp_tutorials -Ilib/ros_lib/diagnostic_msgs -Ilib/ros_lib/std_srvs -Ilib/ros_lib/rosgraph_msgs -Ilib/ros_lib/actionlib_msgs -Ilib/ros_lib/rosserial_arduino -Ilib/ros_lib/actionlib -Ilib/ros_lib/sensor_msgs -Ilib/ros_lib/ros -Ilib/ros_lib/geometry_msgs -Ilib/ros_lib/nodelet -Ilib/ros_lib/turtlesim -Ilib/ros_lib/roscpp -Ilib/ros_lib/nav_msgs -Ilib/ros_lib/tf2_msgs -Ilib/ros_lib/std_msgs -Ilib/ros_lib/bond -Ilib/ros_lib/trajectory_msgs -Ilib/ros_lib/dynamic_reconfigure -Ilib/ros_lib/visualization_msgs -Ilib/ros_lib/tf -Ilib/ros_lib/polled_camera -Ilib/ros_lib/gazebo_msgs -Ilib/ros_lib/shape_msgs -Ilib/ros_lib/tests -Ilib/ros_lib/actionlib_tutorials -Ilib/ros_lib/topic_tools -Ilib/ros_lib/turtle_actionlib -Ilib/ros_lib/stereo_msgs -Ilib/ros_lib/rospy_tutorials -Ilib/ros_lib/smach_msgs -Ilib/ros_lib/control_msgs -Ilib/ros_lib/map_msgs -Ilib/ros_lib/rosserial_mbed -Ilib/ros_lib/rosserial_msgs -Ilib/ros_lib/minho_team_ros -Ilib/ros_lib/tests/float64_test -Ilib/ros_lib/tests/time_test -Ilib/ros_lib/tests/array_test -Ilib/TimerOne -Ilib/TimerOne/config -Ilib/stdCpp -I/usr/share/arduino/libraries/Ethernet -I/usr/share/arduino/libraries/Ethernet/utility -I/usr/share/arduino/libraries/TFT -I/usr/share/arduino/libraries/TFT/utility -I/usr/share/arduino/libraries/Esplora -I/usr/share/arduino/libraries/GSM -I/usr/share/arduino/libraries/Firmata -I/usr/share/arduino/libraries/Servo -I/usr/share/arduino/libraries/Wire -I/usr/share/arduino/libraries/Wire/utility -I/usr/share/arduino/libraries/WiFi -I/usr/share/arduino/libraries/WiFi/utility -I/usr/share/arduino/libraries/LiquidCrystal -I/usr/share/arduino/libraries/SD -I/usr/share/arduino/libraries/SD/utility -I/usr/share/arduino/libraries/EEPROM -I/usr/share/arduino/libraries/Robot_Motor -I/usr/share/arduino/libraries/SPI -I/usr/share/arduino/libraries/SoftwareSerial -I/usr/share/arduino/libraries/Stepper -I/usr/share/arduino/libraries/Robot_Control -I/usr/share/arduino/libraries/Robot_Control/utility  -MM $^ > $@
+	
+	@printf ".build/mega2560/ros_lib/time.d .build/mega2560/ros_lib/" | cat - $@ > $@~ && mv $@~ $@
+
+
+
+.build/mega2560/ros_lib/dependencies.d : .build/mega2560/ros_lib/duration.d .build/mega2560/ros_lib/time.d
+	@echo [96mScanning dependencies of ros_lib[0m
+	@mkdir -p .build/mega2560/ros_lib
+	@cat $^ > $@;
+
+all : .build/mega2560/ros_lib/dependencies.d
+	@true
+
