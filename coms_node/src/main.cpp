@@ -21,7 +21,7 @@
 #include "thpool.h"
 #include "multicast.h"
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 5120
 #define DATA_UPDATE_HZ 33
 #define DATA_UPDATE_USEC 1000000/DATA_UPDATE_HZ
 #define MAX_DELAY_TIME_US 5000
@@ -181,8 +181,8 @@ int main(int argc, char **argv)
    int robot_id = 0;
    if(argc==3){
       robot_id = atoi(argv[2]);
-      if(robot_id<0 || robot_id>6){
-         ROS_ERROR("Must enter robot id correctly. Robot id's range from 1 to 6 and 0 to localhost.");
+      if(robot_id<1 || robot_id>5){
+         ROS_ERROR("Must enter robot id correctly. Robot id's range from 1 to 5.");
          exit(2);     
       }
       if(!strcmp(argv[1],"-s")) mode_real = false;
