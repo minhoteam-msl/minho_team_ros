@@ -59,50 +59,22 @@ void Behavior::aiInfoCallback(const aiInfo::ConstPtr &msg)
 
 void Behavior::doWork()
 {
-   pthread_mutex_lock(&robot_info_mutex); //Lock mutex
-   if(robot_info.sees_ball && !robot_info.has_ball){
-      // Calcula coisas
-      control.angular_velocity = RotationRobot_for_Target_PID(PsiTarget(
-                           robot_info.robot_pose.x,robot_info.robot_pose.y,
-                           robot_info.ball_position.x,robot_info.ball_position.y
-                           ,false),60);
-
-      if(abs(error)<90)  control.linear_velocity = SpeedRobot_TargetDistance_Log(Distance(robot_info.robot_pose.x, robot_info.robot_pose.y, robot_info.ball_position.x, robot_info.ball_position.y), 60);
-      else control.linear_velocity = 0;
-      
-      float distance_to_ball = Distance(robot_info.robot_pose.x, robot_info.robot_pose.y, robot_info.ball_position.x, robot_info.ball_position.y);
-      
-      if(distance_to_ball<0.3){
-         control.angular_velocity = control.linear_velocity = 0;
-      }
-      
-      if(distance_to_ball<1.0) control.dribbler_on = true;
-      else control.dribbler_on = false;
-   }else if(robot_info.sees_ball && robot_info.has_ball){
-      // Calcula coisas
-      control.angular_velocity = RotationRobot_for_Target_PID(PsiTarget(
-                           robot_info.robot_pose.x,robot_info.robot_pose.y,
-                           -9.0,0.0,false),60);
-
-      if(abs(error)<90)  control.linear_velocity = SpeedRobot_TargetDistance_Log(Distance(robot_info.robot_pose.x, robot_info.robot_pose.y, -9.0, 0.0), 60);
-      else control.linear_velocity = 0;
-      
-      float distance_to_target = Distance(robot_info.robot_pose.x, robot_info.robot_pose.y, -9.0, 0.0);
-      
-      if(distance_to_target<4.5){
-         // KICK
-         requestKick srv;
-         srv.request.kick_strength = 50;
-         if(kick_service.call(srv)){
-            
-         }
-      }
-   }else {
-      control.angular_velocity = 0;  
-      control.linear_velocity = 30; 
-   }
+   pthread_mutex_lock(&robot_info_mutex); //Lock mutex   
+   minho_team_ros::robotInfo robot = robot_info; // Make a copy to hold the mutex for less time
    pthread_mutex_unlock(&robot_info_mutex); //Unlock mutex
    
+   pthread_mutex_lock(&ai_info_mutex); //Lock mutex
+   minho_team_ros::aiInfo ai = ai_info; // Make a copy to hold the mutex for less time
+   pthread_mutex_unlock(&ai_info_mutex); //Unlock mutex
+   
+   /// \brief implementation of Control Sequence
+   /// \brief Roles : 0 - GK | 1 - DEFENSE | 2 - ATTACKER | 3 - SUPPORT ATTACKER
+   /// \brief Actions : 0 - PARAR | 1 - IR P/ POSIÇÃO | 2 - ATRAS DA BOLA | 3 - CHUTAR/PASSAR
+   
+   if(ai.action == STOP) control.linear_velocity = control.angular_velocity = 0;
+   else { // Implement behaviour based on ai info
+   
+   }
    control_info_pub.publish(control);
 }
 

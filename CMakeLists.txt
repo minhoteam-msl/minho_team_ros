@@ -141,18 +141,31 @@ set(username $ENV{USER})
 set(home $ENV{HOME})
 MESSAGE( STATUS "-----> Compiling MinhoTeam Packages for : " ${username})
 
-
-#Linking steps for Qt Libraries
-########################################
-find_package(Qt5 COMPONENTS Core REQUIRED)
-add_definitions (${QT_DEFINITIONS})
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
-set(qt_LIBRARIES Qt5::Core)
-include_directories(${Qt5Core_INCLUDE_DIRS})
-########################################
+if(${username} STREQUAL lar)
+   if(EXISTS "/opt/Qt" AND IS_DIRECTORY "/opt/Qt")
+      set(CURRQTPREFIX /opt/Qt)
+      set(CMAKE_PREFIX_PATH ${CURRQTPREFIX})
+      find_package(Qt5 COMPONENTS Core REQUIRED)
+      set(CMAKE_INCLUDE_CURRENT_DIR ON)
+      set(CMAKE_AUTOMOC ON)
+      set(QT_DIR ${CURRQTPREFIX}/include)
+      include_directories(${QT_DIR} ${QT_DIR}/QtCore)
+      set(qt_LIBRARIES libQt5Core.so )
+      link_directories(${CURRQTPREFIX}/lib)
+   endif()
+else()
+   #Linking steps for Qt Libraries
+   ########################################
+   find_package(Qt5 COMPONENTS Core REQUIRED)
+   add_definitions (${QT_DEFINITIONS})
+   set(CMAKE_INCLUDE_CURRENT_DIR ON)
+   set(CMAKE_AUTOMOC ON)
+   set(CMAKE_AUTOUIC ON)
+   set(CMAKE_AUTORCC ON)
+   set(qt_LIBRARIES Qt5::Core)
+   include_directories(${Qt5Core_INCLUDE_DIRS})
+   ########################################
+endif()
 
 # Linking steps for Flycapture Libraries
 ########################################
