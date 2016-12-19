@@ -69,6 +69,10 @@ add_message_files(
       goalKeeperInfo.msg
       interAgentInfo.msg
       aiInfo.msg
+      controlConfig.msg
+      visualizerConfig.msg
+      pathData.msg
+      segment.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -83,6 +87,7 @@ add_message_files(
    requestKick.srv
    requestImage.srv
    requestExtendedDebug.srv
+   requestControlConfig.srv
  )
 
 ## Generate actions in the 'action' folder

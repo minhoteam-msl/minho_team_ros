@@ -1,0 +1,4 @@
+#This service allows to request the reset of IMU's 0º real orientation
+bool dummy
+---
+controlConfig config
