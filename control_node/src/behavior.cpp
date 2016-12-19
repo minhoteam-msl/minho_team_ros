@@ -203,7 +203,8 @@ void Behavior::doWork()
    
    if(ai.action == STOP) control.linear_velocity = control.angular_velocity = 0;
    else { // Implement behaviour based on ai info
-  
+    // Implementa coisas
+
    }
    control_info_pub.publish(control);
 }
@@ -477,10 +478,29 @@ vector<double> Behavior::ConstructVoronoiDiagram_WithRectangleLimits(robotInfo r
        SiteVD siteToRobot1;
        distRobotToSiteAux=20;
 
+       position target_Position;
+       switch (ai.action) {
+       case 0:
+           break;
+       case 1:
+           target_Position.x = ai.target_pose.x;
+           target_Position.y = ai.target_pose.y;
+           break;
+       case 2:
+           target_Position = ai.target_kick;
+           break;
+       case 3:
+           target_Position.x = robot.ball_position.x;
+           target_Position.x = robot.ball_position.y;
+           break;
+       default:
+           break;
+       }
+
        for(siteIterator sit = VD.sites_begin(); sit != VD.sites_end(); ++sit){
            sitePoint1 = *sit;
            //cout<<"point: "<<sitePoint<<endl;
-           distRobotToSite1 = Distance(ai.target_pose.x,ai.target_pose.y, sitePoint1.hx(), -sitePoint1.hy()); //cout<<"dist: "<<distRobotToSite<<endl;
+           distRobotToSite1 = Distance(target_Position.x,target_Position.y, sitePoint1.hx(), -sitePoint1.hy()); //cout<<"dist: "<<distRobotToSite<<endl;
 
            if(distRobotToSite1<distRobotToSiteAux){
                siteToRobot1 = *sit;
@@ -491,7 +511,7 @@ vector<double> Behavior::ConstructVoronoiDiagram_WithRectangleLimits(robotInfo r
            }
        }
 
-       int angle1 = PsiTarget(ai.target_pose.x, ai.target_pose.y, sitePointAux1.hx(), -sitePointAux1.hy(), false);
+       int angle1 = PsiTarget(target_Position.x, target_Position.y, sitePointAux1.hx(), -sitePointAux1.hy(), false);
 
        vector<Ray_2> rayRobot1;
        double xRay1,yRay1;
@@ -501,10 +521,10 @@ vector<double> Behavior::ConstructVoronoiDiagram_WithRectangleLimits(robotInfo r
            xRay1 = cos((double)((angle1+(i*90))*(M_PI/180)));
            yRay1 = sin((double)((angle1+(i*90))*(M_PI/180)));
 
-           xRay1 = xRay1 + ai.target_pose.x;
-           yRay1 = yRay1 + ai.target_pose.y;
+           xRay1 = xRay1 + target_Position.x;
+           yRay1 = yRay1 + target_Position.y;
 
-           Ray_2 ray1(Point_2(ai.target_pose.x, ai.target_pose.y), Point_2(xRay1, yRay1));
+           Ray_2 ray1(Point_2(target_Position.x, target_Position.y), Point_2(xRay1, yRay1));
            rayRobot1.push_back(ray1);
        }
 
@@ -539,16 +559,16 @@ vector<double> Behavior::ConstructVoronoiDiagram_WithRectangleLimits(robotInfo r
 
                    if(result1){
                        if(const Point_2 *p1 = boost::get<Point_2 >(&*result1)){
-                           Segment_2 segSourceRobotAux1(Point_2(ai.target_pose.x, -ai.target_pose.y), Point_2(p1->hx(), -p1->hy()));
+                           Segment_2 segSourceRobotAux1(Point_2(target_Position.x, -target_Position.y), Point_2(p1->hx(), -p1->hy()));
 
-                           /*vectPointsReturn.push_back(ai.target_pose.x);
-                           vectPointsReturn.push_back(ai.target_pose.y);
+                           /*vectPointsReturn.push_back(target_Position.x);
+                           vectPointsReturn.push_back(target_Position.y);
                            vectPointsReturn.push_back(p1->hx());
                            vectPointsReturn.push_back(p1->hy());*/
                            
                            segment temp3;
                            if(cconfig.send_voronoi){
-                              temp3.ini.x = ai.target_pose.x; temp3.ini.y = ai.target_pose.y;
+                              temp3.ini.x = target_Position.x; temp3.ini.y = target_Position.y;
                               temp3.fini.x = p1->hx(); temp3.fini.y = p1->hy();
                               path_data.voronoi.push_back(temp3);   
                            }
@@ -578,7 +598,7 @@ vector<double> Behavior::ConstructVoronoiDiagram_WithRectangleLimits(robotInfo r
        //target
        VertexDescriptor vertexTarget;
        varVertex.vertexId = boost::add_vertex(graphVoronoi);
-       varVertex.vertexXY = Point_2(ai.target_pose.x, -ai.target_pose.y);
+       varVertex.vertexXY = Point_2(target_Position.x, -target_Position.y);
        vertexTarget = varVertex.vertexId;
        vectVertex.push_back(varVertex);
 
