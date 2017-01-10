@@ -299,6 +299,7 @@ int main(int argc, char **argv)
 	ros::shutdown();
 	thpool_destroy(thpool_t);
 	closeSocket(socket_fd);
+   ROS_ERROR("Exited coms_node");
    return 1;
 }
 
@@ -466,7 +467,7 @@ bool checkGzserverConnection(int signal)
       is.read(output,2);
       c.wait();
       if(atoi(output)!=2) {
-         ROS_ERROR("gzserver not running ... killing processes."); 
+         ROS_ERROR("COMS_NODE: gzserver not running ... killing processes."); 
          _thrun = false;
          timer.it_interval.tv_sec = 0;
          timer.it_interval.tv_usec = 0;
