@@ -310,7 +310,7 @@ void Localization::hardwareCallback(const hardwareInfo::ConstPtr &msg)
    vn = (v1-2*v2+v3)/(2*(COST+1));
    w  = (v1+2*COST*v2+v3)/(2*DROB*(COST+1));
 
-   ROS_INFO("VelW: %.2f | %.2f | %.2f \n Vel: %.2f | %.2f | %.2f",
+   ROS_INFO("VelW: %.2f | %.2f | %.2f \n \t\tVel: %.2f | %.2f | %.2f",
    v1, v2, v3, v, vn, w);           
    halfTeta = normalizeAngleRad(w*DELTA_T_2)-msg->imu_value*DEGTORAD;
    

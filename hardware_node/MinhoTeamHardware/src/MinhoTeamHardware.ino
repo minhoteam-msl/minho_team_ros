@@ -263,12 +263,12 @@ ros::ServiceServer<requestKick::Request, requestKick::Response> server_Kick("req
 // ###########################################################
 
 void setup() {
-  resetEncoders();
-  readPIDfromEEPROM();
-  readIMUfromEEPROM();
   setupOmni();
   setupMotorsBoard();
   setupIMULinearization();
+  resetEncoders();
+  readPIDfromEEPROM();
+  readIMUfromEEPROM();
   
   pinMode(KICKPIN, OUTPUT);
   digitalWrite(KICKPIN, LOW);
@@ -294,6 +294,7 @@ void setup() {
   nh.advertiseService(server_resetIMU);
   nh.advertiseService(server_OmniProps);
   nh.advertiseService(server_IMULinTable);
+  nh.advertiseService(server_Kick);
   
   while (!nh.connected()){
     nh.spinOnce();
