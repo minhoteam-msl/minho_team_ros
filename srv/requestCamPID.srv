@@ -1,0 +1,5 @@
+#This service allows to change PID value of a property controler
+PID parameter
+bool is_set
+---
+PID parameterS
