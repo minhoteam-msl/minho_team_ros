@@ -1,17 +1,28 @@
 #include "blackflycam.h"
 
+
+// Constructor of the class
 BlackflyCam::BlackflyCam(bool cal)
 {
-    calibrate=cal;
+    calibrate = cal;
+    // Initialize PID gains for Properties controler
+    if(!initPidValues()){
+		ROS_ERROR("Error Reading Properties PID controler gains");
+	} else ROS_INFO("Properties PID controler configurations Ready.");
+
     camera = new Camera();
     imageready = false;
     newimage = false;
     frameBuffer = new Mat(480,480,CV_8UC3,Scalar(0,0,0));
 
     //Parameters for calibration
-    roi_black = Rect(0,0,10,10);
-    roi_white = Rect(0,0,10,10);
-    minError=127*0.05;
+    //roi_black = Rect(277,247,4,4);
+    //roi_white = Rect(194,237,4,4);
+    minError_Lumi=127*0.1;
+    minError_Sat=127*0.1;
+    minError_UV_1=127+(127*0.15);
+    minError_UV_2=127-(127*0.15);
+    minError_RGB=127*0.1;
     firsttime=true;
 }
 
@@ -90,22 +101,22 @@ void BlackflyCam::printCameraInfo()
 /// \param pImage
 ///
 void BlackflyCam::setNewFrame(Image *pImage)
-{  
+{
     static int count_conf=0;
     bool do_calibration = false;
-    
+
     /// Counter for auto calibration
     if(count_conf>32 && calibrate){
-        count_conf=0; firsttime=false; do_calibration = true;
+        count_conf=0; do_calibration = true;
     } else count_conf++;
-    
+
     /// Time measure
-    clock_gettime(CLOCK_MONOTONIC,&present);
-    float temp = 1000000000.0/((float)(present.tv_nsec-past.tv_nsec));
-    if(temp>0.0 && temp<=31.0) {
-        fps = temp;
-    }
-    past = present;
+    //clock_gettime(CLOCK_MONOTONIC,&present);
+    //float temp = 1000000000.0/((float)(present.tv_nsec-past.tv_nsec));
+    //if(temp>0.0 && temp<=31.0) {
+        //fps = temp;
+    //}
+    //past = present;
 
     pImage->Convert( FlyCapture2::PIXEL_FORMAT_BGR, &rawimage );
     rowBytes = (double)rawimage.GetReceivedDataSize()/(double)rawimage.GetRows();
@@ -115,7 +126,7 @@ void BlackflyCam::setNewFrame(Image *pImage)
         if(do_calibration)frameBuffer->copyTo(image);
     }
     newimage=true;
-    
+
     if(do_calibration) cameraCalibrate();
 }
 
@@ -160,7 +171,7 @@ Mat *BlackflyCam::getImage()
             buffer = new Mat(frameBuffer->rows,frameBuffer->cols,CV_8UC3,frameBuffer->data,frameBuffer->step);
         }
     }
-    
+
     return buffer;
 }
 
@@ -188,7 +199,7 @@ bool BlackflyCam::connect()
 
 ///
 /// \brief Return camera FPS
-/// \return
+/// \return fps (float)
 ///
 float BlackflyCam::getFPS()
 {
@@ -198,165 +209,161 @@ float BlackflyCam::getFPS()
 /*---------------- SET/GET CAMERA PROPERTIES -------------------------------*/
 /*------------------------------------------------------------------------*/
 
+///
+/// \brief Functions that set or return camera Properties
+/// \return
+///
+
 void BlackflyCam::setBrigtness(float value)
 {
-    props[0].absValue=value;
+    props[BRI].absValue=value;
 }
 float BlackflyCam::getBrigtness()
 {
-    return props[0].absValue;
+    return props[BRI].absValue;
 }
 
 bool BlackflyCam::getBrigtnessState()
 {
-    return props[0].absControl;
+    return props[BRI].absControl;
 }
 
 void BlackflyCam::setBrigtnessState(bool state)
 {
-    props[0].absControl=state;
+    props[BRI].absControl=state;
 }
+
 
 void BlackflyCam::setShutter(float value)
 {
-       props[1].absValue=value;
+       props[SHU].absValue=value;
 }
 float BlackflyCam::getShuttertime()
 {
-    return props[1].absValue;
+    return props[SHU].absValue;
 }
 void BlackflyCam::setShutterState(bool state)
 {
-    props[1].absControl=state;
+    props[SHU].absControl=state;
 }
 bool BlackflyCam::getShutterState()
 {
-    return props[1].absControl;
+    return props[SHU].absControl;
 }
 
 void BlackflyCam::setGain(float value)
 {
-    props[2].absValue=value;
+    props[GAI].absValue=value;
 }
 float BlackflyCam::getGain()
 {
-    return props[2].absValue;
+    return props[GAI].absValue;
 }
 
 bool BlackflyCam::getGainState()
 {
-    return props[2].absControl;
+    return props[GAI].absControl;
 }
 
 void BlackflyCam::setGainState(bool state)
 {
-    props[2].absControl=state;
+    props[GAI].absControl=state;
 }
 
 void BlackflyCam::setExposure(float value)
 {
-    props[3].absValue=value;
+    props[EXP].absValue=value;
 }
 
 float BlackflyCam::getExposure()
 {
-    return props[3].absValue;
+    return props[EXP].absValue;
 }
 
 bool BlackflyCam::getExposureState()
 {
-    return props[3].absControl;
+    return props[EXP].absControl;
 }
 
 void BlackflyCam::setExposureState(bool state)
 {
-    props[3].absControl=state;
+    props[EXP].absControl=state;
 }
 
 void BlackflyCam::setGamma(float value)
 {
-    props[4].absValue=value;
+    props[GAM].absValue=value;
 }
 
 float BlackflyCam::getGamma()
 {
-    return props[4].absValue;
+    return props[GAM].absValue;
 }
 
 bool BlackflyCam::getGammaState()
 {
-    return props[4].absControl;
+    return props[GAM].absControl;
 }
 
 void BlackflyCam::setGammaState(bool state)
 {
-    props[4].absControl=state;
-}
-
-void BlackflyCam::setHUE(float value)
-{
-    props[5].absValue=value;
-}
-
-float BlackflyCam::getHUE()
-{
-    return props[5].absValue;
-}
-
-bool BlackflyCam::getHUEState()
-{
-    return props[5].absControl;
-}
-
-void BlackflyCam::setHUEState(bool state)
-{
-    props[5].absControl=state;
+    props[EXP].absControl=state;
 }
 
 void BlackflyCam::setSaturation(float value)
 {
-    props[6].absValue=value;
+    props[SAT].absValue=value;
 }
 
 float BlackflyCam::getSaturation()
 {
-    return props[6].absValue;
+    return props[SAT].absValue;
 }
 
 bool BlackflyCam::getSaturationState()
 {
-    return props[6].absControl;
+    return props[SAT].absControl;
 }
 
 void BlackflyCam::setSaturationState(bool state)
 {
-    props[6].absControl=state;
+    props[SAT].absControl=state;
 }
 
-void BlackflyCam::setWhite_Balance(float value, float value2)
+void BlackflyCam::setWhite_Balance(float value,float value2)
 {
-    props[7].valueA=value;
-    props[7].valueB=value2;
+    props[WB].valueA=value;
+    props[WB].valueB=value2;
+}
+
+void BlackflyCam::setWhite_Balance_valueA(float value)
+{
+    props[WB].valueA=value;
+}
+
+void BlackflyCam::setWhite_Balance_valueB(float value)
+{
+	 props[WB].valueB=value;
 }
 
 float BlackflyCam::getWhite_Balance_valueA()
 {
-    return props[7].valueA;
+    return props[WB].valueA;
 }
 
 float BlackflyCam::getWhite_Balance_valueB()
 {
-    return props[7].valueB;
+    return props[WB].valueB;
 }
 
 bool BlackflyCam::getWhite_BalanceState()
 {
-    return props[7].absControl;
+    return props[WB].absControl;
 }
 
 void BlackflyCam::setWhite_BalanceState(bool state)
 {
-    props[7].absControl=state;
+    props[WB].absControl=state;
 }
 
 
@@ -365,82 +372,82 @@ void BlackflyCam::setProps(int num)
     camera->SetProperty(&props[num]);
 }
 
+/*------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------*/
+
+
+///
+/// \brief Initialize properties values ensuring that the desire
+/// configuration is set
+///
 void BlackflyCam::initProps()
 {
 
     //Define the property to adjust.
-    props[0].type = BRIGHTNESS;
-    camera->GetProperty(&props[0]);
+    props[BRI].type = BRIGHTNESS;
+    camera->GetProperty(&props[BRI]);
     //Ensure the property is set up to use absolute value control.
-    props[0].absControl = true;
-    camera->SetProperty(&props[0]);
+    props[BRI].absControl = true;
+    camera->SetProperty(&props[BRI]);
 
     //Define the property to adjust.
-    props[1].type = SHUTTER;
-    camera->GetProperty(&props[1]);
+    props[SHU].type = SHUTTER;
+    camera->GetProperty(&props[SHU]);
     //Ensure the property is on.
-    props[1].onOff = true;
+    props[SHU].onOff = true;
     //Ensure auto-adjust mode is off.
-    props[1].autoManualMode = false;
+    props[SHU].autoManualMode = false;
     //Ensure the property is set up to use absolute value control.
-    props[1].absControl = true;
-    camera->SetProperty(&props[1]);
+    props[SHU].absControl = true;
+    props[SHU].absValue=10.00;
+    camera->SetProperty(&props[SHU]);
 
-    props[2].type = GAIN;
-    camera->GetProperty(&props[2]);
+    props[GAI].type = GAIN;
+    camera->GetProperty(&props[GAI]);
     //Ensure auto-adjust mode is off.
-    props[2].autoManualMode = false;
+    props[GAI].autoManualMode = false;
     //Ensure the property is set up to use absolute value control.
-    props[2].absControl = true;
-    camera->SetProperty(&props[2]);
+    props[GAI].absControl = true;
+    camera->SetProperty(&props[GAI]);
 
-    props[3].type = AUTO_EXPOSURE;
-    camera->GetProperty(&props[3]);
+    props[EXP].type = AUTO_EXPOSURE;
+    camera->GetProperty(&props[EXP]);
     //Ensure the property is on.
-    props[3].onOff = true;
+    props[EXP].onOff = true;
     //Ensure auto-adjust mode is off.
-    props[3].autoManualMode = false;
+    props[EXP].autoManualMode = false;
     //Ensure the property is set up to use absolute value control.
-    props[3].absControl = true;
-    camera->SetProperty(&props[3]);
+    props[EXP].absControl = true;
+    camera->SetProperty(&props[EXP]);
 
     //Define the property to adjust.
-    props[4].type = GAMMA;
-    camera->GetProperty(&props[4]);
+    props[GAM].type = GAMMA;
+    camera->GetProperty(&props[GAM]);
     //Ensure the property is on.
-    props[4].onOff = true;
+    props[GAM].onOff = true;
     //Ensure the property is set up to use absolute value control.
-    props[4].absControl = true;
-    camera->SetProperty(&props[4]);
+    props[GAM].absControl = true;
+    camera->SetProperty(&props[GAM]);
 
     //Define the property to adjust.
-    props[5].type = HUE;
-    camera->GetProperty(&props[5]);
+    props[SAT].type = SATURATION;
+    camera->GetProperty(&props[SAT]);
     //Ensure the property is on.
-    props[5].onOff = true;
-    //Ensure the property is set up to use absolute value control.
-    props[5].absControl = true;
-    camera->SetProperty(&props[5]);
-
-    //Define the property to adjust.
-    props[6].type = SATURATION;
-    camera->GetProperty(&props[6]);
-    //Ensure the property is on.
-    props[6].onOff = true;
+    props[SAT].onOff = true;
     //Ensure auto-adjust mode is off.
-    props[6].autoManualMode = false;
+    props[SAT].autoManualMode = false;
     //Ensure the property is set up to use absolute value control.
-    props[6].absControl = true;
-    camera->SetProperty(&props[6]);
+    props[SAT].absControl = true;
+    camera->SetProperty(&props[SAT]);
 
     //Define the property to adjust.
-    props[7].type = WHITE_BALANCE;
-    camera->GetProperty(&props[7]);
+    props[WB].type = WHITE_BALANCE;
+    camera->GetProperty(&props[WB]);
     //Ensure the property is on.
-    props[7].onOff = true;
+    props[WB].onOff = true;
     //Ensure auto-adjust mode is off.
-    props[7].autoManualMode = false;
-    camera->SetProperty(&props[7]);
+    props[WB].autoManualMode = false;
+    camera->SetProperty(&props[WB]);
 }
 
 
@@ -490,7 +497,6 @@ Scalar BlackflyCam::averageRGB()
 
     for(int i=0;i<image_roi_black.cols;i++){
         for(int j=0;j<image_roi_black.rows;j++){
-
             meanR = meanR + image_roi_black.ptr()[(i*image_roi_black.cols + j)*3];
             meanG = meanG + image_roi_black.ptr()[(i*image_roi_black.cols + j)*3 + 1];
             meanB = meanB + image_roi_black.ptr()[(i*image_roi_black.cols + j)*3 + 2];
@@ -498,10 +504,10 @@ Scalar BlackflyCam::averageRGB()
             count++;
         }
     }
+
     meanR=meanR/count;
     meanG=meanG/count;
     meanB=meanB/count;
-
 
     Scalar s=Scalar(meanR,meanG,meanB);
 
@@ -543,14 +549,12 @@ Scalar BlackflyCam::averageUV()
 
             meanU = meanU + temp.ptr()[(i*temp.cols + j)*3 + 1];
             meanV = meanV + temp.ptr()[(i*temp.cols + j)*3 + 2];
-
             count++;
         }
     }
     meanU=meanU/count;
     meanV=meanV/count;
     Scalar s= Scalar(meanU,meanV);
-
     return s;
 
 }
@@ -570,34 +574,8 @@ void BlackflyCam::setRegions(){
 ///
 bool BlackflyCam::cameraCalibrate()
 {
-
     setRegions();
     bool changed=false;
-    //*******************************PID values start here******************************//
-    static float WbKp=0.1;
-    static float WbKi=0.0;
-
-    static float WrKp=0.1;
-    static float WrKi=0;
-
-    static float GammaKp=5.2;
-    static float GammaKi=0.0;
-
-    static float SatKp=5.2;
-    static float SatKi=0.0;
-
-    static float BrigKp=5.2;
-    static float BrigKi=0.0;
-
-    static float GainKp=5.2;
-    static float GainKi=0.0;
-
-    static float ExpKp=5.2;
-    static float ExpKi=0.0;
-
-    static float msvError=0.0;
-
-    //*******************************PID values end here******************************//
 
     float wblue=getWhite_Balance_valueB();
     float wred=getWhite_Balance_valueA();
@@ -605,100 +583,240 @@ bool BlackflyCam::cameraCalibrate()
     float gamma=getGamma();
     float sat=getSaturation();
     float brig=getBrigtness();
-    float exp=getExposure();
-
-
-    //Initialization of PID's
-    PID wBluePID(WbKp,WbKi,0,getWhite_BalanceMin(),getWhite_BalanceMax());
-    PID wRedPID(WrKp,WrKi,0,getWhite_BalanceMin(),getWhite_BalanceMax());
-    PID GainPID(GainKp,GainKi,0,getGainMin(),getGainMax());
-    PID GammaPID(GammaKp,GammaKi,0,getGammaMin(),getGainMax());
-    PID SatPID(SatKp,SatKi,0,getSaturationMin(),getSaturationMax());
-    PID BrigPID(BrigKp,BrigKi,0,getBrigtnessMin(),getBrigtnessMax());
-    PID ExpPID(ExpKp,ExpKi,0,getExposureMin(),getExposureMax());
-
-    //Initialization of some variables
-    Scalar rgbMean=averageRGB();
-    Scalar uvMean=averageUV();
-    calcLumiHistogram();
-    int msv=calcMean();
-    msvError=127-msv;
-
+    float shu=getShuttertime();
+    static int times;
 
     if(firsttime){
-        wBluePID.reset();
-        wRedPID.reset();
-        GainPID.reset();
-        GammaPID.reset();
-        SatPID.reset();
-        BrigPID.reset();
-        ExpPID.reset();
+        wBluePID->reset();
+        wRedPID->reset();
+        GainPID->reset();
+        GammaPID->reset();
+        SatPID->reset();
+        BrigPID->reset();
+        ShuPID->reset();
         firsttime=false;
     }
 
+    //Initialization of some variables
+    calcLumiHistogram();
+    msv=calcMean();
+    msvError=127-msv;
 
-
-    if(msvError>minError || msvError<(-minError))
+    if(msvError>minError_Lumi || msvError<(-minError_Lumi))
     {
         changed=true;
-        if(gain==getGainMax() && exp==getExposureMax())
+        if(gain==getGainMax() && shu==getShuttertimeMax())
         {
-            gamma=GammaPID.calc_pid(gamma,msvError);
+            gamma=GammaPID->calc_pid(gamma,msvError);
             setGamma(gamma);
             setProps(GAM);
         }
-        else
-        {
-            if(gain==getGainMax())
-            {
-                exp=ExpPID.calc_pid(exp,msvError);
-                setExposure(exp);
-                setProps(EXP);
-            }
-            else
-            {
-                gain=GainPID.calc_pid(gain,msvError);
-                setGain(gain);
-                setProps(GAI);
+        else if(gain>=(getGainMax()-getGainMax()/4)){
+               shu=ShuPID->calc_pid(shu,msvError);
+               setShutter(shu);
+               setProps(SHU);
+	       setGain(0);
+               setProps(GAI);
             }
 
-        }
+        else{
+               gain=GainPID->calc_pid(gain,msvError);
+               setGain(gain);
+               setProps(GAI);
+            }
     }
-    if(msv>101 && msv<152)
+    else times++;
+
+    if(msv>107 && msv<153 &&(times>=4 || changed==false))
     {
+        times=0;
         calcSatHistogram();
         msvError=127-calcMean();
-        if(msvError>minError || msvError<minError)
+        if(msvError>minError_Sat || msvError<(-minError_Sat))
         {
             changed=true;
-            sat=SatPID.calc_pid(sat,msvError);
+            sat=SatPID->calc_pid(sat,msvError);
             setSaturation(sat);
             setProps(SAT);
         }
 
-        if(uvMean[0]>minError || uvMean[0]<(-minError) || uvMean[1]>minError || uvMean[1]<(-minError))
+	Scalar rgbMean=averageRGB();
+	Scalar uvMean=averageUV();
+	if(uvMean[0]>minError_UV_1 || uvMean[0]<minError_UV_2 || uvMean[1]>minError_UV_1 || uvMean[1]<minError_UV_2)
         {
             changed=true;
-            wblue=wBluePID.calc_pid(wblue,minError-uvMean[0]);
-            wred=wRedPID.calc_pid(wred,minError-uvMean[1]);
-            setWhite_Balance(wred,wblue);
+            msvError = 127-uvMean[0];
+            float msvError_2 = 127-uvMean[1];
+			wblue=wBluePID->calc_pid(wblue,msvError);
+			wred=wRedPID->calc_pid(wred,msvError_2);
+            setWhite_Balance_valueA(wred);
+            setWhite_Balance_valueB(wblue);
             setProps(WB);
         }
-        float temp=-100;
-        if(rgbMean[0]>minError || rgbMean[1]>minError || rgbMean[2]>minError)
+
+        if(rgbMean[0]>minError_RGB || rgbMean[1]>minError_RGB || rgbMean[2]>minError_RGB)
         {
             changed=true;
+            float temp3=0;
             for(int i=0;i<3;i++){
-                if(temp<rgbMean[i])temp=rgbMean[i];
+                if(temp3<rgbMean[i])temp3=rgbMean[i];
             }
-            brig=BrigPID.calc_pid(brig,temp);
+            brig=BrigPID->calc_pid(brig,temp3);
             setBrigtness(brig);
             setProps(BRI);
         }
     }
-
     return changed;
 }
 
 
+///
+/// \brief Function responsible for setting PID controler of Properties
+/// to the respective property object
+///
+void BlackflyCam::setPropControlPID(int id, float p, float i, float d, bool blue)
+{
+	if(id<=5 && id>=0){
+		if(id==0)BrigPID->setPIDValues(p,i,d);
+		if(id==1)GainPID->setPIDValues(p,i,d);
+		if(id==2)ShuPID->setPIDValues(p,i,d);
+		if(id==3)GammaPID->setPIDValues(p,i,d);
+		if(id==4)SatPID->setPIDValues(p,i,d);
+		if(id==5 && blue==true)wBluePID->setPIDValues(p,i,d);
+			else if(id==5)wRedPID->setPIDValues(p,i,d);
+	firsttime=true;
+	writePIDConfig();
+	}
+	else ROS_ERROR("Property ID Out Of Range");
+}
 
+///
+/// \brief Initializes PID controler of Properties readed from a file
+///
+
+bool BlackflyCam::initPidValues()
+{
+    float pid_conf[21];
+
+    QString home = QString::fromStdString(getenv("HOME"));
+    QString cfgDir = home+QString(CONFIGFOLDERPATH);
+
+    pidPath = cfgDir+"/"+QString(PIDFILENAME);
+
+	QFile file(pidPath);
+	if(!file.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+    int count_list=0;
+    QString line;
+    QTextStream in(&file);
+    QStringList pid_list;
+
+    for(int i=0;i<21;i=i+3){
+		line = in.readLine();
+		pid_list = line.right(line.size()-line.indexOf('=')-1).split(",");
+		pid_conf[i]=pid_list[0].toFloat();
+		pid_conf[i+1]=pid_list[1].toFloat();
+		pid_conf[i+2]=pid_list[2].toFloat();
+		if(pid_list.size()==0)count_list++;
+	}
+
+	//This is to do not read EXPOSSURE VALUES of file
+	line = in.readLine();
+
+	//LEITURA DOS ROIS
+	for(int i=0;i<2;i++){
+		line = in.readLine();
+		pid_list = line.right(line.size()-line.indexOf('=')-1).split(",");
+		if(i==1)roi_black = Rect(pid_list[0].toInt(),pid_list[1].toInt(),pid_list[2].toInt(),pid_list[2].toInt());
+		else roi_white = Rect(pid_list[0].toInt(),pid_list[1].toInt(),pid_list[2].toInt(),pid_list[2].toInt());
+		}
+
+
+
+    file.close();
+
+    if(count_list!=0){
+		ROS_ERROR("Bad Configuration in %s",PIDFILENAME);
+		return false;
+	}
+
+    // Initialization of PID's
+    BrigPID = new PID(pid_conf[0],pid_conf[1],pid_conf[2],getBrigtnessMin(),getBrigtnessMax());
+    GainPID = new PID(pid_conf[3],pid_conf[4],pid_conf[5],getGainMin(),getGainMax());
+    ShuPID = new PID(pid_conf[6],pid_conf[7],pid_conf[8],getExposureMin(),getExposureMax());
+    GammaPID = new PID(pid_conf[9],pid_conf[10],pid_conf[11],getGammaMin(),getGainMax());
+    SatPID = new PID(pid_conf[12],pid_conf[13],pid_conf[14],getSaturationMin(),getSaturationMax());
+    wBluePID = new PID(pid_conf[18],pid_conf[19],pid_conf[20],getWhite_BalanceMin(),getWhite_BalanceMax());
+    wRedPID = new PID(pid_conf[15],pid_conf[16],pid_conf[17],getWhite_BalanceMin(),getWhite_BalanceMax());
+
+    return true;
+}
+
+///
+/// \brief Function responsible for writing file with PID controlers values
+///
+bool BlackflyCam::writePIDConfig()
+{
+	QFile file(pidPath);
+        if(!file.open(QIODevice::WriteOnly)){
+        ROS_ERROR("Error writing to %s.",PIDFILENAME);
+        return false;
+    }
+    QTextStream in(&file);
+
+	in<<"BRIGTNESS="<<BrigPID->getP()<<","<<BrigPID->getI()<<","<<BrigPID->getD()<<"\r\n";
+	in<<"GAIN="<<GainPID->getP()<<","<<GainPID->getI()<<","<<GainPID->getD()<<"\r\n";
+	in<<"SHUTTER="<<ShuPID->getP()<<","<<ShuPID->getI()<<","<<ShuPID->getD()<<"\r\n";
+	in<<"GAMMA="<<GammaPID->getP()<<","<<GammaPID->getI()<<","<<GammaPID->getD()<<"\r\n";
+	in<<"SATURATION="<<SatPID->getP()<<","<<SatPID->getI()<<","<<SatPID->getD()<<"\r\n";
+	in<<"WB_red="<<wRedPID->getP()<<","<<wRedPID->getI()<<","<<wRedPID->getD()<<"\r\n";
+	in<<"WB_blue="<<wBluePID->getP()<<","<<wBluePID->getI()<<","<<wBluePID->getD()<<"\r\n";
+	in<<"EXPOSSURE="<<"0,0,0"<<"\r\n";
+	in<<"WHITE="<<roi_white.x<<","<<roi_white.y<<","<<roi_white.height<<"\r\n";
+	in<<"BLACK="<<roi_black.x<<","<<roi_black.y<<","<<roi_black.height<<"\r\n";
+	QString message = QString("#Property=Kp, Ki, Kd\r\n");
+    in << message;
+    message = QString("#DONT CHANGE THE ORDER OF THE CONFIGURATIONS");
+    in << message;
+    file.close();
+    return true;
+}
+
+///
+/// \brief Returns error of Property being used
+///
+Point2d BlackflyCam::getError(int prop_in_use)
+{
+	Point2d point;
+		if(prop_in_use<=6 && prop_in_use>=0 && calibrate){
+			if(prop_in_use==0){point.x=BrigPID->getError(); point.y=getBrigtness();}
+			if(prop_in_use==1){point.x=GainPID->getError(); point.y=getGain();}
+			if(prop_in_use==2){point.x=GainPID->getError(); point.y=getShuttertime();}
+			if(prop_in_use==3){point.x=GainPID->getError(); point.y=getGamma();}
+			if(prop_in_use==4){point.x=SatPID->getError(); point.y=getSaturation();}
+			if(prop_in_use==5){point.x=wRedPID->getError(); point.y=getWhite_Balance_valueA();}
+			if(prop_in_use==6){point.x=wBluePID->getError(); point.y=getWhite_Balance_valueB();}
+		return point;
+	}
+	else {
+		//ROS_ERROR("Property ID Out Of Range %d",prop_in_use);point.x=0.00;
+		return point;
+	}
+}
+
+void BlackflyCam::setWhiteROI(int x, int y, int h)
+{
+	roi_white.x=x;
+	roi_white.y=y;
+	roi_white.height=roi_white.width=h;
+	writePIDConfig();
+}
+
+void BlackflyCam::setBlackROI(int x, int y, int h)
+{
+	roi_black.x=x;
+	roi_black.y=y;
+	roi_black.height=roi_white.width=h;
+	writePIDConfig();
+}

@@ -12,6 +12,7 @@ struct RLEInfo
     unsigned lengthColorBefore;
     unsigned lengthColor;
     unsigned lengthColorAfter;
+    float x, y;
 
 };
 

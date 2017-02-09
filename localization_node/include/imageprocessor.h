@@ -15,12 +15,22 @@
 #include "minho_team_ros/mirrorConfig.h"
 #include "minho_team_ros/visionHSVConfig.h"
 #include "minho_team_ros/imageConfig.h"
+#include "minho_team_ros/cameraProperty.h"
+#include "minho_team_ros/PID.h"
+#include "minho_team_ros/ROI.h"
 #include <iostream>
+#include <vector>
+#include "Blob.h"
+//#include <QTime>
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
+
 using namespace std;
 using minho_team_ros::mirrorConfig;
 using minho_team_ros::visionHSVConfig;
 using minho_team_ros::imageConfig;
+using minho_team_ros::cameraProperty;
+using minho_team_ros::PID;
+using minho_team_ros::ROI;
 
 class ImageProcessor
 {
@@ -30,6 +40,7 @@ public:
    /* Detection Functions */
    void detectInterestPoints(); // Detects linePoints, ballPoints and obstaclePoints
    void detectBallPosition(); // Given the detected ballRLE find the optimal candidate
+   void creatWorld(int orientation);
 
    /* Image Output Functions */
    Mat *getImage(bool *success); // Returns camera image pointer
@@ -38,6 +49,7 @@ public:
    void getSegmentedImage(Mat *buffer); // Returns buffer's segmented image
    void drawInterestInfo(Mat *buffer);
    void drawWorldInfo(Mat *buffer);
+   void drawScanlines(Mat *buffer);
    void paintPixel(int x, int y, int classifier, Mat *buf); // Paints a certain pixel in the image
    hsv rgbtohsv(rgb in); // Converts rgb to hsv
 
@@ -82,6 +94,10 @@ public:
    bool initializeBasics(int rob_id);
    QString getField();
    inline QString getWorldFileName() { return fieldMapPath;}
+   void drawWorldPoints(Mat *buffer);
+
+   void mapPoints(int robot_heading);
+   Point2d mapPointToRobot(double orientation, Point2d dist_lut);
 
    /* WORLD STATE INFORMATION Buffers */
    vector<Point3d>ballCandidates;
@@ -89,10 +105,26 @@ public:
    vector<Point>obstaclePoints;
    vector<Point>ballCentroids;
    vector<Point>ballPoints;
-   
+
+   vector<Point2d> mappedLinePoints, mappedObstaclePoints, mappedBallPoints;
+   vector<double>  LinePointsWeight;
+
    /* Image Acquisition function pointer */
    imageAcquisitionFunction acquireImage;
-private:    
+
+   /* Camera Calibrations Functions */
+   void setCamPropreties(cameraProperty::ConstPtr msg); // Set Camera Properties
+   vector<float>getCamProperties(); // Vector that contains camera Properties
+   void setPropControlerPID(PID::ConstPtr msg); // Set controler of Camera Properties
+   vector<float> getPropControlerPID(); // Returns Camera Properties value
+   Point2d getPropError(int prop_in_use); // Returns error of property in use
+   vector<ROI> getRois(); //  Returns ROI's in use
+   void setROIs(ROI::ConstPtr msg); // Set ROI's to use
+
+   //Blobs
+   Blob obsBlob, ballBlob;
+
+private:
    /* Camera Driver and parameters*/
    BlackflyCam *omniCamera;
    imageConfig imageConf;
@@ -101,6 +133,7 @@ private:
    Mat original;
    QString staticImgPath;
    Mat element;
+   bool camera;
 
    /*Lut Variables*/
    int YUVLookUpTable[256*256*256];
@@ -118,13 +151,16 @@ private:
    void rleModInitialization(); // Inits RLE Mode sensors and RLE's
    void preProcessIndexedImage(); // Preprocesses image, labeling it for RLE scan
    ScanLines linesRad, linesCir; Mat idxImage;
-   RLE rleBallRad,rleLinesRad,rleObs,rleBallCir,rleLinesCir;
+   RLE rleBallRad,rleLinesRad,rleObs,rleBallCir,rleLinesCir,rleLinesRad_2,rleObs_2;
 
    //ConfigFiles strings
    QString field; QString agent;
    QString mirrorParamsPath, imageParamsPath ,maskPath,lutPath;
    QString fieldMapPath;
    QString imgFolderPath;
+
+   //ROI Variables
+   ROI whiteRoi, blackRoi;
 };
 
 #endif // IMAGEPROCESSOR_H

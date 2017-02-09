@@ -86,6 +86,10 @@ add_message_files(
       visualizerConfig.msg
       pathData.msg
       segment.msg
+      PID.msg
+      cameraProperty.msg
+      ControlerError.msg
+      ROI.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -101,6 +105,9 @@ add_message_files(
    requestImage.srv
    requestExtendedDebug.srv
    requestControlConfig.srv
+   requestCamPID.srv
+   requestCamProperty.srv
+   requestROI.srv
  )
 
 ## Generate actions in the 'action' folder
@@ -265,6 +272,17 @@ else()
    target_compile_features(RLE PRIVATE cxx_range_for)
    target_link_libraries(RLE ${opencv_LIBRARIES})
 
+   ##### libBlob #####
+   ##################
+   add_library(Blob SHARED ${LOCALIZATION_SRC_DIR}/libs/Blob.cpp)
+   set_target_properties( Blob
+       PROPERTIES
+       LIBRARY_OUTPUT_DIRECTORY ${MLIB_DIR}
+   )
+   target_compile_features(Blob PRIVATE cxx_range_for)
+   target_link_libraries(Blob RLE ${opencv_LIBRARIES})
+   add_dependencies(Blob RLE)
+
    ### libGigECam ###
    ##################
    add_library(GigECam SHARED ${LOCALIZATION_SRC_DIR}/libs/blackflycam.cpp ${LOCALIZATION_SRC_DIR}/libs/pid.cpp)
@@ -274,7 +292,7 @@ else()
    )
    target_compile_features(GigECam PRIVATE cxx_range_for)
    target_link_libraries(GigECam ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES})
-   add_dependencies(GigECam RLE)
+   add_dependencies(GigECam RLE Blob)
    ########################################
 
    ######################################################################
@@ -294,7 +312,7 @@ else()
    add_executable(localization_node ${localization_SRC} ${localization_CPP})
    set_target_properties(localization_node PROPERTIES COMPILE_FLAGS "-fPIC")
    target_compile_features(localization_node PRIVATE cxx_range_for)
-   set(minho_LIBRARIES ${MLIB_DIR}/libGigECam.so ${MLIB_DIR}/libRLE.so)
+   set(minho_LIBRARIES ${MLIB_DIR}/libGigECam.so ${MLIB_DIR}/libRLE.so ${MLIB_DIR}/libBlob.so)
    target_link_libraries(localization_node ${catkin_LIBRARIES} ${qt_LIBRARIES} ${opencv_LIBRARIES} ${flycap_LIBRARIES} ${minho_LIBRARIES})
    add_dependencies(localization_node ${PROJECT_NAME}_gencpp GigECam RLE)
    ########################################

@@ -10,12 +10,19 @@
 #include <time.h>
 #include "pid.h"
 #include "ros/ros.h"
+#include <QFile>
+#include <QString>
+#include <QTextStream>
+#include <QStringList>
+#include <QPoint>
+#include "types.h"
 
 using namespace FlyCapture2;
 using namespace cv;
-//using namespace std;
+using namespace std;
 
-enum property_cam{BRI=0,SHU=1,GAI=2,EXP=3,GAM=4,HUE_=5,SAT=6,WB=7};
+enum property_cam{BRI=0,GAI=1,SHU=2,GAM=3,SAT=4,WB=5,EXP=6};
+
 
 class BlackflyCam
 {
@@ -36,6 +43,8 @@ public:
     Mutex *getLockingMutex();
     Mat *getImage();
     float getFPS();
+    inline void toggleCalibrate(){ calibrate = (!calibrate);}
+    inline void toggleFirsttime(){ firsttime = (!firsttime);}
     //#################################### 
     //#################################### 
 
@@ -82,13 +91,7 @@ public:
     void setGammaState(bool state);
     inline float getGammaMax(){ return 3.999;}
     inline float getGammaMin(){ return 0.5;}
-
-    //HUE(-180->179.912)
-    void setHUE(float value);
-    float getHUE();
-    bool getHUEState();
-    void setHUEState(bool state);
-
+    
     //Saturation(0->399.902)
     void setSaturation(float value);
     float getSaturation();
@@ -97,8 +100,10 @@ public:
     inline float getSaturationMax(){ return 399.902;}
     inline float getSaturationMin(){ return 0;}
 
-    //White_Balance(0->1023)os dois
+    //White_Balance(0->1023) both
     void setWhite_Balance(float value,float value2);
+    void setWhite_Balance_valueA(float value);
+    void setWhite_Balance_valueB(float value);
     float getWhite_Balance_valueA();
     float getWhite_Balance_valueB();
     bool getWhite_BalanceState();
@@ -108,6 +113,9 @@ public:
 
     void setProps(int num);
     void initProps();
+    bool writePIDConfig();
+    void setPropControlPID(int id,float p, float i, float d, bool blue);
+    Point2d getError(int prop_in_use);
     //##################################### 
     //##################################### 
     
@@ -120,8 +128,11 @@ public:
     Scalar averageUV();
     bool cameraCalibrate();
     void setRegions();
+    void setWhiteROI(int x, int y, int h);
+    void setBlackROI(int x, int y, int h);
     //###############################
     //###############################
+    
 private:
     //#### CAMERA INTERFACE DATA ####
     //###############################
@@ -131,7 +142,7 @@ private:
     FlyCapture2::Error error;
     Mat *frameBuffer,*buffer;
     Mat holder;
-    bool imageready,newimage,calibrate;
+    bool imageready,newimage,calibrate,firsttime;
     float rowBytes;
     int frameCounter;
     float fps;
@@ -142,7 +153,10 @@ private:
 
     //#### CAMERA PARAMETERS DATA ####
     //################################ 
-    Property props[8];
+    QString pidPath;
+    bool initPidValues();
+    Property props[7];
+    PID *ShuPID,*BrigPID,*SatPID,*GammaPID,*GainPID,*wRedPID,*wBluePID;
     //################################ 
     //################################ 
     
@@ -150,9 +164,11 @@ private:
     //##########################
     Rect roi_black, roi_white;
     float minError;
-    bool firsttime;
     std::vector<int> histvalue;
     Mat image_roi_white,image_roi_black,image;
+    float msvError;
+    int msv;
+    float minError_Lumi,minError_Sat,minError_UV_1,minError_UV_2,minError_RGB;
     //##########################
     //##########################
 };

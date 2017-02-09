@@ -70,7 +70,7 @@ public:
 
 	unsigned getStep();
 
-	void draw(cv::Mat &destination, cv::Scalar color);
+    void draw(cv::Mat &destination, cv::Scalar color);
     void drawLine(int pt1, int pt2, cv::Scalar color, cv::Mat &img);
     void drawCircle(int pt, int radius, cv::Scalar color, cv::Mat &img);
 };

@@ -5,7 +5,7 @@
 /*
 ######### DATA TYPES AND PATHS DEFINITION FOR IMAGEPROCESSOR.H/CPP #########
 ############################################################################
-############################################################################   
+############################################################################
 */
 // DIRECTORY PATHS
 #define IMAGEFOLDERPATH "Images/"
@@ -20,6 +20,7 @@
 #define MASKFILENAME "mask.png"
 #define MAINFILENAME "main.cfg"
 #define CONTROLFILENAME "control.cfg"
+#define PIDFILENAME "pid.cfg"
 
 // LUT DEFINES
 #define LUT_SIZE 256*256*256
@@ -45,23 +46,30 @@ enum UAV_COLORS_BIT {UAV_ORANGE_BIT = 32, UAV_BLACK_BIT = 4, UAV_GREEN_BIT = 16,
 typedef enum LABEL_t {FIELD = 0, LINE, BALL, OBSTACLE} LABEL_t;
 typedef enum COMPONENT_t { H = 0, S, V} COMPONENT_t;
 typedef enum RANGE_t {MIN = 0, MAX} RANGE_t;
+typedef enum SortMethod{SORT_BY_DISTANCE=0, SORT_BY_SIZE} SortMethod;
+typedef enum BlobType{OBS_BLOB=0, BALL_BLOB} BlobType;
 
 /*
 ############################################################################
-############################################################################   
+############################################################################
 */
 
 /*
 ########## DATA TYPES AND PATHS DEFINITION FOR LOCALIZATION.H/CPP ##########
 ############################################################################
-############################################################################   
+############################################################################
 */
+#define IMG_SIZE 480
+
 #define IMG_RAW 0x01
 #define IMG_SEG 0x02
 #define IMG_INT 0x04
 #define IMG_WRL 0x08
 
-//########## ROBOT PHYSICAL PROPERTIES ########## 
+#define HIST_SIZE 300.0
+#define HIST_ANG 20
+
+//########## ROBOT PHYSICAL PROPERTIES ##########
 //###############################################
 #define WHEELDIAMETER 0.1
 #define DELTA_T 0.022  //20ms
@@ -74,6 +82,7 @@ typedef enum RANGE_t {MIN = 0, MAX} RANGE_t;
 #define THETA_ 1.0471976
 #define SINT 0.866
 #define KWHEELS ((M_PI*WHEELDIAMETER)/(CPR*DELTA_T))
+#define RROBOT 0.25
 //###############################################
 //###############################################
 typedef struct localizationEstimate// Estimate of localization (vision, odometry, etc)
@@ -123,9 +132,9 @@ typedef struct field// Current field definitions
 
 typedef struct nodo //World Map point of view
 {
-    float x;
-    float y;
-    float closestDistance;
+    double x;
+    double y;
+    double closestDistance;
     Vec2 gradient;
 }nodo;
 
@@ -155,7 +164,6 @@ typedef union fieldDimensions{
 
 /*
 ############################################################################
-############################################################################   
+############################################################################
 */
 #endif // TYPES
-
