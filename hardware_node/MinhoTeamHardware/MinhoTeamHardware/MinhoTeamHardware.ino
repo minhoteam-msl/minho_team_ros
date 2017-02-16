@@ -1,3 +1,4 @@
+
 // ##### INCLUDES #####
 // ####################
 #include <StandardCplusplus.h>
@@ -6,11 +7,11 @@
 #include <vector>
 #include <ros.h>
 #include <Wire.h>    //required by Omni3MD.cpp
-#include <Omni3MD.h>
 #include <TimerOne.h>
 #include <Servo.h> 
 #include <EEPROM.h>
 // ####################
+#include <Omni3MD.h>
 
 // ##### ROS MSG INCLUDES #####
 // ############################

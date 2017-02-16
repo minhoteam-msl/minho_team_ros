@@ -5,3 +5,6 @@ float32 I
 float32 D
 bool send_voronoi
 bool send_path
+float32 acceleration
+float32 deceleration
+bool send_smooth_path
