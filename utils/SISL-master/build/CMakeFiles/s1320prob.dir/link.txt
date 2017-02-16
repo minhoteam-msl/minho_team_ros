@@ -1,0 +1,1 @@
+/usr/bin/c++      CMakeFiles/s1320prob.dir/app/s1320prob.C.o  -o s1320prob -rdynamic libsisl.a -lm 

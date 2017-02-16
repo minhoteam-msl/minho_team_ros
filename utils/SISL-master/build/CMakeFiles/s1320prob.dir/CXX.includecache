@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/sisl.h
+
+/home/pedro/SISL-master/app/s1320prob.C
+sisl.h
+/home/pedro/SISL-master/app/sisl.h
+cmath
+-
+stdlib.h
+-
+iostream
+-
+
