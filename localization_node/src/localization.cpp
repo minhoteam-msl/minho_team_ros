@@ -3,8 +3,8 @@
 Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success, bool use_camera, QObject *parent) : QObject(parent)
 {
    initVariables();
-   //if(!use_camera) is_hardware_ready = true; // for test purposes
-   is_hardware_ready = true;
+   if(!use_camera) is_hardware_ready = true; // for test purposes
+   else is_hardware_ready = false;
    //#### Initialize major components ####
    //#####################################
    bool correct_initialization = true;
@@ -75,9 +75,11 @@ void Localization::discoverWorldModel() // Main Function
    // Localization code
    if(have_image && is_hardware_ready){
       //current_hardware_state.imu_value = 0;
-      if(reloc)last_state.robot_pose.z = current_hardware_state.imu_value;
+      if(reloc){last_state.robot_pose.z = current_hardware_state.imu_value;
+      ROS_INFO("Reloc Angle: %d",current_hardware_state.imu_value);
+      }
       processor->detectInterestPoints();
-      calcHistOrientation();
+//      calcHistOrientation();
       //loctime.start();
       processor->creatWorld(current_state.robot_pose.z);
       //std::cerr << "Tempo localização:  " << double(loctime.elapsed())<<endl;

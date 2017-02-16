@@ -34,7 +34,9 @@ void Blob::relocBlobs(int orientation)
 		UMblobs[i].dist_to_robot = sqrt((UMblobs[i].center.x * UMblobs[i].center.x) + (UMblobs[i].center.y * UMblobs[i].center.y));
 		UMblobs[i].dist_to_robot += UMblobs[i].radius_id;
 		ang = atan2(UMblobs[i].center.y, UMblobs[i].center.x)*(180.0/M_PI);
-		UMblobs[i].center = mapPointToRobot(orientation, Point2d(UMblobs[i].dist_to_robot,ang));
+		while(ang>360)ang-=360;
+		while(ang<0)ang+=360;
+		UMblobs[i].center = mapPointToRobot(0, Point2d(UMblobs[i].dist_to_robot,ang));
 	}
 }
 void Blob::filterBlobs(int num, BlobType blobType)
