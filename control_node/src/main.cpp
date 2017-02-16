@@ -1,6 +1,18 @@
 //
 #include "behavior.h"
 
+//Network includes for getRobotIdByIP()
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+#include <signal.h>
+#include <errno.h>
+#include <sys/ioctl.h>
+#include <linux/if.h>
+#include <unistd.h>
+#include <linux/if_ether.h>
 
 /// \brief main worker thread
 pthread_t worker_thread;
@@ -23,6 +35,7 @@ pthread_mutex_t condition_mutex = PTHREAD_MUTEX_INITIALIZER;
 #define DATA_UPDATE_HZ 30
 #define DATA_UPDATE_USEC 1000000/DATA_UPDATE_HZ
 
+int getRobotIdByIP();
 
 //
 static void syncronizeThread(int signal)
@@ -66,7 +79,9 @@ int main(int argc, char **argv)
          exit(3);
       }
     }
-
+    
+    robot_id = getRobotIdByIP();
+    if(robot_id<0) { robot_id = 1; ROS_ERROR("Error in Robot ID by IP address ... Defaulting to 1."); }
     ROS_WARN("Attempting to start control services of control_node.");
     stringstream node_name;
     stringstream topic_base_name;
@@ -107,4 +122,39 @@ int main(int argc, char **argv)
 
     pthread_join(worker_thread, NULL);
     return 0;
+}
+
+int getRobotIdByIP()
+{
+   int	fd;
+	struct ifreq if_info;
+	int if_index;
+   std::string ifname = "wlan0";
+	memset(&if_info, 0, sizeof(if_info));
+	strncpy(if_info.ifr_name, ifname.c_str(), IFNAMSIZ-1);
+
+	if ((fd=socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+	{
+		ROS_ERROR("Error getting UDP socket");
+		return -1;
+	}
+	if (ioctl(fd, SIOCGIFINDEX, &if_info) == -1)
+	{
+		ROS_ERROR("Error sending IOCTL 1");
+		close(fd);
+		return -1;
+	}
+	if_index = if_info.ifr_ifindex;
+
+	if (ioctl(fd, SIOCGIFADDR, &if_info) == -1)
+	{
+		ROS_ERROR("Error sending IOCTL 2");
+		close(fd);
+		return -1;
+	}
+	
+	close(fd);
+	int id = if_info.ifr_hwaddr.sa_data[5];
+   if(id<1 || id>5) id = -1;
+   return id;
 }

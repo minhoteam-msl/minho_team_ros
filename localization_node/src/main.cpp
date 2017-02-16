@@ -46,6 +46,7 @@ int main(int argc, char **argv)
 	int robot_id = 1;
 	// Scan ip address for 
 	robot_id = getRobotIdByIP();
+
 	if(robot_id<0) { robot_id = 1; ROS_ERROR("Error in Robot ID by IP address ... Defaulting to 1."); }
 	localization = new Localization(robot_id,&localization_node,&correct_initialization,use_camera);
 	if(!correct_initialization) { ROS_ERROR("Killing node on incorrect initialization ..."); ros::shutdown(); a.exit(0); return 0; }
