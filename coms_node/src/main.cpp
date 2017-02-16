@@ -6,6 +6,7 @@
 #include "minho_team_ros/goalKeeperInfo.h"
 #include "minho_team_ros/interAgentInfo.h"
 #include "minho_team_ros/position.h"
+#include "minho_team_ros/baseStationInfo.h"
 #include <iostream>
 #include <string.h>
 #include <sstream>
@@ -41,6 +42,7 @@ using minho_team_ros::hardwareInfo; //Namespace for hardwareInfo msg - SUBSCRIBI
 using minho_team_ros::robotInfo; //Namespace for robotInfo msg - SUBSCRIBING
 using minho_team_ros::goalKeeperInfo; //Namespace for goalKeeperInfo msg - SUBSCRIBING
 using minho_team_ros::interAgentInfo; //Namespace for interAgentInfo msg - SENDING OVER UDP/SUBSCRIBING OVER UDP
+using minho_team_ros::baseStationInfo; //Namespace for baseStationInfo msg - SENDING OVER UDP/SUBSCRIBING OVER UDP
 
 // ###### GLOBAL DATA ######
 // \brief subscriber for hardwareInfo message
@@ -243,6 +245,7 @@ int main(int argc, char **argv)
 	robot_topic_name << "/robotInfo";
 	gk_topic_name << "/goalKeeperInfo";
 	std::string relay_topic_name = "/interAgentInfo";
+   std::string relay_topic_name_bs = "/baseStationInfo";
 	   
 	
 	hw_sub = coms_node.subscribe(hw_topic_name.str().c_str(),
@@ -260,8 +263,8 @@ int main(int argc, char **argv)
    }
    // for base station agent (NUM_ROBOT_AGENTS+1) -> NUM_ROBOT_AGENTS
    std::stringstream rl_agent_topic;
-   rl_agent_topic << base_relay_topic.str() << "/basestation" << relay_topic_name;
-   publishers[NUM_ROBOT_AGENTS] = coms_node.advertise<interAgentInfo>(rl_agent_topic.str().c_str(),1);
+   rl_agent_topic << base_relay_topic.str() << "/basestation" << relay_topic_name_bs;
+   publishers[NUM_ROBOT_AGENTS] = coms_node.advertise<baseStationInfo>(rl_agent_topic.str().c_str(),1);
 	                             
    // #########################
    
@@ -438,17 +441,33 @@ void processReceivedData(void *packet)
 {
    if(!_thrun) return;
    // deserialize message
-   interAgentInfo incoming_data;
-   deserializeROSMessage<interAgentInfo>((udp_packet *)packet,&incoming_data); 
-   delete((udp_packet *)packet);
-   if(incoming_data.agent_id==agent_id) return;
-   // Publish to matching topic
-   if(incoming_data.agent_id>=1 && incoming_data.agent_id<=TOTAL_AGENTS){
-      pthread_mutex_lock(&publishers_mutex); //Lock mutex
-      if(num_subscribers[incoming_data.agent_id-1]>0){
-         publishers[incoming_data.agent_id-1].publish(incoming_data);
+   udp_packet *temp = (udp_packet *)packet; 
+   if(temp->packet_size<20){ //comes from basestation
+      baseStationInfo incoming_data;
+      deserializeROSMessage<baseStationInfo>((udp_packet *)packet,&incoming_data); 
+      delete((udp_packet *)packet);
+      if(incoming_data.agent_id==agent_id) return;
+      // Publish to matching topic
+      if(incoming_data.agent_id>=1 && incoming_data.agent_id<=TOTAL_AGENTS){
+         pthread_mutex_lock(&publishers_mutex); //Lock mutex
+         if(num_subscribers[incoming_data.agent_id-1]>0){
+            publishers[incoming_data.agent_id-1].publish(incoming_data);
+         }
+         pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
       }
-      pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
+   } else {
+      interAgentInfo incoming_data;
+      deserializeROSMessage<interAgentInfo>((udp_packet *)packet,&incoming_data); 
+      delete((udp_packet *)packet);
+      if(incoming_data.agent_id==agent_id) return;
+      // Publish to matching topic
+      if(incoming_data.agent_id>=1 && incoming_data.agent_id<=TOTAL_AGENTS){
+         pthread_mutex_lock(&publishers_mutex); //Lock mutex
+         if(num_subscribers[incoming_data.agent_id-1]>0){
+            publishers[incoming_data.agent_id-1].publish(incoming_data);
+         }
+         pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
+      }
    }
    return;
            

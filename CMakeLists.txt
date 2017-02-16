@@ -90,6 +90,7 @@ add_message_files(
       cameraProperty.msg
       ControlerError.msg
       ROI.msg
+      baseStationInfo.msg
 )
 
 ## Generate services in the 'srv' folder
