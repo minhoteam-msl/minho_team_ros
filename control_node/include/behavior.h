@@ -19,6 +19,7 @@
 #include "voronoi.h"
 #include "dijkstrashortestpath.h"
 #include "motion.h"
+#include "role.h"
 
 
 //
@@ -42,7 +43,7 @@ private:
    bool readControlParameters();
    bool writeControlParameters();
    void goToPosition1(robotInfo robot, aiInfo ai, controlConfig cconfig);
-   void goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig);
+   void goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, int max_vel);
 
    /// \brief pointer to parent ros node
    ros::NodeHandle *parent;

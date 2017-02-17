@@ -192,27 +192,23 @@ void Behavior::doWork()
     /// \brief Actions : 0 - STOP | 1 - GO_TO_POSITION | 2 - KICK_PASS | 3 - ENGAGE_BALL
 
     switch(ai_info_copy.action) {
-    case 0: { // action = STOP
-        control_info.linear_velocity = control_info.angular_velocity = 0;
-    } break;
+       case aSTOP: {
+           control_info.linear_velocity = control_info.angular_velocity = 0;
+       } break;
 
-    case 1: { // action = GO_TO_POSITION
-        //goToPosition1(robot_info_copy, ai_info_copy, control_config_copy);
-        goToPosition2(robot_info_copy, ai_info_copy, control_config_copy);
+       case aSLOWMOVE: {
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,30);
 
-    } break;
+       } break;
 
-    case 2: { // action = KICK_PASS
+       case aFASTMOVE: {
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,50);
 
-    } break;
+       } break;
 
-    case 3: { // action = ENGAGE_BALL
-
-    } break;
-
-    default: {
-        control_info.linear_velocity = control_info.angular_velocity = 0;
-    } break;
+       default: {
+           control_info.linear_velocity = control_info.angular_velocity = 0;
+       } break;
     }
 
     path_data_pub.publish(path_data);
@@ -235,7 +231,7 @@ void Behavior::goToPosition1(robotInfo robot, aiInfo ai, controlConfig cconfig)
 }
 
 //
-void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig)
+void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, int max_vel)
 {
     int target_angle = 0;
     float x_min = 0.0;
@@ -269,70 +265,6 @@ void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig)
 
     }
     else {
-        control_info.linear_velocity = 50;
+        control_info.linear_velocity = max_vel;
     }
 }
-
-
-
-/*double t1,t2,t3,t4;
-
-dijkstra_path->teste_circle_intersection_line(Point(robot.ball_position.x, robot.ball_position.y), Point(robot.robot_pose.x, robot.robot_pose.y)
-                               , Point(0.0,0.0));
-
-    if(cconfig.send_voronoi){
-        timer_work.start();
-        voronoi->insertObstacles(robot);
-
-        path_data.voronoi.clear();
-
-        voronoi->cutVoronoiDiagram_FieldLimits();
-//t1 = timer_work.nsecsElapsed()/1000000.0; cout<<"timer1: "<<t1<<endl;
-
-
-//t2 = timer_work.nsecsElapsed()/1000000.0; cout<<"timer2: "<<t2-t1<<endl;
-
-
-//t3 = timer_work.nsecsElapsed()/1000000.0; cout<<"timer3: "<<t3-t2<<endl;
-
-        dijkstra_path->Test1(Point(robot.robot_pose.x, -robot.robot_pose.y), Point(robot.ball_position.x, -robot.ball_position.y));
-
-        if(cconfig.send_smooth_path) {
-            dijkstra_path->dijkstra_SmoothPath();
-            path_data.smooth_path = dijkstra_path->getSmoothPath_SendVisualizer();
-
-            int angle = fundamental->cartesian2polar_angleDeg_halfCircle(robot_info.robot_pose.x, robot_info.robot_pose.y, dijkstra_path->nextpoint_x,
-                                                               dijkstra_path->nextpoint_y);
-
-            control.angular_velocity = motion->angularVelocity(angle, robot, cconfig);
-
-            control.linear_velocity = 20;
-        }
-        else
-            path_data.smooth_path.clear();
-
-//t4 = timer_work.nsecsElapsed()/1000000.0; cout<<"timer4: "<<t4-t3<<endl;
-
-        path_data.voronoi = voronoi->getSegments_SendVisualizer();
-    }
-    else
-        path_data.voronoi.clear();
-
-
-    if(cconfig.send_path) {
-        path_data.path.clear();
-
-        path_data.path = dijkstra_path->getPath_SendVisualizer();
-
-    }
-    else
-        path_data.path.clear();
-
-double tt = timer_work.nsecsElapsed()/1000000.0; cout<<"timert: "<<tt<<endl<<endl;
-
-    voronoi->clearVoronoi();
-    dijkstra_path->clearDijkstraPath();
-
-
-    }
-*/

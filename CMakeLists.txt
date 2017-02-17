@@ -25,6 +25,9 @@ else()
 	cv_bridge
 	image_transport
    )
+
+   find_package(ignition-math2 REQUIRED)
+   include_directories(/usr/include/ignition/math2)
 endif()
 
 
@@ -342,6 +345,19 @@ else()
    target_compile_features(control_node PRIVATE cxx_range_for)
    target_link_libraries(control_node ${catkin_LIBRARIES} ${qt_LIBRARIES} ${cgal_LIBRARIES} libsisl.a)
    add_dependencies(control_node ${PROJECT_NAME}_gencpp)
+   ########################################
+
+   ############# AI NODE #############
+   ###################################
+   include_directories(/usr/local/include)
+   link_directories(/usr/local/lib)
+   set(AI_DIR ${PROJECT_DIRECTORY}/ai_node)
+   include_directories(${PROJECT_DIRECTORY}/ai_node/include)
+   add_executable(ai_node ${AI_DIR}/src/main.cpp ${AI_DIR}/src/ai.cpp ${AI_DIR}/src/role.cpp ${AI_DIR}/src/rstop.cpp ${AI_DIR}/src/rgkeeper.cpp)
+   set_target_properties(ai_node PROPERTIES COMPILE_FLAGS "-fPIC")
+   target_compile_features(ai_node PRIVATE cxx_range_for)
+   target_link_libraries(ai_node ${catkin_LIBRARIES} ${IGNITION-MATH_LIBRARIES})
+   add_dependencies(ai_node ${PROJECT_NAME}_gencpp)
    ########################################
 endif()
 

@@ -80,8 +80,10 @@ int main(int argc, char **argv)
       }
     }
     
-    robot_id = getRobotIdByIP();
-    if(robot_id<0) { robot_id = 1; ROS_ERROR("Error in Robot ID by IP address ... Defaulting to 1."); }
+    if(mode_real){
+      robot_id = getRobotIdByIP();
+      if(robot_id<0) { robot_id = 1; ROS_ERROR("Error in Robot ID by IP address ... Defaulting to 1."); }
+    }
     ROS_WARN("Attempting to start control services of control_node.");
     stringstream node_name;
     stringstream topic_base_name;
