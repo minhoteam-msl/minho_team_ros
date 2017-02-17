@@ -104,6 +104,11 @@ int main(int argc, char **argv)
    //Request node handler
    ros::NodeHandle ai_node;
    ai = new AI(&ai_node,mode_real, robot_id);
+   if(!ai->initGameField()) { 
+      ROS_ERROR("Failed to initialize field.view.");
+      return 0;
+   }
+   
 
    ROS_WARN("MinhoTeam ai_node started running on ROS.");
    ros::AsyncSpinner spinner(2);

@@ -20,7 +20,7 @@
 #include "minho_team_ros/requestCamPID.h"
 #include "minho_team_ros/requestROI.h"
 #include "minho_team_ros/ROI.h"
-#include "types.h"
+#include "Utils/types.h"
 #include "ros/topic_manager.h"
 #include <QTime>
 #include <vector>

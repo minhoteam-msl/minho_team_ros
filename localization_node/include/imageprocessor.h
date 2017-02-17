@@ -1,16 +1,11 @@
 #ifndef IMAGEPROCESSOR_H
 #define IMAGEPROCESSOR_H
 
-#include <QFile>
-#include <QString>
-#include <QTextStream>
-#include <QStringList>
 #include "kmeans.h"
 #include "RLE.h"
 #include "ScanLines.h"
 #include "Vec.h"
 #include "blackflycam.h"
-#include "types.h"
 #include "ros/ros.h"
 #include "minho_team_ros/mirrorConfig.h"
 #include "minho_team_ros/visionHSVConfig.h"
@@ -18,10 +13,9 @@
 #include "minho_team_ros/cameraProperty.h"
 #include "minho_team_ros/PID.h"
 #include "minho_team_ros/ROI.h"
-#include <iostream>
-#include <vector>
 #include "Blob.h"
-//#include <QTime>
+
+
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
 
 using namespace std;

@@ -13,6 +13,7 @@ public:
    virtual void determineAction();
    virtual void computeAction(aiInfo *ai);
    virtual std::string getActiveRoleName();
+   virtual void setField(fieldDimensions fd);
 };
 
 #endif

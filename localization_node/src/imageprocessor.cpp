@@ -139,8 +139,10 @@ bool ImageProcessor::initWorldMapping()
 bool ImageProcessor::initializeBasics(int rob_id)
 {
     QString home = QString::fromStdString(getenv("HOME"));
-    QString cfgDir = home+QString(CONFIGFOLDERPATH);
-    QString mainFile = cfgDir+"/"+QString(MAINFILENAME);
+    QString commonDir = home+QString(COMMON_PATH);
+    QString cfgDir = commonDir+QString(LOC_CFG_PATH);
+    QString fieldsDir = commonDir+QString(FIELDS_PATH);
+    QString mainFile = commonDir+QString(MAINFILENAME);
 
     QFile file(mainFile);
     if(!file.open(QIODevice::ReadOnly)) {
@@ -151,12 +153,12 @@ bool ImageProcessor::initializeBasics(int rob_id)
     agent = "Robot"+QString::number(rob_id);
     field = in.readLine();
 
-    imgFolderPath = cfgDir+QString(IMAGEFOLDERPATH);
+    imgFolderPath = commonDir+QString(IMAGES_PATH);
     mirrorParamsPath = cfgDir+agent+"/"+QString(MIRRORFILENAME);
     imageParamsPath = cfgDir+agent+"/"+QString(IMAGEFILENAME);
     lutPath = cfgDir+agent+"/"+QString(LUTFILENAME);
     maskPath = cfgDir+agent+"/"+QString(MASKFILENAME);
-    fieldMapPath = cfgDir+QString(FIELDSFOLDERPATH)+field+".map";
+    fieldMapPath = fieldsDir+field+".map";
 
     ROS_INFO("System Configuration : %s in %s Field",agent.toStdString().c_str(),
     field.toStdString().c_str());
@@ -993,13 +995,13 @@ vector<float> ImageProcessor::getPropControlerPID()
     vector<float> pid_conf(21);
 
     QString home = QString::fromStdString(getenv("HOME"));
-    QString cfgDir = home+QString(CONFIGFOLDERPATH);
-
+    QString commonDir = home+QString(COMMON_PATH);
+    QString cfgDir = commonDir+QString(LOC_CFG_PATH);
     QString pidPath = cfgDir+QString(PIDFILENAME);
 
 	QFile file(pidPath);
 	if(!file.open(QIODevice::ReadOnly)) {
-        ROS_ERROR("ERROR READING pid.cfg FILE");
+        ROS_ERROR("ERROR READING %s FILE",PIDFILENAME);
     }
 
     int count_list=0;

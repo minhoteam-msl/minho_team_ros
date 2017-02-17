@@ -25,3 +25,8 @@ std::string RoleStop::getActiveRoleName()
 {
    return std::string("rSTOP");
 }
+
+void RoleStop::setField(fieldDimensions fd)
+{  
+   field = fd;
+}

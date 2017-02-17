@@ -50,6 +50,7 @@ void AI::computeAI()
    // Update my role
    if(bsInfo.roles[agent_id-1]!=role->getActiveRole()){
       getNewRole((Roles)bsInfo.roles[agent_id-1],&role);
+      role->setField(field);
    }
    
    // Determine action
@@ -97,4 +98,45 @@ void AI::getNewRole(Roles role, Role **newrole)
       default: (*newrole) = new RoleStop();
                return;
    }
+}
+
+bool AI::initGameField()
+{
+    QString home = QString::fromStdString(getenv("HOME"));
+    QString commonDir = home+QString(COMMON_PATH);
+    QString fieldsDir = commonDir+QString(FIELDS_PATH);
+    QString mainFile = commonDir+QString(MAINFILENAME);
+
+    QFile file(mainFile);
+    if(!file.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+    QTextStream in(&file);
+
+    QString agent = "Robot"+QString::number(agent_id);
+    QString fieldname = in.readLine();
+    QString fieldPath = fieldsDir+fieldname+".view";
+
+    ROS_INFO("System Configuration : %s in %s Field",agent.toStdString().c_str(),
+    fieldname.toStdString().c_str());
+    ROS_INFO("Looking for config files in %s",commonDir.toStdString().c_str());
+
+    file.close();
+
+    QFile file2(fieldPath);
+    if(!file2.open(QIODevice::ReadOnly)) {
+        ROS_ERROR("Error reading %s",fieldPath.toStdString().c_str());
+        return false;
+    }
+    QTextStream in2(&file2);
+
+    QString value; int counter = 0;
+    while(!in2.atEnd()){
+       value = in2.readLine();
+       field.dimensions[counter] = value.right(value.size()-value.indexOf('=')-1).toInt();
+       counter++;
+    } 
+
+   file2.close();
+   return true;
 }

@@ -25,9 +25,6 @@ else()
 	cv_bridge
 	image_transport
    )
-
-   find_package(ignition-math2 REQUIRED)
-   include_directories(/usr/include/ignition/math2)
 endif()
 
 
@@ -252,6 +249,9 @@ else()
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -frounding-math")
    ########################################
 
+   find_package(ignition-math2 REQUIRED)
+   include_directories(/usr/include/ignition/math2)
+   include_directories($ENV{HOME}/Common)
    ######################################################################
 
 
@@ -356,7 +356,7 @@ else()
    add_executable(ai_node ${AI_DIR}/src/main.cpp ${AI_DIR}/src/ai.cpp ${AI_DIR}/src/role.cpp ${AI_DIR}/src/rstop.cpp ${AI_DIR}/src/rgkeeper.cpp)
    set_target_properties(ai_node PROPERTIES COMPILE_FLAGS "-fPIC")
    target_compile_features(ai_node PRIVATE cxx_range_for)
-   target_link_libraries(ai_node ${catkin_LIBRARIES} ${IGNITION-MATH_LIBRARIES})
+   target_link_libraries(ai_node ${catkin_LIBRARIES} ${IGNITION-MATH_LIBRARIES} ${qt_LIBRARIES})
    add_dependencies(ai_node ${PROJECT_NAME}_gencpp)
    ########################################
 endif()

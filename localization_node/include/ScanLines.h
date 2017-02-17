@@ -6,7 +6,7 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <math.h>
-#include "types.h"
+#include "Utils/types.h"
 
 using namespace cv;
 class ScanLines

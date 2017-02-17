@@ -699,7 +699,8 @@ bool BlackflyCam::initPidValues()
     float pid_conf[21];
 
     QString home = QString::fromStdString(getenv("HOME"));
-    QString cfgDir = home+QString(CONFIGFOLDERPATH);
+    QString commonDir = home+QString(COMMON_PATH);
+    QString cfgDir = commonDir+QString(LOC_CFG_PATH);
 
     pidPath = cfgDir+"/"+QString(PIDFILENAME);
 

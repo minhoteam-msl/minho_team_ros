@@ -1,18 +1,5 @@
-//
 #include "behavior.h"
-
-//Network includes for getRobotIdByIP()
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <string.h>
-#include <stdio.h>
-#include <signal.h>
-#include <errno.h>
-#include <sys/ioctl.h>
-#include <linux/if.h>
-#include <unistd.h>
-#include <linux/if_ether.h>
+#include "Utils/getIP.h"
 
 /// \brief main worker thread
 pthread_t worker_thread;
@@ -34,8 +21,6 @@ pthread_mutex_t condition_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define DATA_UPDATE_HZ 30
 #define DATA_UPDATE_USEC 1000000/DATA_UPDATE_HZ
-
-int getRobotIdByIP();
 
 //
 static void syncronizeThread(int signal)
@@ -60,8 +45,8 @@ void* doWork(void*)
 //
 int main(int argc, char **argv)
 {
-    if((argc>1 && argc!=3) && (argc>1 && argc!=2)) {
-      ROS_ERROR("Must enter robot id and mode as parameter for the simulated robot.\n Please use -s for simulation, followed by the robot's ID. Flag -m to run Matlab UDP bridge [-m or -sm]. [1]");
+    if((argc>1 && argc!=3)) {
+      ROS_ERROR("Must enter robot id and mode as parameter for the simulated robot.\n");
       exit(1);
     }
 
@@ -71,17 +56,17 @@ int main(int argc, char **argv)
       robot_id = atoi(argv[2]);
       if(robot_id<1 || robot_id>5){
          ROS_ERROR("Must enter robot id correctly. Robot id's range from 1 to 5.");
-         exit(2);
+         exit(2);     
       }
       if(!strcmp(argv[1],"-s")) mode_real = false;
-      else {
+      else { 
          ROS_ERROR("Must enter mode correctly. Please use -s for simulation.");
-         exit(3);
+         exit(3); 
       }
-    }
+   }
     
     if(mode_real){
-      robot_id = getRobotIdByIP();
+      robot_id = getRobotIdByIP(std::string("wlan0"));
       if(robot_id<0) { robot_id = 1; ROS_ERROR("Error in Robot ID by IP address ... Defaulting to 1."); }
     }
     ROS_WARN("Attempting to start control services of control_node.");
@@ -124,39 +109,4 @@ int main(int argc, char **argv)
 
     pthread_join(worker_thread, NULL);
     return 0;
-}
-
-int getRobotIdByIP()
-{
-   int	fd;
-	struct ifreq if_info;
-	int if_index;
-   std::string ifname = "wlan0";
-	memset(&if_info, 0, sizeof(if_info));
-	strncpy(if_info.ifr_name, ifname.c_str(), IFNAMSIZ-1);
-
-	if ((fd=socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-	{
-		ROS_ERROR("Error getting UDP socket");
-		return -1;
-	}
-	if (ioctl(fd, SIOCGIFINDEX, &if_info) == -1)
-	{
-		ROS_ERROR("Error sending IOCTL 1");
-		close(fd);
-		return -1;
-	}
-	if_index = if_info.ifr_ifindex;
-
-	if (ioctl(fd, SIOCGIFADDR, &if_info) == -1)
-	{
-		ROS_ERROR("Error sending IOCTL 2");
-		close(fd);
-		return -1;
-	}
-	
-	close(fd);
-	int id = if_info.ifr_hwaddr.sa_data[5];
-   if(id<1 || id>5) id = -1;
-   return id;
 }

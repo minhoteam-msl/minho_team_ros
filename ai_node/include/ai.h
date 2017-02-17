@@ -21,6 +21,9 @@
 #include <minho_team_ros/baseStationInfo.h>
 #include <minho_team_ros/robotInfo.h>
 #include <minho_team_ros/aiInfo.h>
+#include <QFile>
+#include <QTextStream>
+#include "Utils/types.h"
 
 using namespace ros;
 using minho_team_ros::aiInfo;
@@ -36,6 +39,7 @@ public:
    void baseStationInfoCallback(const baseStationInfo::ConstPtr &msg);
    void robotInfoCallback(const robotInfo::ConstPtr &msg);
    void getNewRole(Roles role, Role **newrole);
+   bool initGameField();
 private:
    ros::NodeHandle* node;
    aiInfo ai;
@@ -45,6 +49,7 @@ private:
    ros::Publisher ai_pub;
    int agent_id;
    Role *role;
+   fieldDimensions field;
 };
 
 #endif // AI_H

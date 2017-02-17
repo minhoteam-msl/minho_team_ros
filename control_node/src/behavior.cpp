@@ -69,7 +69,8 @@ Behavior::Behavior(std::string topics_base_name, int rob_id, ros::NodeHandle *pa
 bool Behavior::initParameters()
 {
     QString home = QString::fromStdString(getenv("HOME"));
-    QString cfgDir = home+QString(CCONFIGFOLDERPATH);
+    QString commonDir = home+QString(COMMON_PATH);
+    QString cfgDir = commonDir+QString(CTRL_CFG_PATH);
 
     controlparam_file = cfgDir+QString("Robot")+QString::number(robot_id)+"/"+QString(CONTROLFILENAME);
 

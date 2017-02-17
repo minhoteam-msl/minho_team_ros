@@ -15,14 +15,13 @@
 #include <QTextStream>
 #include <QStringList>
 #include <QPoint>
-#include "types.h"
+#include "Utils/types.h"
 
 using namespace FlyCapture2;
 using namespace cv;
 using namespace std;
 
 enum property_cam{BRI=0,GAI=1,SHU=2,GAM=3,SAT=4,WB=5,EXP=6};
-
 
 class BlackflyCam
 {

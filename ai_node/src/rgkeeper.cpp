@@ -35,7 +35,7 @@ void RoleGoalKeeper::computeAction(aiInfo *ai)
          // TODO:: replace hardcoded positions  
          if(mBsInfo.posxside) ai->target_pose.x = 0.8;
          else ai->target_pose.x = -0.8;
-         ai->target_pose.y = 6.4;
+         ai->target_pose.y = side_line_y+0.5;
          ai->target_pose.z = 180.0;
          break;
       }      
@@ -49,10 +49,10 @@ void RoleGoalKeeper::computeAction(aiInfo *ai)
          // No harm situation, stay in the middle of the goalie
          // TODO:: replace hardcoded positions
          if(mBsInfo.posxside) { 
-            ai->target_pose.x = 9.0;
+            ai->target_pose.x = goal_line_X;
             ai->target_pose.z = 90.0;
          } else {
-            ai->target_pose.x = -9.0;
+            ai->target_pose.x = -goal_line_X;
             ai->target_pose.z = 270.0;;
          }
          ai->target_pose.y = 0.0;
@@ -63,8 +63,8 @@ void RoleGoalKeeper::computeAction(aiInfo *ai)
          // but rotate towards the ball to maximize field of view
          // TODO:: replace hardcoded positions, head towards ball
          if(mRobot.sees_ball){
-            if(mBsInfo.posxside) ai->target_pose.x = 9.0;
-            else ai->target_pose.x = -9.0;
+            if(mBsInfo.posxside) ai->target_pose.x = goal_line_X;
+            else ai->target_pose.x = -goal_line_X;
             ai->target_pose.y = 0.0; 
    
             //Compute heading to the ball
@@ -77,10 +77,10 @@ void RoleGoalKeeper::computeAction(aiInfo *ai)
             else ai->target_pose.z -= 90.0;
          } else { // If we dont see the ball, stay in the middle
             if(mBsInfo.posxside) { 
-               ai->target_pose.x = 9.0;
+               ai->target_pose.x = goal_line_X;
                ai->target_pose.z = 90.0;
             } else {
-               ai->target_pose.x = -9.0;
+               ai->target_pose.x = -goal_line_X;
                ai->target_pose.z = 270.0;;
             }
             ai->target_pose.y = 0.0;
@@ -96,19 +96,19 @@ void RoleGoalKeeper::computeAction(aiInfo *ai)
          // TODO:: replace hardcoded positions, implement mixed system
          if(mRobot.sees_ball){
             if(mBsInfo.posxside) { 
-               ai->target_pose.x = 9.0;
+               ai->target_pose.x = goal_line_X;
                ai->target_pose.z = 90.0;
             } else {
-               ai->target_pose.x = -9.0;
+               ai->target_pose.x = -goal_line_X;
                ai->target_pose.z = 270.0;;
             }
             ai->target_pose.y = 0.0;
          } else { // If we dont see the ball, stay in the middle
             if(mBsInfo.posxside) { 
-               ai->target_pose.x = 9.0;
+               ai->target_pose.x = goal_line_X;
                ai->target_pose.z = 90.0;
             } else {
-               ai->target_pose.x = -9.0;
+               ai->target_pose.x = -goal_line_X;
                ai->target_pose.z = 270.0;;
             }
             ai->target_pose.y = 0.0;
@@ -122,4 +122,11 @@ void RoleGoalKeeper::computeAction(aiInfo *ai)
 std::string RoleGoalKeeper::getActiveRoleName()
 {
    return std::string("rGOALKEEPER");
+}
+
+void RoleGoalKeeper::setField(fieldDimensions fd)
+{  
+   field = fd;
+   goal_line_X = (float)field.fieldDims.LENGTH/2000.0;
+   side_line_y = (float)field.fieldDims.WIDTH/2000.0;
 }

@@ -16,9 +16,6 @@
 //defines for signal
 #include <sys/time.h>
 #include <unistd.h>
-#include <signal.h>
-#include<arpa/inet.h>
-#include<sys/socket.h>
 #include "thpool.h"
 #include "multicast.h"
 #include <boost/filesystem.hpp>
@@ -30,6 +27,7 @@
 #define MAX_DELAY_TIME_US 5000
 #define NUM_ROBOT_AGENTS 5
 #define TOTAL_AGENTS NUM_ROBOT_AGENTS+1
+
 /// \brief struct to represet a udp packet, containing
 /// a serialized ROS message
 typedef struct udp_packet{
@@ -214,11 +212,12 @@ int main(int argc, char **argv)
    
    //Setup Sockets
    // #########################
-   setupMultiCastSocket(receive_own_packets);  
+   setupMultiCastSocket(receive_own_packets);        
    srand(time(NULL)); 
 	// #########################
    
    if(mode_real){ 
+      if(agent_id<=0) { agent_id = 1; ROS_ERROR("Error in Robot ID by IP address ... Defaulting to 1."); }
       ROS_INFO("Running coms_node for Robot %d.",agent_id);
    }else { 
       agent_id = robot_id;

@@ -5,7 +5,7 @@ Fundamental::Fundamental()
     total_field_length = 19.8; total_field_width = 14.8;
     field_length = 18.0; field_width = 12.0;
     robot_diameter = 0.5;
-    if(!initParameters()) ROS_ERROR("Failed to initialize field dimensions");
+    if(!initParameters()) ROS_ERROR("Failed to initalize field dimensions");
 
     outside_field_length = (total_field_length - field_length)/2.0;
     outside_field_width = (total_field_width - field_width)/2.0;
@@ -19,11 +19,13 @@ Fundamental::Fundamental()
 bool Fundamental::initParameters()
 {
     QString home = QString::fromStdString(getenv("HOME"));
-    QString cfgDir = home+QString(CCONFIGFOLDERPATH);
-    QString mainfile = cfgDir+QString(MAINFILENAME);
+    QString commonDir = home+QString(COMMON_PATH);
+    QString cfgDir = commonDir+QString(CTRL_CFG_PATH);
+    QString fieldsDir = commonDir+QString(FIELDS_PATH);
+    QString mainFile = commonDir+QString(MAINFILENAME);
 
     QString fieldname = "";
-    QFile file(mainfile);
+    QFile file(mainFile);
     if(!file.open(QIODevice::ReadOnly)) {
       ROS_ERROR("Failed to read %s",MAINFILENAME);
       return false;
@@ -33,7 +35,7 @@ bool Fundamental::initParameters()
     file.close();
 
     ROS_INFO("Dimensions for %s Field",fieldname.toStdString().c_str());
-    field_file = cfgDir+QString(FIELDSFOLDERPATH)+fieldname+QString(".view");
+    field_file = fieldsDir+fieldname+QString(".view");
 
     return readField();
 }
