@@ -358,7 +358,7 @@ endif()
    ${AI_DIR}/src/rstriker.cpp ${AI_DIR}/src/rsupstriker.cpp)
    set_target_properties(ai_node PROPERTIES COMPILE_FLAGS "-fPIC")
    target_compile_features(ai_node PRIVATE cxx_range_for)
-   target_link_libraries(ai_node ${catkin_LIBRARIES} ${qt_LIBRARIES} libignition-math2.so)
+   target_link_libraries(ai_node ${catkin_LIBRARIES} ${qt_LIBRARIES})
    add_dependencies(ai_node ${PROJECT_NAME}_gencpp)
    ########################################
 endif()
