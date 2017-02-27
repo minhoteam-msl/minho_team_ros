@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(minho_team_ros CXX)
+project(minho_team_ros C CXX)
 
 set(username $ENV{USER})
-
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -13,7 +12,7 @@ if(${username} STREQUAL pi)
 	   roscpp
 	   std_msgs
 	   message_generation	
-	   genmsg	
+	   genmsg
    )
 else()
    find_package(catkin REQUIRED COMPONENTS
@@ -91,6 +90,8 @@ add_message_files(
       ControlerError.msg
       ROI.msg
       baseStationInfo.msg
+      obstacle.msg
+      worldConfig.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -251,6 +252,7 @@ else()
 
    find_package(ignition-math2 REQUIRED)
    include_directories(/usr/include/ignition/math2)
+   link_directories(/usr/lib/x86_64-linux-gnu)
    include_directories($ENV{HOME}/Common)
    ######################################################################
 
@@ -334,6 +336,7 @@ else()
 
    ############# CONTROL NODE #############
    ########################################
+if(TRUE)
    include_directories(/usr/local/include)
    link_directories(/usr/local/lib)
    set(CONTROL_DIR ${PROJECT_DIRECTORY}/control_node)
@@ -345,6 +348,7 @@ else()
    target_compile_features(control_node PRIVATE cxx_range_for)
    target_link_libraries(control_node ${catkin_LIBRARIES} ${qt_LIBRARIES} ${cgal_LIBRARIES} libsisl.a)
    add_dependencies(control_node ${PROJECT_NAME}_gencpp)
+endif()
    ########################################
 
    ############# AI NODE #############
@@ -353,10 +357,11 @@ else()
    link_directories(/usr/local/lib)
    set(AI_DIR ${PROJECT_DIRECTORY}/ai_node)
    include_directories(${PROJECT_DIRECTORY}/ai_node/include)
-   add_executable(ai_node ${AI_DIR}/src/main.cpp ${AI_DIR}/src/ai.cpp ${AI_DIR}/src/role.cpp ${AI_DIR}/src/rstop.cpp ${AI_DIR}/src/rgkeeper.cpp)
+   add_executable(ai_node ${AI_DIR}/src/main.cpp ${AI_DIR}/src/ai.cpp ${AI_DIR}/src/role.cpp ${AI_DIR}/src/rstop.cpp ${AI_DIR}/src/rgkeeper.cpp
+   ${AI_DIR}/src/rstriker.cpp ${AI_DIR}/src/rsupstriker.cpp)
    set_target_properties(ai_node PROPERTIES COMPILE_FLAGS "-fPIC")
    target_compile_features(ai_node PRIVATE cxx_range_for)
-   target_link_libraries(ai_node ${catkin_LIBRARIES} ${IGNITION-MATH_LIBRARIES} ${qt_LIBRARIES})
+   target_link_libraries(ai_node ${catkin_LIBRARIES} ${qt_LIBRARIES} libignition-math2.so)
    add_dependencies(ai_node ${PROJECT_NAME}_gencpp)
    ########################################
 endif()

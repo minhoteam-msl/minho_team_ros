@@ -20,6 +20,7 @@
 #include "minho_team_ros/requestCamPID.h"
 #include "minho_team_ros/requestROI.h"
 #include "minho_team_ros/ROI.h"
+#include "minho_team_ros/worldConfig.h"
 #include "Utils/types.h"
 #include "ros/topic_manager.h"
 #include <QTime>
@@ -33,11 +34,13 @@ using minho_team_ros::ControlerError;
 using minho_team_ros::cameraProperty;
 using minho_team_ros::PID;
 using minho_team_ros::ROI;
+using minho_team_ros::worldConfig;
 
 using minho_team_ros::requestImage;
 using minho_team_ros::requestCamPID;
 using minho_team_ros::requestCamProperty;
 using minho_team_ros::requestROI;
+
 using namespace cv;
 using namespace std;
 class ConfigServer : public QObject
@@ -47,11 +50,12 @@ public:
    explicit ConfigServer(ros::NodeHandle *par, QObject *parent = 0); // Constructor
    ~ConfigServer();
    void assignImage(Mat *source);
-   void setOmniVisionConf(mirrorConfig mirrmsg,visionHSVConfig vismsg,imageConfig imgmsg);
+   void setOmniVisionConf(mirrorConfig mirrmsg,visionHSVConfig vismsg,imageConfig imgmsg, worldConfig ballmsg, worldConfig obsmsg, worldConfig rlemsg);
    void setProps(vector<float> prop_values);
    void setPIDValues(vector<float> pid_values);
    void sendError(Point2d error);
    void setROIs(vector<ROI> rois);
+   void setKalman(int Qx,int Qz,int Rx,int Rz);
    int prop_used;
    inline bool getCalib(){ return calib;}
 private:
@@ -64,10 +68,10 @@ private:
    QTimer *image_timer_;
    int configured_frequency_;
    bool multiple_sends_,calib;
-   
-   
+
+
    // ROS
-   ros::NodeHandle *parent_; // ROS node parent pointer 
+   ros::NodeHandle *parent_; // ROS node parent pointer
    image_transport::ImageTransport *it_; // To send images through ROS
 
    //SEND
@@ -81,6 +85,7 @@ private:
    ros::Subscriber property_sub_;//Subscriber for property configuration(cameraProperty.msg)
    ros::Subscriber pid_sub_;//Subscriber for pid configuration(PID.msg)
    ros::Subscriber roi_sub_;//Subscriber for ROI configuration(ROI.msg)
+   ros::Subscriber world_sub_;//Subscriber for worldConfig configuration(worldConfig.msg)
 
    //SERVICES AND DATA
    ros::ServiceServer service_omniconf; // Service to relay the configuration
@@ -98,6 +103,8 @@ private:
    cameraProperty props_msg [7];
    PID pid_msg[7];
    ROI whiteRoi,blackRoi;
+   worldConfig ballConfmsg, obsConfmsg, RLEConfmsg, KalmanConfmsg;
+   Point targets;
 
 private slots:
    void getSubscribers();
@@ -114,6 +121,7 @@ private slots:
    bool camPropertyConfService(requestCamProperty::Request &req,requestCamProperty::Response &res);
    bool camPIDConfService(requestCamPID::Request &req,requestCamPID::Response &res);
    void processROIConfig(const ROI::ConstPtr &msg);
+   void processWorldConfig(const worldConfig::ConstPtr &msg);
    bool camROIConfService(requestROI::Request &req,requestROI::Response &res);
 
 signals:
@@ -125,6 +133,7 @@ signals:
    void changedCameraProperties(cameraProperty::ConstPtr msg);
    void changedCamPID(PID::ConstPtr msg);
    void changedROIConfiguration(ROI::ConstPtr msg);
+   void changedWorldConfiguration(worldConfig::ConstPtr msg);
 };
 
 #endif // CONFIGSERVER_H

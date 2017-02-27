@@ -191,7 +191,7 @@ void Behavior::doWork()
     /// \brief Implement behaviour based on ai info
     /// \brief Roles : 0 - GK | 1 - DEFENSE | 2 - ATTACKER | 3 - SUPPORT ATTACKER
     /// \brief Actions : 0 - STOP | 1 - GO_TO_POSITION | 2 - KICK_PASS | 3 - ENGAGE_BALL
-
+    control_info = controlInfo();
     switch(ai_info_copy.action) {
        case aSTOP: {
            control_info.linear_velocity = control_info.angular_velocity = 0;
@@ -205,6 +205,48 @@ void Behavior::doWork()
        case aFASTMOVE: {
            goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,50);
 
+       } break;
+
+      case aRECEIVEBALL: {
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,50);
+           control_info.dribbler_on = true;
+       } break;
+
+       case aENGAGEBALL: {
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,30);
+           float distToBall = sqrt(
+               (robot_info_copy.robot_pose.x-ai_info_copy.target_pose.x)*
+               (robot_info_copy.robot_pose.x-ai_info_copy.target_pose.x)
+               +((robot_info_copy.robot_pose.y-ai_info_copy.target_pose.y)*
+               (robot_info_copy.robot_pose.y-ai_info_copy.target_pose.y)));
+           if(distToBall<0.33){control_info.linear_velocity = control_info.angular_velocity = 0;}
+           control_info.dribbler_on = true;
+       } break;
+
+       case aAPPROACHBALL: {
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,30);
+       } break;
+
+       case aPASSBALL: {
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,50);
+           control_info.linear_velocity = 0;
+           if(fabs(robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)<1.0){
+               requestKick srv;
+               srv.request.kick_is_pass = true;
+               srv.request.kick_strength = ai_info_copy.target_kick_strength;
+               kick_service.call(srv);   
+            }
+       } break;
+
+       case aKICKBALL: {
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,50);
+           control_info.linear_velocity = 0;
+           if(fabs(robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)<1.0){
+               requestKick srv;
+               srv.request.kick_is_pass = false;
+               srv.request.kick_strength = ai_info_copy.target_kick_strength;
+               kick_service.call(srv);   
+            }
        } break;
 
        default: {

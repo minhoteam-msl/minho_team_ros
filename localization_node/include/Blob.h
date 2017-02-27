@@ -57,7 +57,7 @@ public:
 		return temp;
 	}
 
-	void createBlobs(vector<Point2d> &populationPoints, float threshold, int points_number, Point robotCenter, BlobType blobType, int robot_orientation);
+	void createBlobs(vector<Point2d> &populationPoints, float threshold, int points_number, Point robotCenter, BlobType blobType);
 	int findBlobReal(Point2d populationPoint, float thresh);
 	void updateBlob(BlobInfo &blob, Point2d populationPoint, Point robotCenter);
 	double distance(Point2d p1, Point2d p2);
@@ -69,7 +69,7 @@ private:
 	void seeNeighbor();
 	void fuseBlobs(BlobInfo &b1, BlobInfo&b2);
 	void updateFusedBlob(BlobInfo &blob);
-	void relocBlobs(int robot_orientation);
+	void relocBlobs();
 	Point2d mapPointToRobot(double orientation, Point2d dist_lut);
 };
 #endif

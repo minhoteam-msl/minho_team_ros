@@ -4,6 +4,7 @@ Role::Role(Roles role)
 {
    mRole = role;
    mAction = aSTOP;
+   node = NULL;
 }
 
 Role::~Role()

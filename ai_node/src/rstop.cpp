@@ -8,6 +8,10 @@ RoleStop::~RoleStop()
 {
 }
 
+void RoleStop::setRosNodeHandle(ros::NodeHandle *parent, std::string topic_base)
+{
+}
+
 void RoleStop::determineAction()
 {
    mAction = aSTOP;

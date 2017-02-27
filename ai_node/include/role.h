@@ -31,6 +31,7 @@ public:
    virtual void computeAction(aiInfo *ai)=0;
    virtual void setField(fieldDimensions fd)=0;
    virtual std::string getActiveRoleName()=0;
+   virtual void setRosNodeHandle(ros::NodeHandle *parent, std::string topic_base)=0;
 
    // public data
    Roles mRole;
@@ -38,6 +39,7 @@ public:
    baseStationInfo mBsInfo;
    robotInfo mRobot;
    fieldDimensions field;
+   ros::NodeHandle *node; 
 };
 
 #endif // ROLE_H

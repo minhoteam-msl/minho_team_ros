@@ -6,7 +6,7 @@ Blob::Blob()
 }
 
 
-void Blob::createBlobs(vector<Point2d> &populationPoints, float threshold, int points_number, Point robotCenter, BlobType blobType, int robot_orientation)
+void Blob::createBlobs(vector<Point2d> &populationPoints, float threshold, int points_number, Point robotCenter, BlobType blobType)
 {
 	if(populationPoints.size() == 0)return;
 	int index;
@@ -24,21 +24,22 @@ void Blob::createBlobs(vector<Point2d> &populationPoints, float threshold, int p
 	}
 	filterBlobs(points_number, blobType);
 	//seeNeighbor();
-	relocBlobs(robot_orientation); // Reajusts blob center
+	relocBlobs(); // Reajusts blob center
 }
 
-void Blob::relocBlobs(int orientation)
+
+void Blob::relocBlobs()
 {
 	double ang = 0.00;
 	for(unsigned i = 0; i<UMblobs.size();i++){
 		UMblobs[i].dist_to_robot = sqrt((UMblobs[i].center.x * UMblobs[i].center.x) + (UMblobs[i].center.y * UMblobs[i].center.y));
 		UMblobs[i].dist_to_robot += UMblobs[i].radius_id;
 		ang = atan2(UMblobs[i].center.y, UMblobs[i].center.x)*(180.0/M_PI);
-		while(ang>360)ang-=360;
-		while(ang<0)ang+=360;
 		UMblobs[i].center = mapPointToRobot(0, Point2d(UMblobs[i].dist_to_robot,ang));
 	}
 }
+
+
 void Blob::filterBlobs(int num, BlobType blobType)
 {
 	switch(blobType){
@@ -56,7 +57,7 @@ void Blob::filterBlobs(int num, BlobType blobType)
 				UMblobs.erase(UMblobs.begin()+i);
 				i--;
 			}
-			else UMblobs[i].radius_id = 0.25;
+			else UMblobs[i].radius_id = 0.13;
 		}
 		break;
 

@@ -16,6 +16,8 @@
 #include "role.h"
 #include "rstop.h"
 #include "rgkeeper.h"
+#include "rstriker.h"
+#include "rsupstriker.h"
 #include <sstream>
 #include <ros/ros.h>
 #include <minho_team_ros/baseStationInfo.h>
@@ -50,6 +52,7 @@ private:
    int agent_id;
    Role *role;
    fieldDimensions field;
+   std::string topic_base;
 };
 
 #endif // AI_H

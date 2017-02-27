@@ -10,14 +10,10 @@
 #include <iostream>
 #include <string.h>
 #include <sstream>
-#include <pthread.h>
-#include <semaphore.h>
-#include <time.h>
-//defines for signal
-#include <sys/time.h>
-#include <unistd.h>
+#include "Utils/rttimer.h"
 #include "thpool.h"
 #include "multicast.h"
+#include "ros/topic_manager.h"
 #include <boost/filesystem.hpp>
 #include <boost/process.hpp>
 
@@ -106,10 +102,13 @@ threadpool thpool_t;
 uint8_t buffer[BUFFER_SIZE];
 /// \brief main udp data receiving thread
 pthread_t recv_monitor_thread;
-/// \brief struct to specify timer options for sending thread
-struct itimerval timer;
+/// \brief main sending thread
+pthread_t send_info_thread;
+/// \brief periodic_info struct containing info to make
+/// thread a timed function
+periodic_info pi_sendth;
 /// \brief int variable to control thread running
-bool _thrun = true;
+volatile bool _thrun = true;
 /// \brief auxilizar variables to test connection of gzserver
 std::string pgrep;
 std::vector<std::string> pgrep_args;
@@ -148,15 +147,14 @@ void deserializeROSMessage(udp_packet *packet, void *msg);
 
 /// \brief main thread to send robot information update over UDP socket
 /// \param signal - system signal for timing purposes
-static void sendRobotInformationUpdate(int signal);
+void* sendRobotInformationUpdate(void *data);
 
 /// \brief checks if Gzserver is running in case of simulated robots
-/// \param signal - system signal for timing purposes
-bool checkGzserverConnection(int signal);
+bool checkGzserverConnection();
 
 /// \brief wrapper function for error and exit
 /// \param msg - message to print error
-void die(std::string msg);
+void error(std::string msg);
 
 /// \brief initializes multicast socket for sending/receiveing information to 
 /// multicast address
@@ -264,16 +262,7 @@ int main(int argc, char **argv)
    std::stringstream rl_agent_topic;
    rl_agent_topic << base_relay_topic.str() << "/basestation" << relay_topic_name_bs;
    publishers[NUM_ROBOT_AGENTS] = coms_node.advertise<baseStationInfo>(rl_agent_topic.str().c_str(),1);
-	                             
    // #########################
-   
-	//Setup Updated timer thread
-	// #########################
-	signal(SIGALRM,sendRobotInformationUpdate);
-	timer.it_interval.tv_sec = 0;
-	timer.it_interval.tv_usec = DATA_UPDATE_USEC;
-	timer.it_value.tv_sec = 0;
-	timer.it_value.tv_usec = DATA_UPDATE_USEC;
 	
 	if(!mode_real){ //check for connection with gzserver
       pgrep = boost::process::find_executable_in_path("pgrep");
@@ -285,8 +274,10 @@ int main(int argc, char **argv)
 	//Setup Thread pool and rece
 	// iving thread
 	// #########################
+   pi_sendth.id = 1; pi_sendth.period_us = DATA_UPDATE_USEC;
 	thpool_t = thpool_init(TOTAL_AGENTS); //5 threads per agent ?
 	pthread_create(&recv_monitor_thread, NULL, udpReceivingThread, &socket_fd);
+   pthread_create(&send_info_thread, NULL, sendRobotInformationUpdate,&pi_sendth);
 	// #########################
 	
 	// Run functions and join threads
@@ -294,15 +285,14 @@ int main(int argc, char **argv)
 	ROS_WARN("MinhoTeam coms_node started running on ROS.");
 	ros::AsyncSpinner spinner(2);
 	spinner.start();
-	setitimer (ITIMER_REAL, &timer, NULL);
-	pthread_join(recv_monitor_thread, NULL);
-	thpool_wait(thpool_t);
-	spinner.stop();
-	ros::shutdown();
+   pthread_join(send_info_thread, NULL);
+   pthread_cancel(recv_monitor_thread);
+   pthread_join(recv_monitor_thread, NULL);
+   thpool_wait(thpool_t);
 	thpool_destroy(thpool_t);
 	closeSocket(socket_fd);
    ROS_ERROR("Exited coms_node");
-   return 1;
+   return 0;
 }
 
 // ###### FUNCTIONS ########
@@ -373,33 +363,40 @@ void deserializeROSMessage(udp_packet *packet, Message *msg)
 
 /// \brief main thread to send robot information update over UDP socket
 /// \param signal - system signal for timing purposes
-static void sendRobotInformationUpdate(int signal)
+void* sendRobotInformationUpdate(void *data)
 {
    static int counter = 0;
-   if(signal==SIGALRM){ // Takes 0.08ms to do
-      if(counter<30) counter++; else { if(!checkGzserverConnection(signal)) return; counter = 0; }
+   periodic_info *info = (periodic_info *)(data);
+   make_periodic(info->period_us,info);
+
+   while(ros::ok()){
+      if(counter<30) counter++; else { 
+         if(!checkGzserverConnection()) break; 
+         counter = 0; 
+      }
       uint8_t *packet;
       uint32_t packet_size;
       serializeROSMessage<interAgentInfo>(&message,&packet,&packet_size);
       // Send packet of size packet_size through UDP
       if (sendData(socket_fd,packet,packet_size) <= 0){
-         die("Failed to send a packet.");
+         error("Failed to send a packet.");
       } 
-      
+
       for(int a = 0; a < TOTAL_AGENTS; a++){
          pthread_mutex_lock(&publishers_mutex); //Lock mutex
          num_subscribers[a] = publishers[a].getNumSubscribers();
          pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
-      }
-      
-	}
+      }  
+
+      wait_period(info);
+   }
+   return NULL;
 }
 
 /// \brief wrapper function for error and exit
 /// \param msg - message to print error
-void die(std::string msg) {
+void error(std::string msg) {
     ROS_ERROR("%s",msg.c_str());
-    exit(0);
 }
 
 /// \brief initializes multicast socket for sending information to 
@@ -418,8 +415,8 @@ void setupMultiCastSocket(uint8_t receive_own_packets)
 /// \param socket - pointer to socket descriptor to use 
 void* udpReceivingThread(void *socket)
 {
-   while(ros::ok() && _thrun){
-      bzero(buffer, BUFFER_SIZE);   
+   while(ros::ok()){
+      bzero(buffer, BUFFER_SIZE); 
       if((recvlen = recv(*(int*)socket, buffer, BUFFER_SIZE,0)) > 0 ){
          udp_packet *relay_packet = new udp_packet;
          relay_packet->packet = new uint8_t[recvlen];
@@ -427,10 +424,10 @@ void* udpReceivingThread(void *socket)
          memcpy(relay_packet->packet,buffer,recvlen);
          thpool_add_work(thpool_t, processReceivedData, relay_packet);
       }
+      if(!_thrun){ break;} 
    }
-   
-   ROS_ERROR("Exited UDP receiving thread.");
-   pthread_exit(NULL);
+
+   return NULL;
 }
 
 /// \brief function used by threadpool threads to process incoming data
@@ -440,7 +437,7 @@ void processReceivedData(void *packet)
 {
    if(!_thrun) return;
    // deserialize message
-   udp_packet *temp = (udp_packet *)packet; 
+   udp_packet *temp = (udp_packet *)packet;
    if(temp->packet_size<20){ //comes from basestation
       baseStationInfo incoming_data;
       deserializeROSMessage<baseStationInfo>((udp_packet *)packet,&incoming_data); 
@@ -474,9 +471,9 @@ void processReceivedData(void *packet)
 
 /// \brief checks if Gzserver is running in case of simulated robots
 /// \param signal - system signal for timing purposes
-bool checkGzserverConnection(int signal)
+bool checkGzserverConnection()
 {
-   if(signal==SIGALRM && !mode_real){
+   if(!mode_real){
       boost::process::context ctx; 
       ctx.streams[boost::process::stdout_id] = boost::process::behavior::pipe(); 
       boost::process::child c = boost::process::create_child(pgrep, pgrep_args, ctx); 
@@ -487,12 +484,7 @@ bool checkGzserverConnection(int signal)
       if(atoi(output)!=2) {
          ROS_ERROR("COMS_NODE: gzserver not running ... killing processes."); 
          _thrun = false;
-         timer.it_interval.tv_sec = 0;
-         timer.it_interval.tv_usec = 0;
-         timer.it_value.tv_sec = 0;
-         timer.it_value.tv_usec = 0;
-         setitimer(ITIMER_REAL, &timer, NULL);
-         return true;
+         return false;
       } 
    }
    

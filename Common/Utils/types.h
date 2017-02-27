@@ -13,7 +13,6 @@
 #define FIELDS_PATH "Fields/"
 #define LOC_CFG_PATH "Configs/loc_cfg/"
 #define CTRL_CFG_PATH "Configs/ctrl_cfg/"
-#define CCONFIGFOLDERPATH "/catkin_ws/src/minho_team_ros/control_node/config/"
 
 // FILE NAMES
 #define MIRRORFILENAME "mirror.cfg"
@@ -23,6 +22,12 @@
 #define MAINFILENAME "fieldSelect.cfg"
 #define CONTROLFILENAME "control.cfg"
 #define PIDFILENAME "pid.cfg"
+#define PROPERTYFILENAME "property.cfg"
+#define WORLDFILENAME "worldconstruction.cfg"
+#define KALMANFILENAME "kalman.cfg"
+
+#define REFERENCE 2*2
+#define DISTANCE 4*4
 
 // LUT DEFINES
 #define LUT_SIZE 256*256*256
@@ -137,6 +142,7 @@ typedef struct field// Current field definitions
     float TERM1, TERM2, TERM3;
     unsigned int MAX_LINE_POINTS;
     QString FIELD_NAME;
+    double SCALE;
 }field;
 
 typedef struct nodo //World Map point of view
@@ -180,7 +186,7 @@ sOWN_FREEKICK,sPRE_THEIR_FREEKICK, sTHEIR_FREEKICK,sGAME_OWN_BALL,
 sGAME_THEIR_BALL} GameState;
 /// \brief defines the actions wich model the robots control approach
 typedef enum Actions{aSTOP = 0, aSLOWMOVE, aFASTMOVE, aAPPROACHBALL,
-aENGAGEBALL, aKICKBALL, aPASSBALL}Actions;
+aENGAGEBALL, aRECEIVEBALL, aKICKBALL, aPASSBALL}Actions;
 
 /*
 ############################################################################

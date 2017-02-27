@@ -1,8 +1,10 @@
 #include "localization.h"
 
-Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success, bool use_camera, QObject *parent) : QObject(parent)
+Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success, bool use_camera,int side, QObject *parent) : QObject(parent)
 {
    initVariables();
+   camera = use_camera;
+   fieldSide = side;
    if(!use_camera) is_hardware_ready = true; // for test purposes
    else is_hardware_ready = false;
    //#### Initialize major components ####
@@ -14,11 +16,15 @@ Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success
 
    correct_initialization = initWorldMap();
    if(!correct_initialization) { (*init_success) = false; return; }
+   correct_initialization = initializeKalmanFilter();
+   if(!correct_initialization) { (*init_success) = false; return; }
 
-   confserver->setOmniVisionConf(processor->getMirrorConfAsMsg(),processor->getVisionConfAsMsg(),processor->getImageConfAsMsg());
+
+   confserver->setOmniVisionConf(processor->getMirrorConfAsMsg(),processor->getVisionConfAsMsg(),processor->getImageConfAsMsg(), processor->getBallConfAsMsg(), processor->getObsConfAsMsg(), processor->getRLEConfAsMsg());
    confserver->setProps(processor->getCamProperties());
    confserver->setPIDValues(processor->getPropControlerPID());
    confserver->setROIs(processor->getRois());
+   confserver->setKalman(kalman.Q.x,kalman.Q.z,kalman.R.x,kalman.R.z);
    parentTimer = new QTimer();
    requiredTiming = 33; //ms
    time_interval = (float)requiredTiming/1000.0;
@@ -35,6 +41,7 @@ Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success
    connect(confserver,SIGNAL(changedCameraProperties(cameraProperty::ConstPtr)),this,SLOT(changeCameraProperties(cameraProperty::ConstPtr)));
    connect(confserver,SIGNAL(changedCamPID(PID::ConstPtr)),this,SLOT(changeCamPID(PID::ConstPtr)));
    connect(confserver,SIGNAL(changedROIConfiguration(ROI::ConstPtr)),this,SLOT(changeROI(ROI::ConstPtr)));
+   connect(confserver,SIGNAL(changedWorldConfiguration(worldConfig::ConstPtr)),this,SLOT(changeWorldConfiguration(worldConfig::ConstPtr)));
    //#########################################################################
 
    //## Setup ROS Pubs and Subs ##
@@ -67,6 +74,7 @@ void Localization::discoverWorldModel() // Main Function
 {
    bool have_image = false;
    int timing = 0;
+   float meanTime = 0.0;
    parentTimer->stop();
    QTime measure, loctime;
    measure.start();
@@ -75,35 +83,41 @@ void Localization::discoverWorldModel() // Main Function
    // Localization code
    if(have_image && is_hardware_ready){
       //current_hardware_state.imu_value = 0;
-      if(reloc){last_state.robot_pose.z = current_hardware_state.imu_value;
-      ROS_INFO("Reloc Angle: %d",current_hardware_state.imu_value);
+      if(reloc){
+        last_state.robot_pose.z = current_hardware_state.imu_value;
+        //ROS_INFO("Reloc Angle: %d",current_hardware_state.imu_value);
       }
-      processor->detectInterestPoints();
-//      calcHistOrientation();
+
       //loctime.start();
-      processor->creatWorld(current_state.robot_pose.z);
-      //std::cerr << "Tempo localização:  " << double(loctime.elapsed())<<endl;
+      //calcHistOrientation();
+      processor->detectInterestPoints(current_state.robot_pose.z);
+
       if(reloc){ // Global localization
-         // Assign hardware angle to vision estimate angle
+
          // Do global localization
-         reloc = computeGlobalLocalization(0);
-      } else { // Local localization
+         //loctime.start();
+         reloc = computeGlobalLocalization(fieldSide);
+         //std::cerr << "Tempo localização:  " << double(loctime.elapsed())<<endl;
+
+      } else {  // Local localization
+
          //loctime.start();
          // Do local localization
          computeLocalLocalization();
          fuseEstimates();
-         //std::cerr << "Tempo localização:  " << double(loctime.elapsed())<<endl;
+         meanTime = (meanTime + loctime.elapsed())/2;
+         //std::cerr << "Tempo localização:  " << meanTime <<endl;
       }
-      //Publish information
-      computeVelocities();
-      decideBallPossession();
-      detectObstacles();
-      generateDebugData();
-      memset(&odometry,0,sizeof(localizationEstimate));
-	    robot_info_pub.publish(current_state);
 
-	    last_state = current_state;
+      processor->creatWorld(); // Creat World arround robot (obstacle and ball positions)
+      computeVelocities(); // Calculates robot velocity
+      decideBallPossession(); // Decides if robot posses ball
+      sendWorldInfo(); // Load obstacls to current_state for further publish (only sends Blobs)
+      generateDebugData(); // generate Debug Data
+      memset(&odometry,0,sizeof(localizationEstimate)); // Clears odometry object to do nto use past values
 
+	    robot_info_pub.publish(current_state); // Publish information
+	    last_state = current_state; // Saves current_state to next iteration
    }
 
    if(!have_image) parentTimer->start(1);
@@ -140,15 +154,17 @@ void Localization::discoverWorldModel() // Main Function
       //Compensate time took in the function
       timing = requiredTiming-measure.elapsed();
       if(timing<0) timing = requiredTiming;
+
+      //std::cerr << "Tempo localização:  " << measure.elapsed()) <<endl;
       parentTimer->start(timing);
    }
 
 }
 
-void Localization::detectObstacles()
+void Localization::sendWorldInfo()
 {
   current_state.obstacles.clear();
-  position p;
+  obstacle p;
   for(unsigned i = 0; i < processor->obsBlob.UMblobs.size(); i++){
     p.x = processor->obsBlob.UMblobs[i].center.x+current_state.robot_pose.x;
     p.y = processor->obsBlob.UMblobs[i].center.y+current_state.robot_pose.y;
@@ -165,26 +181,78 @@ void Localization::initVariables()
    qRegisterMetaType<cameraProperty::ConstPtr>("cameraProperty::ConstPtr");
    qRegisterMetaType<PID::ConstPtr>("PID::ConstPtr");
    qRegisterMetaType<ROI::ConstPtr>("ROI::ConstPtr");
-
-   //QString home = QString::fromStdString(getenv("HOME"));
-   //QString cfgDir = home+QString(CONFIGFOLDERPATH);
+   qRegisterMetaType<worldConfig::ConstPtr>("worldConfig::ConstPtr");
 
    assigning_images = false;
    is_hardware_ready = false;
    generate_extended_debug = false;
    service_call_counter = 0;
-   initializeKalmanFilter();
-
 }
 
-void Localization::initializeKalmanFilter()
+bool Localization::initializeKalmanFilter()
 {
-   memset(&odometry,0,sizeof(localizationEstimate));
-   memset(&vision,0,sizeof(localizationEstimate));
-   kalman.Q.x = kalman.Q.y = 1; kalman.Q.z = 1;
-   kalman.R.x = kalman.R.y = 20; kalman.R.z = 20;
-   kalman.lastCovariance.x = kalman.lastCovariance.y = kalman.lastCovariance.z = 0;
-   kalman.covariance = kalman.predictedCovariance = kalman.lastCovariance;
+  QString filename;
+  filename = processor->getKalmanFileName();
+
+  QFile file(filename);
+  if(!file.open(QIODevice::ReadOnly)) {
+      ROS_ERROR("Error reading %s.",filename.toStdString().c_str());
+      return false;
+  }
+
+  QTextStream in(&file);
+
+  QString text = in.readLine();
+  text = text.right(text.size()-text.indexOf('=')-1);
+  QStringList values = text.split(",");
+  kalman.Q.x = kalman.Q.y = values.at(0).toInt();
+  kalman.Q.z = values.at(1).toInt();
+
+  text = in.readLine();
+  text = text.right(text.size()-text.indexOf('=')-1);
+  values = text.split(",");
+  kalman.R.x = kalman.R.y = values.at(0).toInt();
+  kalman.R.z = values.at(1).toInt();
+
+  memset(&odometry,0,sizeof(localizationEstimate));
+  memset(&vision,0,sizeof(localizationEstimate));
+  kalman.lastCovariance.x = kalman.lastCovariance.y = kalman.lastCovariance.z = 0;
+  kalman.covariance = kalman.predictedCovariance = kalman.lastCovariance;
+
+  file.close();
+  return true;
+}
+
+bool Localization::WriteKalmanFilter()
+{
+  QString filename;
+  filename = processor->getKalmanFileName();
+  QFile file(filename);
+
+  if(!file.open(QIODevice::WriteOnly)){
+  ROS_ERROR("Error writing to %s.",KALMANFILENAME);
+  return false;
+}
+  QTextStream in(&file);
+
+
+  in << "Q=" << kalman.Q.x << "," << kalman.Q.z << "\r\n";
+  in << "R=" << kalman.R.x << "," << kalman.R.z << "\r\n";
+  QString message = QString("#WEIGHT=(XY),Z\r\n#DONT CHANGE THE ORDER OF THE CONFIGURATIONS");
+  in << message;
+
+  file.close();
+  return true;
+}
+
+void Localization::setKalman(worldConfig::ConstPtr msg)
+{
+  kalman.Q.x = kalman.Q.y = (int)msg->value_a;
+  kalman.Q.z = msg->value_b;
+  kalman.R.x = msg->value_c;
+  kalman.R.z = msg->window;
+
+  WriteKalmanFilter();
 }
 
 bool Localization::initWorldMap()
@@ -204,29 +272,39 @@ bool Localization::initWorldMap()
    currentField.FIELD_WIDTH = mapConfigs.at(1).toDouble();
    currentField.FIELD_POSITIONS = mapConfigs.at(2).toDouble();
    currentField.FIELD_NAME = mapConfigs.at(3);
+   if(mapConfigs.at(4)=="m")currentField.SCALE = 0.1;
+   else currentField.SCALE = 100;
    currentField.HALF_FIELD_LENGTH = currentField.FIELD_LENGTH/2.0;
    currentField.HALF_FIELD_WIDTH = currentField.FIELD_WIDTH/2.0;
    currentField.TERM1 = (currentField.FIELD_LENGTH*10)/2;
    currentField.TERM2 = (currentField.FIELD_WIDTH*10);
    currentField.TERM3 = (currentField.FIELD_WIDTH*10)/2;
 
-   worldMap = (struct nodo*)calloc(currentField.FIELD_POSITIONS,sizeof(struct nodo));
-   memset(worldMap,0,sizeof(nodo)*currentField.FIELD_POSITIONS);
+   // Tamanho da matriz
+   int x = float(currentField.FIELD_LENGTH/currentField.SCALE)+1;
+   int y = float(currentField.FIELD_WIDTH/currentField.SCALE)+1;
+
+   WorldMap = (struct nodo**)malloc(x * sizeof(struct nodo *));
+   for(int i = 0; i < x ; i++){
+     WorldMap[i] = (struct nodo*) malloc(y * sizeof(struct nodo));
+   }
+
    QStringList values,positions;
    QString auxPos,auxVal;
 
    for(unsigned int i=0;i<currentField.FIELD_POSITIONS;i++){
        values = in.readLine().split(")");
        auxVal = values.at(1);
-       auxVal.replace(",",".");
+       auxVal.remove(0,1);
        auxPos = values.at(0);
        auxPos.remove(0,1);
-       auxPos.replace(",",".");
-       positions = auxPos.split(";");
-       worldMap[i].x = positions.at(0).toDouble();
-       worldMap[i].y = positions.at(1).toDouble();
-       worldMap[i].closestDistance = auxVal.toDouble();
+       positions = auxPos.split(",");
+
+       WorldMap[getFieldIndexX(positions.at(0).toDouble())][getFieldIndexY(positions.at(1).toDouble())].x = positions.at(0).toDouble();
+       WorldMap[getFieldIndexX(positions.at(0).toDouble())][getFieldIndexY(positions.at(1).toDouble())].y = positions.at(1).toDouble();
+       WorldMap[getFieldIndexX(positions.at(0).toDouble())][getFieldIndexY(positions.at(1).toDouble())].closestDistance = auxVal.toDouble();
    }
+
    file.close();
    return true;
 }
@@ -278,29 +356,53 @@ void Localization::changeImageConfiguration(imageConfig::ConstPtr msg)
 
 void Localization::changeCameraProperties(cameraProperty::ConstPtr msg)
 {
-   ROS_WARN("New property value set.");
-   parentTimer->stop();
-   processor->setCamPropreties(msg);
-   parentTimer->start(requiredTiming);
+  if(camera){
+     ROS_WARN("New property value set.");
+     parentTimer->stop();
+     if(msg->targets == false)processor->setCamPropreties(msg);
+     else processor->setCalibrationTargets(msg);
+     parentTimer->start(requiredTiming);
+   }
+   else ROS_WARN("Camera not Connected!.");
 }
 
 void Localization::changeCamPID(PID::ConstPtr msg)
 {
-   processor->setPropControlerPID(msg);
+  if(camera){
+     parentTimer->stop();
+     processor->setPropControlerPID(msg);
+     parentTimer->start(requiredTiming);
+   }
+  else ROS_WARN("Camera not Connected!.");
 }
 void Localization::changeROI(ROI::ConstPtr msg)
 {
-   ROS_WARN("New ROI set");
-   parentTimer->stop();
-   processor->setROIs(msg);
-   parentTimer->start(requiredTiming);
+  if(camera){
+    ROS_WARN("New ROI set. ");
+    parentTimer->stop();
+    processor->setROIs(msg);
+    parentTimer->start(requiredTiming);
+  }
+  else ROS_WARN("Camera not Connected!.");
+}
+
+void Localization::changeWorldConfiguration(worldConfig::ConstPtr msg)
+{
+  ROS_INFO("New World Configuration set. ");
+  parentTimer->stop();
+  if(msg->RLE == true)processor->changeRLEConfiguration(msg);
+  else if(msg->RLE == false && msg->kalman == false)processor->changeBlobsConfiguration(msg);
+       else if(msg->kalman == true){
+         setKalman(msg);
+       }
+            else ROS_ERROR("ERROR SENDING WORLD CONFIGURATION. ");
+  parentTimer->start(requiredTiming);
 }
 /*************************************************************************************/
 /*************************************************************************************/
 
 bool Localization::doReloc(requestReloc::Request &req,requestReloc::Response &res)
 {
-   //#############################
    current_state.robot_pose.x = 0;
    current_state.robot_pose.y = 0;
    current_state.robot_velocity.x = 0;
@@ -310,7 +412,7 @@ bool Localization::doReloc(requestReloc::Request &req,requestReloc::Response &re
    memset(&vision,0,sizeof(localizationEstimate));
    last_state.robot_pose = current_state.robot_pose;
    last_state.robot_velocity = current_state.robot_velocity;
-   //#############################
+
    reloc = true;
    return true;
 }
@@ -553,6 +655,9 @@ void Localization::calcHistOrientation()
   if(current_hardware_state.imu_value < 90.0 && histEstimate > 270.0) histEstimate -= 360.0;
   if(current_hardware_state.imu_value > 270.0 && histEstimate < 90.0) histEstimate += 360.0;
   current_hardware_state.imu_value = 0.0 * current_hardware_state.imu_value + 1.0 * histEstimate;
+
+  /*delete[] horHist;
+  delete[] verHist;*/
 }
 
 void Localization::rotatePoints(int angle)
@@ -578,97 +683,122 @@ bool Localization::computeGlobalLocalization(int side) //compute initial localiz
    //First, get the detected line points and map them using the whole field positions.
    //Then, compute the error for every position and find the least error position
 
-   unsigned int inboundPoints = 0, leastIndex = 0;
+   unsigned int inboundPoints = 0;
    double positionError = 0.0, leastError = 100000.0;
    double xCor = 0.0, yCor = 0.0;
-   unsigned int num = 0;
-    for(unsigned int i=(currentField.FIELD_POSITIONS/2);i<currentField.FIELD_POSITIONS;i++){
-      positionError = 0.0;
-      inboundPoints = 0;
-      Point2d wp; wp.x = worldMap[i].x; wp.y = worldMap[i].y;
-     for(unsigned int p=0;p<processor->mappedLinePoints.size();p++){ //Counts inbound points and compute error
-         if(isInbounds(processor->mappedLinePoints[p],wp)){
-            inboundPoints++;
-            xCor = ceil(((processor->mappedLinePoints[p].x+worldMap[i].x)*10)-0.49)/10;
-            yCor = ceil(((processor->mappedLinePoints[p].y+worldMap[i].y)*10)-0.49)/10;
-            positionError += errorFunction(worldMap[getLine(xCor,yCor)].closestDistance, p);
-         }
-      }
-      if((positionError>0)&&(inboundPoints>=processor->mappedLinePoints.size()*0.9)){ //if all linePoints are inbounds, enquire the error
-         if(positionError<leastError){
-           num = inboundPoints;
-            leastError = positionError;
-            leastIndex = i;
-         }
-      }
+   Point2d wp,leastPos, point;
+   int Lenght, Width;
+   unsigned int i, j;
+
+   // Tamanho da matriz
+   if(side == 0){
+     i = float(currentField.FIELD_LENGTH/currentField.SCALE)+1;
+     i = i/2;
+     j = float(currentField.FIELD_WIDTH/currentField.SCALE)+1;
+     j = j/2;
+     Lenght = float(currentField.FIELD_LENGTH/currentField.SCALE)+1;
+     Width = float(currentField.FIELD_WIDTH/currentField.SCALE)+1;
+   }
+   else {
+     i = 0; j = 0;
+     Lenght = float(currentField.FIELD_LENGTH/currentField.SCALE)+1;
+     Lenght = Lenght/2;
+     Width = float(currentField.FIELD_WIDTH/currentField.SCALE)+1;
+     Width = Width/2;
    }
 
 
-   Point2f leastPos;
-   leastPos.x = worldMap[leastIndex].x;
-   leastPos.y = worldMap[leastIndex].y;
+   for(i = 0; i < Lenght; i++){
+     for(j = 0; j < Width; j++){
+       positionError = 0.0;
+       inboundPoints = 0;
+
+       // coordenadas em metros
+       wp.x = WorldMap[i][j].x;
+       wp.y = WorldMap[i][j].y;
+
+       for(unsigned int p = 0; p < processor->mappedLinePoints.size(); p++){
+         point.x = processor->mappedLinePoints[p].x;
+         point.y = processor->mappedLinePoints[p].y;
+         if(isInbounds(point,wp)){
+           inboundPoints++;
+           xCor = ceil(((point.x+wp.x)*10)-0.49)/10; // calcula aproximação mais rigorasa ao do ponto ao mapa
+           yCor = ceil(((point.y+wp.y)*10)-0.49)/10;
+           positionError += errorFunction(WorldMap[getFieldIndexX(xCor)][getFieldIndexY(yCor)].closestDistance, processor->mappedLinePoints[p].z);
+         }
+       }
+       if((positionError>0)&&(inboundPoints>=processor->mappedLinePoints.size()*0.9)){ //if all linePoints are inbounds, enquire the error
+          if(positionError<leastError){
+             leastError = positionError;
+             leastPos.x = WorldMap[i][j].x;
+             leastPos.y = WorldMap[i][j].y;
+          }
+       }
+     }
+   }
+
    xCor = 0;
    yCor = 0;
-   float localGap = 0.3;
-   for(float x=worldMap[leastIndex].x-localGap; x<=worldMap[leastIndex].x+localGap; x+=0.1){
-      for(float y=worldMap[leastIndex].y-localGap; y<=worldMap[leastIndex].y+localGap; y+=0.1){
-        for(float X = x-localGap; X < x+localGap; X++){
-          for(float Y = x-localGap; Y < x+localGap; Y++){
+   float localGap = 0.5;
+   for(float x=leastPos.x-localGap; x<=leastPos.x+localGap; x+=0.1){
+      for(float y=leastPos.y-localGap; y<=leastPos.y+localGap; y+=0.1){
+        for(float X = x-localGap; X < x+localGap; X+=0.1){
+          for(float Y = x-localGap; Y < x+localGap; Y+=0.1){
             positionError = 0.0;
-            Point2d wp;
-            wp.x = X; wp.y = Y;
+            wp.x = X;
+            wp.y = Y;
             inboundPoints = 0;
             for(unsigned int p=0;p<processor->mappedLinePoints.size();p++){ //Counts inbound points and compute error
-               if(isInbounds(processor->mappedLinePoints[p],wp)){
+              point.x = processor->mappedLinePoints[p].x;
+              point.y = processor->mappedLinePoints[p].y;
+               if(isInbounds(point,wp)){
                   inboundPoints++;
-                  xCor = ceil(((processor->mappedLinePoints[p].x+wp.x)*10)-0.49)/10;
-                  yCor = ceil(((processor->mappedLinePoints[p].y+wp.y)*10)-0.49)/10;
-                  positionError += errorFunction(worldMap[getLine(xCor,yCor)].closestDistance, p);
+                  xCor = ceil(((point.x+wp.x)*10)-0.49)/10; // calcula aproximação mais rigorasa ao do ponto ao mapa
+                  yCor = ceil(((point.y+wp.y)*10)-0.49)/10;
+                  positionError += errorFunction(WorldMap[getFieldIndexX(xCor)][getFieldIndexY(yCor)].closestDistance, processor->mappedLinePoints[p].z);
                }
              }
             if((positionError>0) && (inboundPoints>=processor->mappedLinePoints.size()*0.9)){
               if(positionError<leastError){
-                num = inboundPoints;
                 leastError = positionError;
-                leastPos.x = x;
-                leastPos.y = y;
+                leastPos.x = X;
+                leastPos.y = Y;
               }
             }
           }
         }
       }
     }
-    //std::cerr << "Numeros dentro: " << num << "    Numero de pontos de linha: " << processor->mappedLinePoints.size() << '\n';
-    //std::cerr << "Erro menor: " << leastError/num << '\n';
-    //if(leastError < 15){
-    //std::cerr << "Numeros dentro: " << num << "Numero de pontos de linha: " << processor->mappedLinePoints.size() << '\n';
     vision.x = leastPos.x;
     vision.y = leastPos.y;
     vision.angle = current_state.robot_pose.z;
     current_state.robot_pose.x = leastPos.x;
     current_state.robot_pose.y = leastPos.y;
     return false;
-  // }
-   //else return true;
 }
 
 void Localization::computeLocalLocalization() //compute next localization locally
 {
-   unsigned int inboundPoints = 0; Point2f leastPos;
+   unsigned int inboundPoints = 0;
    double positionError = 0.0, leastError = 100000.0;
    double xCor = 0.0, yCor = 0.0;
-   float localGap = 0.5;
+   float localGap = 0.4;
+   Point2d wp, leastPos, point;
+
    for(float x=last_state.robot_pose.x-localGap; x<=last_state.robot_pose.x+localGap; x+=0.1)
       for(float y=last_state.robot_pose.y-localGap; y<=last_state.robot_pose.y+localGap; y+=0.1){
          positionError = 0.0;
          inboundPoints = 0;
-         Point2d wp; wp.x = x; wp.y = y;
+         wp.x = x;
+         wp.y = y;
          for(unsigned int p=0;p<processor->mappedLinePoints.size();p++){ //Counts inbound points and compute error
-            if(isInbounds(processor->mappedLinePoints[p],wp)){
+           point.x = processor->mappedLinePoints[p].x;
+           point.y = processor->mappedLinePoints[p].y;
+            if(isInbounds(point,wp)){
                inboundPoints++;
-               xCor = ceil(((processor->mappedLinePoints[p].x+wp.x)*10)-0.49)/10;
-               yCor = ceil(((processor->mappedLinePoints[p].y+wp.y)*10)-0.49)/10;
-               positionError += errorFunction(worldMap[getLine(xCor,yCor)].closestDistance, p);
+               xCor = ceil(((point.x+wp.x)*10)-0.49)/10; // calcula aproximação mais rigorasa ao do ponto ao mapa
+               yCor = ceil(((point.y+wp.y)*10)-0.49)/10;
+               positionError += errorFunction(WorldMap[getFieldIndexX(xCor)][getFieldIndexY(yCor)].closestDistance,processor->mappedLinePoints[p].z );
             }
          }
       if((positionError>0)&&(inboundPoints>=processor->mappedLinePoints.size()*0.9)){ //if all linePoints are inbounds, enquire the error
@@ -693,10 +823,10 @@ int Localization::getLine(float x, float y) //Returns matching map position
    return line;
 }
 
-float Localization::errorFunction(float error, int p)
+float Localization::errorFunction(float error, double weight)
 {
-  double err = 1-((0.5*0.5)/((0.5*0.5)+error*error));
-   return processor->LinePointsWeight[p] * err;
+  double err = 1-((0.5*0.5)/((0.5*0.5)+(error*error)));
+  return weight * err;
 }
 
 bool Localization::isInbounds(Point2d point,Point2d center)
@@ -708,6 +838,19 @@ bool Localization::isInbounds(Point2d point,Point2d center)
            && ((y>=-(currentField.HALF_FIELD_WIDTH))&&(y<=(currentField.HALF_FIELD_WIDTH)))) return true;
    else return false;
 }
+
+int Localization::getFieldIndexX(float value)
+{
+   int tempX = float((value+currentField.HALF_FIELD_LENGTH)/currentField.SCALE);
+   return tempX;
+}
+
+int Localization::getFieldIndexY(float value)
+{
+   int tempX = float((value+currentField.HALF_FIELD_WIDTH)/currentField.SCALE);
+   return tempX;
+}
+
 /*
 Point2d Localization::mapPointToRobot(double orientation, Point2d dist_lut)
 {

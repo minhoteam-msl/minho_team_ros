@@ -23,14 +23,15 @@ using namespace std;
 
 enum property_cam{BRI=0,GAI=1,SHU=2,GAM=3,SAT=4,WB=5,EXP=6};
 
+
 class BlackflyCam
 {
 public:
-    explicit BlackflyCam(bool cal);
+    explicit BlackflyCam(bool cal, int robot_id);
     ~BlackflyCam();
-   
-    //#### CAMERA INTERFACE FUNCTIONS #### 
-    //#################################### 
+
+    //#### CAMERA INTERFACE FUNCTIONS ####
+    //####################################
     bool connect();
     bool closeCamera();
     bool startCapture();
@@ -44,12 +45,12 @@ public:
     float getFPS();
     inline void toggleCalibrate(){ calibrate = (!calibrate);}
     inline void toggleFirsttime(){ firsttime = (!firsttime);}
-    //#################################### 
-    //#################################### 
+    //####################################
+    //####################################
 
 
     //#### CAMERA PARAMETERS FUNCTIONS ####
-    //##################################### 
+    //#####################################
 
     //Brigtness(5.469->29.688)
     void setBrigtness(float value);
@@ -90,7 +91,7 @@ public:
     void setGammaState(bool state);
     inline float getGammaMax(){ return 3.999;}
     inline float getGammaMin(){ return 0.5;}
-    
+
     //Saturation(0->399.902)
     void setSaturation(float value);
     float getSaturation();
@@ -109,15 +110,17 @@ public:
     void setWhite_BalanceState(bool state);
     inline float getWhite_BalanceMax(){ return 1023;}
     inline float getWhite_BalanceMin(){ return 0;}
+    void setWhite_BalanceAuto(bool state);
 
     void setProps(int num);
-    void initProps();
+    bool initProps(int robot_id);
     bool writePIDConfig();
+    bool writePropConfig();
     void setPropControlPID(int id,float p, float i, float d, bool blue);
     Point2d getError(int prop_in_use);
-    //##################################### 
-    //##################################### 
-    
+    //#####################################
+    //#####################################
+
     //#### CALIBRATION FUNCTIONS ####
     //###############################
     void calcLumiHistogram();
@@ -131,7 +134,12 @@ public:
     void setBlackROI(int x, int y, int h);
     //###############################
     //###############################
-    
+
+    void setSatTarget(int val);
+    void setLumiTarget(int val);
+    int getSatTarget();
+    int getLumiTarget();
+
 private:
     //#### CAMERA INTERFACE DATA ####
     //###############################
@@ -147,26 +155,26 @@ private:
     float fps;
     Mutex mutex;
     struct timespec past,present;
+    int rob_id;
     //###############################
     //###############################
 
     //#### CAMERA PARAMETERS DATA ####
-    //################################ 
-    QString pidPath;
-    bool initPidValues();
+    //################################
+    QString pidPath, propertyPath;
+    bool initPidValues(int robot_id);
     Property props[7];
     PID *ShuPID,*BrigPID,*SatPID,*GammaPID,*GainPID,*wRedPID,*wBluePID;
-    //################################ 
-    //################################ 
-    
+    //################################
+    //################################
+
     //#### CALIBRATION DATA ####
     //##########################
     Rect roi_black, roi_white;
-    float minError;
     std::vector<int> histvalue;
     Mat image_roi_white,image_roi_black,image;
     float msvError;
-    int msv;
+    int msv, satTarget, lumiTarget;
     float minError_Lumi,minError_Sat,minError_UV_1,minError_UV_2,minError_RGB;
     //##########################
     //##########################

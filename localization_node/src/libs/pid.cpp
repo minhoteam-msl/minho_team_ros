@@ -56,7 +56,6 @@ float PID::calc_pid(float value, float error)
     lastError=error;
     lastOut=out;
 
-
     return out;
 }
 
@@ -71,7 +70,7 @@ void PID::reset()
 void PID::display()
 {
     //cout<<"p(%.2f)"<<kp<<"i(%.2f)"<<ki<<"d(%.2f)"<<kd<<endl;
-    //COLOCAR ROS_INFO
+    //ROS_INFO("P: %.2f I: %.2f D: %.2f", kp, ki, kd);
 }
 
 ///

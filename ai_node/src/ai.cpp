@@ -8,8 +8,9 @@ AI::AI(ros::NodeHandle* parent, bool mode_real, int robot_id)
    node = parent;
    agent_id = robot_id;
    std::stringstream bs_topic_name, ai_topic_name, robot_topic_name;
-
+   topic_base = "";
    if(!mode_real){
+      topic_base += "/minho_gazebo_robot"+std::to_string((int)agent_id);
       bs_topic_name << "/minho_gazebo_robot" << (int)agent_id;
       ai_topic_name << "/minho_gazebo_robot" << (int)agent_id;
       robot_topic_name << "/minho_gazebo_robot" << (int)agent_id;
@@ -51,6 +52,7 @@ void AI::computeAI()
    if(bsInfo.roles[agent_id-1]!=role->getActiveRole()){
       getNewRole((Roles)bsInfo.roles[agent_id-1],&role);
       role->setField(field);
+      role->setRosNodeHandle(node,topic_base);
    }
    
    // Determine action
@@ -89,12 +91,14 @@ void AI::getNewRole(Roles role, Role **newrole)
          (*newrole) = new RoleGoalKeeper();
          return;
       }
-      /*case rSUP_STRIKER:{
-         return new RoleSupStriker(role);
+      case rSUP_STRIKER:{
+         (*newrole) = new RoleSupStriker();
+         return;
       }
       case rSTRIKER:{
-         return new RoleStriker(role);
-      }*/
+         (*newrole) = new RoleStriker();
+         return;
+      }
       default: (*newrole) = new RoleStop();
                return;
    }
