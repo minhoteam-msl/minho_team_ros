@@ -4,7 +4,6 @@
 #include "minho_team_ros/aiInfo.h"
 #include "minho_team_ros/robotInfo.h"
 #include "minho_team_ros/baseStationInfo.h"
-#include "ignition/math.hh"
 #include <ros/ros.h>
 #include "Utils/types.h"
 #include <iostream>

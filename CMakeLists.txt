@@ -250,9 +250,6 @@ else()
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -frounding-math")
    ########################################
 
-   find_package(ignition-math2 REQUIRED)
-   include_directories(/usr/include/ignition/math2)
-   link_directories(/usr/lib/x86_64-linux-gnu)
    include_directories($ENV{HOME}/Common)
    ######################################################################
 
