@@ -13,13 +13,14 @@ Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success
    processor = new ImageProcessor(rob_id,use_camera,&correct_initialization); // true -> use camera
    if(!correct_initialization) { (*init_success) = false; return; }
    confserver = new ConfigServer(par);
-
+   ROS_INFO("Confserver ready.");
    correct_initialization = initWorldMap();
    if(!correct_initialization) { (*init_success) = false; return; }
+   ROS_INFO("Init world map ready.");
    correct_initialization = initializeKalmanFilter();
    if(!correct_initialization) { (*init_success) = false; return; }
 
-
+   ROS_INFO("Kalman ready.");
    confserver->setOmniVisionConf(processor->getMirrorConfAsMsg(),processor->getVisionConfAsMsg(),processor->getImageConfAsMsg(), processor->getBallConfAsMsg(), processor->getObsConfAsMsg(), processor->getRLEConfAsMsg());
    confserver->setProps(processor->getCamProperties());
    confserver->setPIDValues(processor->getPropControlerPID());
@@ -44,6 +45,7 @@ Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success
    connect(confserver,SIGNAL(changedWorldConfiguration(worldConfig::ConstPtr)),this,SLOT(changeWorldConfiguration(worldConfig::ConstPtr)));
    //#########################################################################
 
+   ROS_INFO("Signals and Slots ready.");
    //## Setup ROS Pubs and Subs ##
    //#############################
    //Initialize robotInfo publisher
@@ -110,8 +112,8 @@ void Localization::discoverWorldModel() // Main Function
       }
 
       processor->creatWorld(); // Creat World arround robot (obstacle and ball positions)
-      computeVelocities(); // Calculates robot velocity
       decideBallPossession(); // Decides if robot posses ball
+      computeVelocities(); // Calculates robot velocity
       sendWorldInfo(); // Load obstacls to current_state for further publish (only sends Blobs)
       generateDebugData(); // generate Debug Data
       memset(&odometry,0,sizeof(localizationEstimate)); // Clears odometry object to do nto use past values
@@ -306,6 +308,7 @@ bool Localization::initWorldMap()
    }
 
    file.close();
+      
    return true;
 }
 
@@ -562,6 +565,10 @@ void Localization::computeVelocities()
       // ########################################################################
       if(current_state.robot_velocity.x>2.5) current_state.robot_velocity.x = 0;
       if(current_state.robot_velocity.y>2.5) current_state.robot_velocity.y = 0;
+
+      current_state.ball_velocity.x = lpf_weight*((current_state.ball_position.x-last_vel_state.ball_position.x)/(time_interval*(float)it_limit))+lpf_minor*last_vel_state.ball_velocity.x;  
+      current_state.ball_velocity.y = lpf_weight*((current_state.ball_position.y-last_vel_state.ball_position.y)/(time_interval*(float)it_limit))+lpf_minor*last_vel_state.ball_velocity.y;
+
       last_vel_state = current_state;
    }
 
@@ -574,6 +581,20 @@ void Localization::decideBallPossession()
    // if the robot possesses the ball or not
    // ########################################################################
    current_state.has_ball = current_hardware_state.ball_sensor;
+   float mindist = 1000.0; int nearBall = 0;
+   for(int i=0;i<processor->ballBlob.UMblobs.size();i++){
+      if(processor->ballBlob.UMblobs[i].dist_to_robot<=mindist){
+         mindist = processor->ballBlob.UMblobs[i].dist_to_robot;
+         nearBall = i;
+      }      
+   }
+
+   if(!processor->ballBlob.UMblobs.size()) current_state.sees_ball = false;
+   else {
+      current_state.sees_ball = true;
+      current_state.ball_position.x = processor->ballBlob.UMblobs[nearBall].center.x + current_state.robot_pose.x;
+      current_state.ball_position.y = processor->ballBlob.UMblobs[nearBall].center.y + current_state.robot_pose.y;
+   }
 }
 
 void Localization::generateDebugData()
