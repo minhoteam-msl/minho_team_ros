@@ -21,6 +21,7 @@ private:
    float small_area_x,small_area_y;
    float center_circle_radius;
    bool passed_after_engage;
+   vec2d kick_spot;
 };
 
 #endif

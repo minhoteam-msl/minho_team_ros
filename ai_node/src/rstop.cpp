@@ -1,5 +1,9 @@
 #include "rstop.h"
 
+/* What rSTOP Does:
+All states - Remains stopped
+*/
+
 RoleStop::RoleStop() : Role(rSTOP)
 {
 }
@@ -14,7 +18,7 @@ void RoleStop::setRosNodeHandle(ros::NodeHandle *parent, std::string topic_base)
 
 void RoleStop::determineAction()
 {
-   mAction = aSTOP;
+   mAction = aSTOP;  
 }
 
 void RoleStop::computeAction(aiInfo *ai)

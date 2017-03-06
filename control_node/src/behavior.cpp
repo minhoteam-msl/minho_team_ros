@@ -197,7 +197,7 @@ void Behavior::doWork()
            control_info.linear_velocity = control_info.angular_velocity = 0;
        } break;
 
-       case aSLOWMOVE: {
+       case aAPPROACHPOSITION: {
            goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,30);
 
        } break;
@@ -247,6 +247,17 @@ void Behavior::doWork()
                srv.request.kick_strength = ai_info_copy.target_kick_strength;
                kick_service.call(srv);   
             }
+       } break;
+
+       case aHOLDBALL: {
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,50);
+           control_info.linear_velocity = control_info.angular_velocity = 0;
+           control_info.dribbler_on = true;
+       } break;
+
+       case aDRIBBLEBALL: {
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,30);
+           control_info.dribbler_on = true;
        } break;
 
        default: {

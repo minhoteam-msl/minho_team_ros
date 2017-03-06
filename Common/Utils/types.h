@@ -185,8 +185,22 @@ sOWN_KICKOFF,sPRE_THEIR_KICKOFF,sTHEIR_KICKOFF,sPRE_OWN_FREEKICK,
 sOWN_FREEKICK,sPRE_THEIR_FREEKICK, sTHEIR_FREEKICK,sGAME_OWN_BALL,
 sGAME_THEIR_BALL} GameState;
 /// \brief defines the actions wich model the robots control approach
-typedef enum Actions{aSTOP = 0, aSLOWMOVE, aFASTMOVE, aAPPROACHBALL,
-aENGAGEBALL, aRECEIVEBALL, aKICKBALL, aPASSBALL}Actions;
+typedef enum Actions{aSTOP = 0, aAPPROACHPOSITION, aFASTMOVE, aAPPROACHBALL,
+aENGAGEBALL, aRECEIVEBALL, aPASSBALL, aKICKBALL, aDRIBBLEBALL, aHOLDBALL}Actions;
+
+// aSTOP -> Remain stopped
+// aAPPROACHPOSITION -> Approach a determined position with precision, with slow movement,
+//                      suitable for PRE states
+// aFASTMOVE -> Go to a position as fast and stable as possible. Suitable to intercept balls
+//              , cover a player or do attack/defensive plays.
+// aAPPROACHBALL -> Go to a position near game ball, considering it an obstacle beacause it
+//                  should not be touched. 
+// aENGAGEBALL -> Engage ball, with the objective of grabbing it
+// aRECEIVEBALL -> Receive ball, but without engaging it (wait for the ball to come)
+// aPASSBALL -> Pass the ball to a determined x-y position
+// aKICKBALL -> Kick the ball to a determined position
+// aDRIBBLEBALL -> Dribble the ball to a determined position
+// aHIDEBALL -> Hide and hold ball, avoiding it being retaked by other players
 
 /*
 ############################################################################

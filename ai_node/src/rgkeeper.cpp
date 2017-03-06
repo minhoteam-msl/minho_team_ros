@@ -1,5 +1,13 @@
 #include "rgkeeper.h"
 
+/* What rSUPSTRIKER Does:
+Parking - Goes to parking spot 1
+Own Kickoff - Stays in the middle of goalie
+Their Kickoff - Orientation towards ball
+Own Freekick - Stays in the middle of goalie
+Their Freekick - Defends the ball if it goes towards goalie
+*/
+
 RoleGoalKeeper::RoleGoalKeeper() : Role(rGOALKEEPER)
 {
 }
@@ -18,21 +26,20 @@ void RoleGoalKeeper::setRosNodeHandle(ros::NodeHandle *parent, std::string topic
 void RoleGoalKeeper::determineAction()
 {
    if(mBsInfo.gamestate==sSTOPPED) mAction = aSTOP;
-   else if(mBsInfo.gamestate==sPARKING){
-      // Slow motion for parking
-      mAction = aSLOWMOVE;
-   }else { 
-      // For now, do aFASTMOVE for every other game state
-      mAction = aFASTMOVE;   
-   }     
+   else if(mBsInfo.gamestate==sPARKING || mBsInfo.gamestate==sPRE_OWN_KICKOFF ||
+           mBsInfo.gamestate==sOWN_KICKOFF || mBsInfo.gamestate==sPRE_THEIR_KICKOFF ||
+           mBsInfo.gamestate==sTHEIR_KICKOFF || mBsInfo.gamestate==sPRE_THEIR_FREEKICK ||
+           mBsInfo.gamestate==sPRE_OWN_FREEKICK || mBsInfo.gamestate==sGAME_OWN_BALL) mAction = aAPPROACHPOSITION;
+   else mAction = aFASTMOVE;     
 }
 
 void RoleGoalKeeper::computeAction(aiInfo *ai)
 {
    determineAction();
    (*ai) = aiInfo(); 
+   mAI = ai;
    ai->role = mRole;
-   ai->action = mAction;  
+   ai->action = mAction; 
 
    if(mAction==aSTOP)return;
 
@@ -49,16 +56,9 @@ void RoleGoalKeeper::computeAction(aiInfo *ai)
       case sOWN_KICKOFF:
       case sPRE_THEIR_KICKOFF:
       case sTHEIR_KICKOFF:
+      case sPRE_OWN_FREEKICK:
       case sGAME_OWN_BALL:{
-         // No harm situation, stay in the middle of the goalie
-         if(mBsInfo.posxside) { 
-            ai->target_pose.x = goal_line_x;
-            ai->target_pose.z = 90.0;
-         } else {
-            ai->target_pose.x = -goal_line_x;
-            ai->target_pose.z = 270.0;
-         }
-         ai->target_pose.y = 0.0;
+         goToMiddleOfGoalie();
          break;
       }
       case sPRE_THEIR_FREEKICK:{
@@ -69,84 +69,25 @@ void RoleGoalKeeper::computeAction(aiInfo *ai)
             else ai->target_pose.x = -goal_line_x;
             ai->target_pose.y = 0.0; 
             //Compute heading towards the ball
-            ai->target_pose.z = atan2(mRobot.ball_position.y-mRobot.robot_pose.y,
-            mRobot.ball_position.x-mRobot.robot_pose.x)*(180.0/M_PI);
-            while(ai->target_pose.z<0) ai->target_pose.z+= 360.0;
-            while(ai->target_pose.z>360.0) ai->target_pose.z-= 360.0;
-            if(ai->target_pose.z>=0.0&&ai->target_pose.z<90.0) 
-               ai->target_pose.z = 360.0+ai->target_pose.z-90.0;
-            else ai->target_pose.z -= 90.0;
-         } else { // If we dont see the ball, stay in the middle
-            if(mBsInfo.posxside) { 
-               ai->target_pose.x = goal_line_x;
-               ai->target_pose.z = 90.0;
-            } else {
-               ai->target_pose.x = -goal_line_x;
-               ai->target_pose.z = 270.0;
-            }
-            ai->target_pose.y = 0.0;
-         }
-         
+            ai->target_pose.z = orientationToTarget(mRobot.ball_position.x,
+                                mRobot.ball_position.y);
+         } else goToMiddleOfGoalie(); // If we dont see the ball, stay in the middle
+
          break;
       }
 
-      case sPRE_OWN_FREEKICK: // remove later
-      case sOWN_FREEKICK:
+      case sOWN_FREEKICK: // remove later
       case sTHEIR_FREEKICK:
       case sGAME_THEIR_BALL:{
          // Harm game situation, implement mixed game defense strategy
          // with spotting areas. If the ball has impact point inside
          // golie, move towards the point.
          if(mRobot.sees_ball){
-            if(!preditImpactPosition()){
-               if(mBsInfo.posxside) { 
-                  if(mRobot.ball_position.y>=-1.5&&
-                     mRobot.ball_position.y<=1.5&&
-                     mRobot.ball_position.x>=small_area_x-0.1&&
-                     mRobot.ball_position.x<=goal_line_x){
-                     // ball inside small area, stay right in front of it
-                     ai->target_pose.x = goal_line_x;
-                     ai->target_pose.y = mRobot.ball_position.y;
-                     if(ai->target_pose.y>0.8)ai->target_pose.y=0.8;
-                     if(ai->target_pose.y<-0.8)ai->target_pose.y=-0.8;
-                     ai->target_pose.z = 90.0;
-                  }else{
-                     ai->target_pose = spot_areas[0].posr; //default
-                     for(int i=0;i<spot_areas.size();i++){
-                        if(isInsideSpotAreaRight(i)){
-                           ai->target_pose = spot_areas[i].posr;  
-                        }
-                     }
-                  }
-               } else {
-                  if(mRobot.ball_position.y>=-1.5&&
-                     mRobot.ball_position.y<=1.5&&
-                     mRobot.ball_position.x<=-small_area_x+0.1&&
-                     mRobot.ball_position.x>=-goal_line_x){
-                     // ball inside small area, stay right in front of it
-                     ai->target_pose.x = -goal_line_x;
-                     ai->target_pose.y = mRobot.ball_position.y;
-                     if(ai->target_pose.y>0.8)ai->target_pose.y=0.8;
-                     if(ai->target_pose.y<-0.8)ai->target_pose.y=-0.8;
-                     ai->target_pose.z = 270.0;
-                  }else{
-                     ai->target_pose = spot_areas[0].posl; //default
-                     for(int i=0;i<spot_areas.size();i++){
-                        if(isInsideSpotAreaLeft(i)){
-                           ai->target_pose = spot_areas[i].posl;  
-                        }
-                     }
-                  }
-               }
+            if(!predictImpactPosition()){
+               computeGoalPreventionLocation();
                //Compute heading towards the ball
-               ai->target_pose.z = 
-               atan2(mRobot.ball_position.y-mRobot.robot_pose.y,
-               mRobot.ball_position.x-mRobot.robot_pose.x)*(180.0/M_PI);
-               while(ai->target_pose.z<0) ai->target_pose.z+= 360.0;
-               while(ai->target_pose.z>360.0) ai->target_pose.z-= 360.0;
-               if(ai->target_pose.z>=0.0&&ai->target_pose.z<90.0) 
-                  ai->target_pose.z = 360.0+ai->target_pose.z-90.0;
-               else ai->target_pose.z -= 90.0;
+               ai->target_pose.z = orientationToTarget(mRobot.ball_position.x,
+                                mRobot.ball_position.y);
             }else{
                //compute stuff
                ai->target_pose = impact;
@@ -158,25 +99,31 @@ void RoleGoalKeeper::computeAction(aiInfo *ai)
                info.impact_zone = impact;
                gk_pub.publish(info);
             }
-         } else { // If we dont see the ball, stay in the middle
-            if(mBsInfo.posxside) { 
-               ai->target_pose.x = goal_line_x;
-               ai->target_pose.z = 90.0;
-            } else {
-               ai->target_pose.x = -goal_line_x;
-               ai->target_pose.z = 270.0;
-            }
-            ai->target_pose.y = 0.0;
-         }
+         } else goToMiddleOfGoalie(); // If we dont see the ball, stay in the middle
          break;
       }
-      default: break;
+      default: {mAction = aSTOP; break; }
    }
+
+   ai->action = mAction;  
 }
 
 std::string RoleGoalKeeper::getActiveRoleName()
 {
    return std::string("rGOALKEEPER");
+}
+
+void RoleGoalKeeper::goToMiddleOfGoalie()
+{
+   // No harm situation, stay in the middle of the goalie
+   if(mBsInfo.posxside) { 
+      mAI->target_pose.x = goal_line_x;
+      mAI->target_pose.z = 90.0;
+   } else {
+      mAI->target_pose.x = -goal_line_x;
+      mAI->target_pose.z = 270.0;
+   }
+   mAI->target_pose.y = 0.0;   
 }
 
 void RoleGoalKeeper::setField(fieldDimensions fd)
@@ -232,6 +179,49 @@ bool RoleGoalKeeper::isInsideSpotAreaLeft(int idx)
    return false;
 }
 
+void RoleGoalKeeper::computeGoalPreventionLocation()
+{
+   if(mBsInfo.posxside) { 
+      if(mRobot.ball_position.y>=-1.5&&
+         mRobot.ball_position.y<=1.5&&
+         mRobot.ball_position.x>=small_area_x-0.1&&
+         mRobot.ball_position.x<=goal_line_x){
+         // ball inside small area, stay right in front of it
+         mAI->target_pose.x = goal_line_x;
+         mAI->target_pose.y = mRobot.ball_position.y;
+         if(mAI->target_pose.y>0.8)mAI->target_pose.y=0.8;
+         if(mAI->target_pose.y<-0.8)mAI->target_pose.y=-0.8;
+         mAI->target_pose.z = 90.0;
+      }else{
+         mAI->target_pose = spot_areas[0].posr; //default
+         for(int i=0;i<spot_areas.size();i++){
+            if(isInsideSpotAreaRight(i)){
+               mAI->target_pose = spot_areas[i].posr;  
+            }
+         }
+      }
+   } else {
+      if(mRobot.ball_position.y>=-1.5&&
+         mRobot.ball_position.y<=1.5&&
+         mRobot.ball_position.x<=-small_area_x+0.1&&
+         mRobot.ball_position.x>=-goal_line_x){
+         // ball inside small area, stay right in front of it
+         mAI->target_pose.x = -goal_line_x;
+         mAI->target_pose.y = mRobot.ball_position.y;
+         if(mAI->target_pose.y>0.8)mAI->target_pose.y=0.8;
+         if(mAI->target_pose.y<-0.8)mAI->target_pose.y=-0.8;
+         mAI->target_pose.z = 270.0;
+      }else{
+         mAI->target_pose = spot_areas[0].posl; //default
+         for(int i=0;i<spot_areas.size();i++){
+            if(isInsideSpotAreaLeft(i)){
+               mAI->target_pose = spot_areas[i].posl;  
+            }
+         }
+      }
+   }
+}
+
 bool RoleGoalKeeper::dangerousBall()
 {
    if(mBsInfo.posxside){
@@ -243,7 +233,7 @@ bool RoleGoalKeeper::dangerousBall()
    } 
 }
 
-bool RoleGoalKeeper::preditImpactPosition()
+bool RoleGoalKeeper::predictImpactPosition()
 {
    if(!dangerousBall()) return false;
 
@@ -255,14 +245,15 @@ bool RoleGoalKeeper::preditImpactPosition()
    // be worth to do bounce prediction
       potentialGoal=lowShot=true;
    } else { // bounce prediction needed
+      potentialGoal=lowShot=true;
    }
 
 
    if(potentialGoal&&lowShot){ // linear movement prediction
       float m = mRobot.ball_velocity.y/mRobot.ball_velocity.x;
       float b = Yi-m*Xi;
-      float targetX = goal_line_x-0.3;
-      if(!mBsInfo.posxside) targetX = -goal_line_x+0.3;
+      float targetX = goal_line_x-0.25;
+      if(!mBsInfo.posxside) targetX = -goal_line_x+0.25;
       float yimpact= m*targetX+b;
       if(yimpact<=1.0&&yimpact>=-1.0){
          impact.x = targetX;
@@ -296,3 +287,4 @@ bool RoleGoalKeeper::intrestingEventHappened(double x, double y, double xi)
    
    return false;
 }
+

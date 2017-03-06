@@ -20,7 +20,7 @@ class RoleGoalKeeper : public Role
 public:
    RoleGoalKeeper(); // Constructor
    ~RoleGoalKeeper();
-
+   
    virtual void determineAction();
    virtual void computeAction(aiInfo *ai);
    virtual std::string getActiveRoleName();
@@ -30,13 +30,16 @@ private:
    float goal_line_x;
    float side_line_y;
    float small_area_x;
-   
+
+   void goToMiddleOfGoalie();
    bool isInsideSpotAreaRight(int idx);
-   bool isInsideSpotAreaLeft(int idx);
+   bool isInsideSpotAreaLeft(int idx);   
+   void computeGoalPreventionLocation();
    bool dangerousBall();
-   bool preditImpactPosition(); // This will probably moved later
+   bool predictImpactPosition(); // This will probably moved later
    bool crossedGoalLine(float ximpact);
    bool intrestingEventHappened(double x, double y, double xi);
+   
    // somewhere else
    // Spotting areas
    // 0 - xmin, 1 - xmax, 2 - ymin, 3 - ymax

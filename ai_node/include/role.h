@@ -12,6 +12,10 @@ using minho_team_ros::aiInfo;
 using minho_team_ros::baseStationInfo;
 using minho_team_ros::robotInfo;
 
+typedef struct vec2d{
+   float x,y;
+} vec2d;
+
 class Role
 {
   
@@ -24,6 +28,7 @@ public:
    std::string getActiveActionName();
    inline void updateWorldModel(baseStationInfo bs,robotInfo rb)
    { mBsInfo=bs; mRobot=rb;}
+   float orientationToTarget(float tarx, float tary);
 
    // pure virtual functions to implement in each subclass
    virtual void determineAction()=0;
@@ -39,6 +44,7 @@ public:
    robotInfo mRobot;
    fieldDimensions field;
    ros::NodeHandle *node; 
+   aiInfo *mAI;
 };
 
 #endif // ROLE_H

@@ -1,5 +1,13 @@
 #include "rsupstriker.h"
 
+/* What rSUPSTRIKER Does:
+Parking - Goes to parking spot 3
+Own Kickoff - Passes the ball to rSTRIKER
+Their Kickoff - Stays midfield
+Own Freekick - Passes the ball to rSTRIKER
+Their Freekick - If existing, covers the nearest obstacle (enemy)
+*/
+
 RoleSupStriker::RoleSupStriker() : Role(rSUP_STRIKER)
 {
 }
@@ -19,7 +27,7 @@ void RoleSupStriker::determineAction()
    else if(mBsInfo.gamestate==sPARKING||
            mBsInfo.gamestate==sPRE_THEIR_KICKOFF){
       // Slow motion for parking or precise positioning
-      mAction = aSLOWMOVE;
+      mAction = aAPPROACHPOSITION;
    }else if(mBsInfo.gamestate==sPRE_OWN_KICKOFF||
             mBsInfo.gamestate==sPRE_OWN_FREEKICK){
       // approach ball in order to pass it
@@ -28,7 +36,6 @@ void RoleSupStriker::determineAction()
             mBsInfo.gamestate==sOWN_FREEKICK){ 
       // When taking a foul, sup striker has to engage and pass the ball
       if(mRobot.has_ball)mAction = aPASSBALL;
-      else if(passed_after_engage) mAction = aSTOP;
       else mAction = aENGAGEBALL;
    }else {
       // For now, do aFASTMOVE for every other game state
@@ -68,7 +75,12 @@ void RoleSupStriker::computeAction(aiInfo *ai)
          } else {
             ai->target_pose.y = -0.5;  
             ai->target_pose.z = 0.0; 
-         }     
+         }   
+
+         if(mRobot.sees_ball)
+            ai->target_pose.z = orientationToTarget(
+            mRobot.ball_position.x,
+            mRobot.ball_position.y);
          break;
       }
       case sOWN_KICKOFF:{
@@ -79,8 +91,13 @@ void RoleSupStriker::computeAction(aiInfo *ai)
          if(mRobot.has_ball) stab_counter++;
          else stab_counter = 0;
     
+         float distFromKickSpot = sqrt((kick_spot.x-mRobot.ball_position.x)*
+         (kick_spot.x-mRobot.ball_position.x)
+         +(kick_spot.y-mRobot.ball_position.y)*
+         (kick_spot.y-mRobot.ball_position.y));
+     
          if(mRobot.has_ball){
-            if(stab_counter<=3) { ai->action = aENGAGEBALL; ai->target_pose = mRobot.robot_pose; break; }
+            if(stab_counter<=3) { mAction = aHOLDBALL; ai->target_pose = mRobot.robot_pose; break; }
             stab_counter = 0;
             ai->target_pose.x = mRobot.robot_pose.x;
             ai->target_pose.y = mRobot.robot_pose.y;
@@ -91,20 +108,26 @@ void RoleSupStriker::computeAction(aiInfo *ai)
             }
             ai->target_kick_strength = 50;
             passed_after_engage = true;
-         } else if(fabs(mRobot.ball_velocity.y)<0.25){ 
-            // engage ball
+            kick_spot.x = mRobot.ball_position.x;
+            kick_spot.y = mRobot.ball_position.y;
+         } else if(passed_after_engage && distFromKickSpot<0.5
+            && sqrt(mRobot.ball_velocity.x*mRobot.ball_velocity.x+
+            mRobot.ball_velocity.y*mRobot.ball_velocity.y)<0.25){
+            mAction = aENGAGEBALL; 
+            // If the ball was kicked but never left the vicinity of
+            // the robot, engage the ball
             tarx = ballx; tary = bally; ai->target_pose.x = tarx; 
             ai->target_pose.y = tary; 
+         } else if(passed_after_engage) { 
+            mAction = aAPPROACHPOSITION;  
+            ai->target_pose = mRobot.robot_pose;
+            tarx = mRobot.ball_position.x;
+            tary = mRobot.ball_position.y;
+         } else {
+            ai->target_pose = mRobot.ball_position;
          }
          
-         ai->target_pose.z = 
-         atan2(tary-mRobot.robot_pose.y,tarx-mRobot.robot_pose.x)
-         *(180.0/M_PI);
-         while(ai->target_pose.z<0) ai->target_pose.z+= 360.0;
-         while(ai->target_pose.z>360.0) ai->target_pose.z-= 360.0;
-         if(ai->target_pose.z>=0.0&&ai->target_pose.z<90.0) 
-            ai->target_pose.z = 360.0+ai->target_pose.z-90.0;
-         else ai->target_pose.z -= 90.0;
+         ai->target_pose.z = orientationToTarget(tarx,tary);
          
          break; 
       }
@@ -124,14 +147,7 @@ void RoleSupStriker::computeAction(aiInfo *ai)
             tarx = mRobot.ball_position.x;
             tary = mRobot.ball_position.y;
          }
-         ai->target_pose.z = 
-         atan2(tary-mRobot.robot_pose.y,tarx-mRobot.robot_pose.x)
-         *(180.0/M_PI);
-         while(ai->target_pose.z<0) ai->target_pose.z+= 360.0;
-         while(ai->target_pose.z>360.0) ai->target_pose.z-= 360.0;
-         if(ai->target_pose.z>=0.0&&ai->target_pose.z<90.0) 
-            ai->target_pose.z = 360.0+ai->target_pose.z-90.0;
-         else ai->target_pose.z -= 90.0;
+         ai->target_pose.z = orientationToTarget(tarx,tary);
          break;
       }
       case sPRE_OWN_FREEKICK:{
@@ -158,33 +174,49 @@ void RoleSupStriker::computeAction(aiInfo *ai)
          if(mRobot.has_ball) stab_counter++;
          else stab_counter = 0;
 
+         float distFromKickSpot = sqrt((kick_spot.x-mRobot.ball_position.x)*
+         (kick_spot.x-mRobot.ball_position.x)
+         +(kick_spot.y-mRobot.ball_position.y)*
+         (kick_spot.y-mRobot.ball_position.y));
+
          if(mRobot.has_ball){
-            if(stab_counter<=5) { ai->action = aENGAGEBALL; ai->target_pose = mRobot.robot_pose; break; }
+            if(stab_counter<=3) { mAction = aHOLDBALL; ai->target_pose = mRobot.robot_pose; break; }
             stab_counter = 0;
 
             ai->target_pose.x = mRobot.robot_pose.x;
             ai->target_pose.y = mRobot.robot_pose.y;
-            tarx = ballx; tary = bally;
+            tary = mRobot.robot_pose.y;
+            if(!mBsInfo.posxside) tarx = mRobot.robot_pose.x-1.0;
+            else tarx = mRobot.robot_pose.x+1.0; 
             ai->target_kick_strength = 50;
             passed_after_engage = true;
-         } else { 
-            // engage ball ball
+            kick_spot.x = mRobot.ball_position.x;
+            kick_spot.y = mRobot.ball_position.y;
+         } else if(passed_after_engage && distFromKickSpot<0.5
+            && sqrt(mRobot.ball_velocity.x*mRobot.ball_velocity.x+
+            mRobot.ball_velocity.y*mRobot.ball_velocity.y)<0.25){
+            mAction = aENGAGEBALL; 
+            // If the ball was kicked but never left the vicinity of
+            // the robot, engage the ball
             tarx = ballx; tary = bally; ai->target_pose.x = tarx; 
             ai->target_pose.y = tary; 
+         } else if(passed_after_engage) { 
+            mAction = aAPPROACHPOSITION;  
+            ai->target_pose = mRobot.robot_pose;
+            tarx = mRobot.ball_position.x;
+            tary = mRobot.ball_position.y;
+         } else {
+            ai->target_pose = mRobot.ball_position;
          }
          
-         ai->target_pose.z = 
-         atan2(tary-mRobot.robot_pose.y,tarx-mRobot.robot_pose.x)
-         *(180.0/M_PI);
-         while(ai->target_pose.z<0) ai->target_pose.z+= 360.0;
-         while(ai->target_pose.z>360.0) ai->target_pose.z-= 360.0;
-         if(ai->target_pose.z>=0.0&&ai->target_pose.z<90.0) 
-            ai->target_pose.z = 360.0+ai->target_pose.z-90.0;
-         else ai->target_pose.z -= 90.0;
+         ai->target_pose.z = orientationToTarget(tarx,tary);
          
          break;
       }
+      default: {mAction = aSTOP; break; }
    }
+
+   ai->action = mAction;
 }
 
 std::string RoleSupStriker::getActiveRoleName()
