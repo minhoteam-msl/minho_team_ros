@@ -1,6 +1,5 @@
-//
 #include "behavior.h"
-
+#include "Utils/getIP.h"
 
 /// \brief main worker thread
 pthread_t worker_thread;
@@ -22,7 +21,6 @@ pthread_mutex_t condition_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define DATA_UPDATE_HZ 30
 #define DATA_UPDATE_USEC 1000000/DATA_UPDATE_HZ
-
 
 //
 static void syncronizeThread(int signal)
@@ -47,8 +45,8 @@ void* doWork(void*)
 //
 int main(int argc, char **argv)
 {
-    if((argc>1 && argc!=3) && (argc>1 && argc!=2)) {
-      ROS_ERROR("Must enter robot id and mode as parameter for the simulated robot.\n Please use -s for simulation, followed by the robot's ID. Flag -m to run Matlab UDP bridge [-m or -sm]. [1]");
+    if((argc>1 && argc!=3)) {
+      ROS_ERROR("Must enter robot id and mode as parameter for the simulated robot.\n");
       exit(1);
     }
 
@@ -65,6 +63,11 @@ int main(int argc, char **argv)
          ROS_ERROR("Must enter mode correctly. Please use -s for simulation.");
          exit(3);
       }
+    }
+    
+    if(mode_real){
+      robot_id = getRobotIdByIP(std::string("wlan0"));
+      if(robot_id<0) { robot_id = 1; ROS_ERROR("Error in Robot ID by IP address ... Defaulting to 1."); }
     }
 
     ROS_WARN("Attempting to start control services of control_node.");

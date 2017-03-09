@@ -1,0 +1,4 @@
+/usr/local/lib/libsisl.a
+/usr/local/include/sisl-copyright.h
+/usr/local/include/sisl.h
+/usr/local/include/sislP.h

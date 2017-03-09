@@ -30,6 +30,7 @@ int getRobotIdByIP();
 Localization *localization;
 int main(int argc, char **argv)
 {
+	int side = 0;
 	QCoreApplication a(argc, argv);
 	ROS_WARN("Attempting to start GigE Vision services of localization_node.");
 	//Initialize ROS
@@ -38,20 +39,21 @@ int main(int argc, char **argv)
 	ros::NodeHandle localization_node;
 	bool use_camera = true;
 	QString mode = QString::fromLocal8Bit(argv[1]);
-	if(argc>1 && mode=="-static"){
-	   ROS_WARN("Image acquisition set to static image."); 
-	   use_camera = false;  
+	if(argc>2 && mode=="-static"){
+	   ROS_WARN("Image acquisition set to static image.");
+	   use_camera = false;
 	} else ROS_WARN("Image acquisition set to GigE Camera.");
+	side = atoi(argv[2]);
 	bool correct_initialization = true;
 	int robot_id = 1;
-	// Scan ip address for 
+	// Scan ip address for
 	robot_id = getRobotIdByIP();
 	if(robot_id<0) { robot_id = 1; ROS_ERROR("Error in Robot ID by IP address ... Defaulting to 1."); }
-	localization = new Localization(robot_id,&localization_node,&correct_initialization,use_camera);
+	localization = new Localization(robot_id,&localization_node,&correct_initialization,use_camera, side);
 	if(!correct_initialization) { ROS_ERROR("Killing node on incorrect initialization ..."); ros::shutdown(); a.exit(0); return 0; }
 
 	ROS_WARN("MinhoTeam localization_node started running on ROS.");
-	
+
 	ros::AsyncSpinner spinner(2);
 	spinner.start();
 	return a.exec();
@@ -86,7 +88,7 @@ int getRobotIdByIP()
 		close(fd);
 		return -1;
 	}
-	
+
 	close(fd);
 	int id = if_info.ifr_hwaddr.sa_data[5];
    if(id<1 || id>5) id = -1;

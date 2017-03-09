@@ -5,5 +5,5 @@ pose ball_position
 velocity ball_velocity
 bool has_ball
 bool sees_ball
-position[] obstacles
+obstacle[] obstacles
 interestPoint[] interest_points

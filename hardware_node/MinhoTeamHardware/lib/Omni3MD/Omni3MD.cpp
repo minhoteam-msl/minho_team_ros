@@ -22,6 +22,7 @@ void Omni3MD::i2c_connect(byte omniAddress)
     _omniAddress = omniAddress>>1;
 	Wire.begin(_omniAddress);						// join i2c bus (address optional for master)
 }
+
 byte Omni3MD::i2cRequestByte(byte addressValue, byte command)
 {
   byte value=(byte)0xFF;

@@ -19,11 +19,13 @@ Fundamental::Fundamental()
 bool Fundamental::initParameters()
 {
     QString home = QString::fromStdString(getenv("HOME"));
-    QString cfgDir = home+QString(CCONFIGFOLDERPATH);
-    QString mainfile = cfgDir+QString(MAINFILENAME);
+    QString commonDir = home+QString(COMMON_PATH);
+    QString cfgDir = commonDir+QString(CTRL_CFG_PATH);
+    QString fieldsDir = commonDir+QString(FIELDS_PATH);
+    QString mainFile = commonDir+QString(MAINFILENAME);
 
     QString fieldname = "";
-    QFile file(mainfile);
+    QFile file(mainFile);
     if(!file.open(QIODevice::ReadOnly)) {
       ROS_ERROR("Failed to read %s",MAINFILENAME);
       return false;
@@ -33,7 +35,7 @@ bool Fundamental::initParameters()
     file.close();
 
     ROS_INFO("Dimensions for %s Field",fieldname.toStdString().c_str());
-    field_file = cfgDir+QString(FIELDSFOLDERPATH)+fieldname+QString(".view");
+    field_file = fieldsDir+fieldname+QString(".view");
 
     return readField();
 }

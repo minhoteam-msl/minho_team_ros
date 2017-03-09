@@ -69,7 +69,8 @@ Behavior::Behavior(std::string topics_base_name, int rob_id, ros::NodeHandle *pa
 bool Behavior::initParameters()
 {
     QString home = QString::fromStdString(getenv("HOME"));
-    QString cfgDir = home+QString(CCONFIGFOLDERPATH);
+    QString commonDir = home+QString(COMMON_PATH);
+    QString cfgDir = commonDir+QString(CTRL_CFG_PATH);
 
     controlparam_file = cfgDir+QString("Robot")+QString::number(robot_id)+"/"+QString(CONTROLFILENAME);
 
@@ -81,8 +82,8 @@ bool Behavior::readControlParameters()
 {
     QFile file(controlparam_file);
     if(!file.open(QIODevice::ReadOnly)) {
-        ROS_ERROR("Failed to read %s.",CONTROLFILENAME);
-        return false;
+      ROS_ERROR("Failed to read %s.",CONTROLFILENAME);
+      return false;
     }
     QTextStream in(&file);
 
@@ -121,8 +122,8 @@ bool Behavior::writeControlParameters()
 {
     QFile file(controlparam_file);
     if(!file.open(QIODevice::WriteOnly)){
-        ROS_ERROR("Error writing to %s.",CONTROLFILENAME);
-        return false;
+     ROS_ERROR("Error writing to %s.",CONTROLFILENAME);
+     return false;
     }
     QTextStream in(&file);
 
@@ -281,7 +282,6 @@ void Behavior::doWork()
     path_data_pub.publish(path_data);
     control_info_pub.publish(control_info);
 }
-
 
 //
 void Behavior::goToPosition1(robotInfo robot, aiInfo ai, controlConfig cconfig)

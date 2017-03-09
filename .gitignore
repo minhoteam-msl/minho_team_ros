@@ -1,3 +1,4 @@
 *~
-/low_level/MinhoTeamHardware/.build/*
-/low_level/MinhoTeamHardware/lib/ros_lib/*
+/hardware_node/MinhoTeamHardware/.build/*
+/hardware_node/MinhoTeamHardware/lib/ros_lib/*
+/lib/*

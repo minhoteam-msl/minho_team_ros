@@ -6,7 +6,7 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <math.h>
-#include "types.h"
+#include "Utils/types.h"
 
 using namespace cv;
 class ScanLines
@@ -70,7 +70,7 @@ public:
 
 	unsigned getStep();
 
-	void draw(cv::Mat &destination, cv::Scalar color);
+    void draw(cv::Mat &destination, cv::Scalar color);
     void drawLine(int pt1, int pt2, cv::Scalar color, cv::Mat &img);
     void drawCircle(int pt, int radius, cv::Scalar color, cv::Mat &img);
 };

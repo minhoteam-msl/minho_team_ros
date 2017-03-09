@@ -83,11 +83,8 @@ RLE::RLE(ScanLines &s_, unsigned colorBefore, unsigned colorOfInterest, unsigned
 				aux_rle.lengthColorAfter = pointsColorAfter * s.getStep();
 				rlData.push_back(aux_rle);
 			}
-
 		}
-
-
-    }
+  }
 }
 
 void RLE::drawLine(int pt1, int pt2, Scalar color, Mat *img)
@@ -106,8 +103,8 @@ void RLE::drawInterestPoints(Scalar color, Mat *destination, UAV_COLORS_BIT idx)
     for(unsigned k = 0; k < rlData.size(); k++)
     {
 
-        if(idx&UAV_WHITE_BIT || idx&UAV_ORANGE_BIT) target = rlData[k].center;
-        else if(idx&UAV_BLACK_BIT) target = rlData[k].start;
+        if(idx&UAV_WHITE_BIT ) target = rlData[k].center;
+        else if(idx&UAV_BLACK_BIT || idx&UAV_ORANGE_BIT) target = rlData[k].start;
 
         circle(*destination,cv::Point(target%destination->cols, target/destination->cols),2,color,2);
     }
@@ -120,38 +117,23 @@ void RLE::pushData(std::vector<Point> &destination,Mat& img, UAV_COLORS_BIT idx)
     int target = 0;
     if(idx&UAV_WHITE_BIT){ // for line points
         for(unsigned k = 0; k < rlData.size(); k++){
-            // Filtering condition
-            if(rlData[k].lengthColor<=30){
-                target = rlData[k].center;
-                destination.push_back(cv::Point(target%img.cols, target/img.cols));
-            }
+          target = rlData[k].center;
+          destination.push_back(cv::Point(target%img.cols, target/img.cols));
         }
-    } else if(idx&UAV_BLACK_BIT){ // for obstacle points
+    } else if(idx&UAV_BLACK_BIT || idx&UAV_ORANGE_BIT){ // for obstacle points
         for(unsigned k = 0; k < rlData.size(); k++){
-            // Filtering condition
-            if(1){
-                target = rlData[k].start;
-                destination.push_back(cv::Point(target%img.cols, target/img.cols));
-            }
-        }
-    } else if(idx&UAV_ORANGE_BIT){ // for ball points
-        for(unsigned k = 0; k < rlData.size(); k++){
-            // Filtering condition<
-            if(rlData[k].lengthColor<=40 && rlData[k].lengthColor>5){
-                target = rlData[k].center;
-                destination.push_back(cv::Point(target%img.cols, target/img.cols));
-            }
+          target = rlData[k].start;
+          destination.push_back(cv::Point(target%img.cols, target/img.cols));
         }
     }
-
 }
 
 void RLE::draw(cv::Scalar colorBefore, cv::Scalar colorOfInterest, cv::Scalar colorAfter, cv::Mat *destination)
 {
 	for(unsigned k = 0; k < rlData.size(); k++)
 	{
-        drawLine(rlData[k].startBefore, rlData[k].start, colorBefore, destination);
+        //drawLine(rlData[k].startBefore, rlData[k].start, colorBefore, destination);
         drawLine(rlData[k].start, rlData[k].end, colorOfInterest, destination);
-        drawLine(rlData[k].end, rlData[k].endAfter, colorAfter, destination);
+        //drawLine(rlData[k].end, rlData[k].endAfter, colorAfter, destination);
 	}
 }

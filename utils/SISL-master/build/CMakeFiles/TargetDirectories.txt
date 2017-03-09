@@ -1,0 +1,12 @@
+/home/pedro/SISL-master/build/CMakeFiles/edit_cache.dir
+/home/pedro/SISL-master/build/CMakeFiles/s1320prob.dir
+/home/pedro/SISL-master/build/CMakeFiles/s1606prob.dir
+/home/pedro/SISL-master/build/CMakeFiles/package.dir
+/home/pedro/SISL-master/build/CMakeFiles/package_source.dir
+/home/pedro/SISL-master/build/CMakeFiles/sisl.dir
+/home/pedro/SISL-master/build/CMakeFiles/install/local.dir
+/home/pedro/SISL-master/build/CMakeFiles/install.dir
+/home/pedro/SISL-master/build/CMakeFiles/s1013prob.dir
+/home/pedro/SISL-master/build/CMakeFiles/install/strip.dir
+/home/pedro/SISL-master/build/CMakeFiles/list_install_components.dir
+/home/pedro/SISL-master/build/CMakeFiles/rebuild_cache.dir

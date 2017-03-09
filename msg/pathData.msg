@@ -6,5 +6,3 @@ position[] smooth_path
 position[] smooth_path_obst_circle
 position[] path
 float32[] obstacles_circle
-
-
