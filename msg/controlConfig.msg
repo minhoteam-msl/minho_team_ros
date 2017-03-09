@@ -3,5 +3,13 @@ uint8 max_angular_velocity
 float32 P
 float32 I
 float32 D
-bool send_voronoi
+float32 acceleration
+float32 deceleration
+bool send_voronoi_seg
+bool send_intersect_seg
+bool send_dijk_path
+bool send_dijk_path_obst_circle
+bool send_smooth_path
+bool send_smooth_path_obst_circle
 bool send_path
+bool send_obstacles_circle
