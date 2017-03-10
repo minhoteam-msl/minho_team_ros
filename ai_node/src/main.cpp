@@ -84,8 +84,8 @@ int main(int argc, char **argv)
    }
 
    if(mode_real){
-   robot_id = getRobotIdByIP();
-   if(robot_id<0) { robot_id = 1; ROS_ERROR("Error in Robot ID by IP address ... Defaulting to 1."); }
+       robot_id = getRobotIdByIP();
+       if(robot_id<0) { robot_id = 1; ROS_ERROR("Error in Robot ID by IP address ... Defaulting to 1."); }
    }
 
    ROS_WARN("Attempting to start ai services of ai_node.");
@@ -94,8 +94,9 @@ int main(int argc, char **argv)
    node_name << "ai_node";
 
    if(!mode_real) {
-   ROS_INFO("Running control_node for Simulated Robot %d",robot_id);
-   node_name << robot_id; topic_base_name << "minho_gazebo_robot" << robot_id;
+       ROS_INFO("Running control_node for Simulated Robot %d",robot_id);
+       node_name << (int)robot_id << std::time(0); 
+       topic_base_name << "minho_gazebo_robot" << robot_id;
    }
 
    //Initialize ROS

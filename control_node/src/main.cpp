@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 
     if(!mode_real) {
       ROS_INFO("Running control_node for Simulated Robot %d",robot_id);
-      node_name << robot_id; topic_base_name << "minho_gazebo_robot" << robot_id;
+      node_name << (int)robot_id << std::time(0); topic_base_name << "minho_gazebo_robot" << robot_id;
     }
 
     //Initialize ROS

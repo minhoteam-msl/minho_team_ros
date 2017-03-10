@@ -219,7 +219,7 @@ int main(int argc, char **argv)
       ROS_INFO("Running coms_node for Robot %d.",agent_id);
    }else { 
       agent_id = robot_id;
-      node_name << (int)agent_id;
+      node_name << (int)robot_id << std::time(0);
       ROS_INFO("Running coms_node for Robot %d in simulation.",agent_id);
    }
    // #########################

@@ -189,36 +189,91 @@ void Behavior::doWork()
     pthread_mutex_unlock(&control_config_mutex); //Unlock mutex
     //
     vector<Point> path;
-
-    /// \brief Implement behaviour based on ai info
-    /// \brief Roles : 0 - GK | 1 - DEFENSE | 2 - ATTACKER | 3 - SUPPORT ATTACKER
-    /// \brief Actions : 0 - STOP | 1 - GO_TO_POSITION | 2 - KICK_PASS | 3 - ENGAGE_BALL | 4 - TEST
-
+    
     switch(ai_info_copy.action) {
-    case 0: { // action = STOP
-        control_info.linear_velocity = control_info.angular_velocity = 0;
-    } break;
+       case aSTOP: {
+           control_info.linear_velocity = control_info.angular_velocity = 0;
+       } break;
 
-    case 1: { // action = GO_TO_POSITION
-        //goToPosition1(robot_info_copy, ai_info_copy, control_config_copy);
-        //goToPosition2(robot_info_copy, ai_info_copy, control_config_copy);
+       case aAPPROACHPOSITION: {
+           dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,30);
 
-    } break;
+       } break;
 
-    case 2: { // action = KICK_PASS
+       case aFASTMOVE: {
+           dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,50);
 
-    } break;
+       } break;
 
-    case 3: { // action = ENGAGE_BALL
+      case aRECEIVEBALL: {
+           dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,50);
+           control_info.dribbler_on = true;
+       } break;
 
-    } break;
+       case aENGAGEBALL: {
+           dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,30);
+           float distToBall = sqrt(
+               (robot_info_copy.robot_pose.x-ai_info_copy.target_pose.x)*
+               (robot_info_copy.robot_pose.x-ai_info_copy.target_pose.x)
+               +((robot_info_copy.robot_pose.y-ai_info_copy.target_pose.y)*
+               (robot_info_copy.robot_pose.y-ai_info_copy.target_pose.y)));
+           if(distToBall<0.33){control_info.linear_velocity = control_info.angular_velocity = 0;}
+           control_info.dribbler_on = true;
+       } break;
 
-    case 4: { // action = TEST
+       case aAPPROACHBALL: {
+           dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,30);
+       } break;
 
-        dijkstra_path->Test1(robot_info_copy, Point(robot_info_copy.ball_position.x, robot_info_copy.ball_position.y), path);
+       case aPASSBALL: {
+           dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,50);
+           control_info.linear_velocity = 0;
+           if(fabs(robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)<1.0){
+               requestKick srv;
+               srv.request.kick_is_pass = true;
+               srv.request.kick_strength = ai_info_copy.target_kick_strength;
+               kick_service.call(srv);   
+            }
+       } break;
 
-        goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path);
+       case aKICKBALL: {
+           dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,50);
+           control_info.linear_velocity = 0;
+           if(fabs(robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)<1.0){
+               requestKick srv;
+               srv.request.kick_is_pass = false;
+               srv.request.kick_strength = ai_info_copy.target_kick_strength;
+               kick_service.call(srv);   
+            }
+       } break;
 
+       case aHOLDBALL: {
+           dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,50);
+           control_info.linear_velocity = control_info.angular_velocity = 0;
+           control_info.dribbler_on = true;
+       } break;
+
+       case aDRIBBLEBALL: {
+           dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,30);
+           control_info.dribbler_on = true;
+       } break;
+
+       default: {
+           control_info.linear_velocity = control_info.angular_velocity = 0;
+       } break;
+    }
+
+ 
+    if(ai_info_copy.action!=aSTOP){
         //************************************Send Visualizer************************************
         // Send segments voronoi
         if(control_config_copy.send_voronoi_seg) {
@@ -269,14 +324,8 @@ void Behavior::doWork()
             path_data.obstacles_circle = dijkstra_path->get_ObstaclesCircle_Visualizer();
         }else
             path_data.obstacles_circle.clear();
-
-    } break;
-
-    default: {
-        control_info.linear_velocity = control_info.angular_velocity = 0;
-    } break;
     }
-
+        
     voronoi->clearVoronoi();
     dijkstra_path->clearDijkstraPath();
     path_data_pub.publish(path_data);
@@ -298,7 +347,7 @@ void Behavior::goToPosition1(robotInfo robot, aiInfo ai, controlConfig cconfig)
 }
 
 //
-void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, const vector<Point>& path)
+void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, const vector<Point>& path, int max_vel)
 {
     int target_angle = 0;
     float x_min = 0.0;
@@ -320,21 +369,20 @@ void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, 
     y_min = ai.target_pose.y - 0.10;
     y_max = ai.target_pose.y + 0.10;
 
+    int target_next_angle;
+
+    if((int)ai.target_pose.z > 180)
+        target_next_angle = (int)ai.target_pose.z - 360;
+    else
+        target_next_angle = (int)ai.target_pose.z;
+
+    control_info.angular_velocity = motion->angularVelocity(target_next_angle, robot, cconfig);
     if(robot.robot_pose.x>x_min && robot.robot_pose.x<x_max && robot.robot_pose.y>y_min && robot.robot_pose.y<y_max) {
         control_info.linear_velocity = 0;
 
-        int target_next_angle;
-
-        if((int)ai.target_pose.z > 180)
-            target_next_angle = (int)ai.target_pose.z - 360;
-        else
-            target_next_angle = (int)ai.target_pose.z;
-
-        control_info.angular_velocity = motion->angularVelocity(target_next_angle, robot, cconfig);
-
     }
     else {
-        control_info.linear_velocity = 50;
+        control_info.linear_velocity = max_vel;
     }
 }
 

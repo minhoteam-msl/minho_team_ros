@@ -20,7 +20,7 @@ void DijkstraShortestPath::calculate_Radius_of_Obstacles(robotInfo robot)
     for(unsigned int i=0; i<robot.obstacles.size(); i++)
     {
         obst_circle.circle_center = Point(robot.obstacles.at(i).x,robot.obstacles.at(i).y);
-        obst_circle.radius = 0.5; //radius:50cm->0.5
+        obst_circle.radius = 0.52; //radius:50cm->0.5
         obstacles_circle.push_back(obst_circle);
 
         insert_ObstaclesCircle_Visualizer(obst_circle.circle_center.x());
@@ -286,15 +286,13 @@ bool DijkstraShortestPath::calculate_DijkstraPath(Point source_point, Point targ
     // Create a mapping of the arrangement vertices to indices.
     CGAL::Arr_vertex_index_map<Arrangement> index_map_tmp(arrangement);
     boost::Arr_vertex_index_map_boost<Arrangement> index_map(index_map_tmp);
-
     Edge_length_func edge_length;
-
+    
     boost::vector_property_map<double, boost::Arr_vertex_index_map_boost<Arrangement>>
             distances(static_cast<unsigned int>(arrangement.number_of_vertices()), index_map);
-
     boost::vector_property_map<Arrangement::Vertex_handle, boost::Arr_vertex_index_map_boost<Arrangement>>
             parents(static_cast<unsigned int>(arrangement.number_of_vertices()), index_map);
-
+            
     Arr_Point arr_s_point(source_point.x(), source_point.y());
     Arr_Point arr_t_point(target_point.x(), target_point.y());
     vector<Arr_Point> points;
@@ -316,26 +314,26 @@ bool DijkstraShortestPath::calculate_DijkstraPath(Point source_point, Point targ
             }
         }
     }
+    
 
     boost::dijkstra_shortest_paths(arrangement, source_vertex, boost::vertex_index_map(index_map).weight_map(edge_length).
-                                   distance_map(distances).predecessor_map(parents));
+                                   distance_map(distances).predecessor_map(parents));                           
 
     if(target_vertex != parents[target_vertex]) {
         has_path = true;
-        /*
-        for(Arrangement::Vertex_iterator vit = arrangement.vertices_begin(); vit != arrangement.vertices_end(); vit++) {
+        
+        /*for(Arrangement::Vertex_iterator vit = arrangement.vertices_begin(); vit != arrangement.vertices_end(); vit++) {
             cout<<"Vertex point: "<<vit->point()<<" --> "<<"distance = "<<distances[vit]<<", ";
             cout<<"parent = "<<parents[vit]->point()<<endl;
-        }
-        */
-
+        }*/
+        
         for(Arrangement::Vertex_iterator path_vertex = target_vertex; path_vertex != parents[path_vertex]; path_vertex = parents[path_vertex]) {
             dijkstra_path.push_back(Point(CGAL::to_double(path_vertex->point().x()), CGAL::to_double(path_vertex->point().y())));
             pos.x = CGAL::to_double(path_vertex->point().x());
             pos.y = CGAL::to_double(path_vertex->point().y());
             insert_DijkstraPath_Visualizer(pos);
         }
-
+        
         dijkstra_path.push_back(Point(CGAL::to_double(source_vertex->point().x()), CGAL::to_double(source_vertex->point().y())));
         pos.x = CGAL::to_double(source_vertex->point().x());
         pos.y = CGAL::to_double(source_vertex->point().y());
@@ -710,17 +708,12 @@ void DijkstraShortestPath::Test1(robotInfo robot, Point target_point, vector<Poi
     bool has_path, direct_path;
 
     Point source_point(robot.robot_pose.x, robot.robot_pose.y);
-
     calculate_Radius_of_Obstacles(robot);
-
     direct_path = directPath_without_Obstacles(source_point, target_point, path);
 
     if(!direct_path) {
-
         voronoi->insert_Obstacles_VoronoiDiagram(robot);
-
         insert_VoronoiSegments_at_Arrangement();
-
         Locate_Result locate_source = voronoi->locatePoint(source_point);
         Locate_Result locate_target = voronoi->locatePoint(target_point);
 
@@ -730,10 +723,11 @@ void DijkstraShortestPath::Test1(robotInfo robot, Point target_point, vector<Poi
 
             insert_FaceSegments_at_Arrangement(source_point, *face_handle_source);
             insert_FaceSegments_at_Arrangement(target_point, *face_handle_target);
-
+ 
             construct_Arrangement();
 
             has_path = calculate_DijkstraPath(source_point, target_point, dijkstra_path);
+            
 
             if(has_path) {
                 dijkstraPath_with_ObstaclesCircle(dijkstra_path, dijkstra_path_obst_circle);
@@ -744,7 +738,7 @@ void DijkstraShortestPath::Test1(robotInfo robot, Point target_point, vector<Poi
         }
     }
 
-    t = timer.nsecsElapsed()/1000000.0; cout<<"timer: "<<t<<endl;
+    t = timer.nsecsElapsed()/1000000.0; //cout<<"timer: "<<t<<endl;
 }
 
 //
