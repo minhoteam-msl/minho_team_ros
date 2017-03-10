@@ -350,6 +350,7 @@ void Behavior::goToPosition1(robotInfo robot, aiInfo ai, controlConfig cconfig)
 void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, const vector<Point>& path, int max_vel)
 {
     int target_angle = 0;
+    static int stab_counter = 0;
     float x_min = 0.0;
     float x_max = 0.0;
     float y_min = 0.0;
@@ -362,7 +363,7 @@ void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, 
     target_angle = fundamental->cartesian2polar_angleDegNormalize(robot.robot_pose.x, robot.robot_pose.y,
                                                                   path.at(1).x(), path.at(1).y());
 
-    control_info.movement_direction = motion->movementDirection(robot, target_angle);
+    control_info.movement_direction = motion->movementDirection(robot, target_angle+180);
 
     x_min = ai.target_pose.x - 0.10;
     x_max = ai.target_pose.x + 0.10;
@@ -378,11 +379,12 @@ void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, 
 
     control_info.angular_velocity = motion->angularVelocity(target_next_angle, robot, cconfig);
     if(robot.robot_pose.x>x_min && robot.robot_pose.x<x_max && robot.robot_pose.y>y_min && robot.robot_pose.y<y_max) {
-        control_info.linear_velocity = 0;
-
+        if(stab_counter>5)control_info.linear_velocity = 0;
+        else {stab_counter++; control_info.linear_velocity = max_vel=30;}
     }
     else {
         control_info.linear_velocity = max_vel;
+        stab_counter = 0;
     }
 }
 
