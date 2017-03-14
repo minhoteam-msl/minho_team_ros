@@ -1,4 +1,4 @@
-
+#include <Omni3MD.h>
 // ##### INCLUDES #####
 // ####################
 #include <StandardCplusplus.h>
@@ -11,7 +11,7 @@
 #include <Servo.h> 
 #include <EEPROM.h>
 // ####################
-#include <Omni3MD.h>
+
 
 // ##### ROS MSG INCLUDES #####
 // ############################
@@ -318,12 +318,14 @@ void loop() {
   // Detect free_wheel button
   if(analogRead(FreeWheelButton)>500 && !hwinfo_msg.free_wheel_activated){
     omni.stop_motors();
+    analogWrite(DRIBLLER1, 0); analogWrite(DRIBLLER2, 0);
     hwinfo_msg.free_wheel_activated = true;
   } else if(analogRead(FreeWheelButton)<500 && hwinfo_msg.free_wheel_activated) hwinfo_msg.free_wheel_activated = false;
   
   // Safety timeout
   if(millis()-comunicationTimeOutTimeStamp>comunicationTimeOutLimitTime){
     omni.stop_motors();
+    analogWrite(DRIBLLER1, 0); analogWrite(DRIBLLER2, 0);
     comunicationTimeOutTimeStamp = millis();
   }
   // Read IMU Value
@@ -361,7 +363,8 @@ void loop() {
   
   // Publish Data
   if(millis()-dataSendTimeStamp>dataSendLimitTime){
-    if(analogRead(BALLPIN)>500) hwinfo_msg.ball_sensor = 1;
+    int ball = analogRead(BALLPIN);
+    if(ball>340&&ball<370) hwinfo_msg.ball_sensor = 1;
     else hwinfo_msg.ball_sensor = 0;
     publishData();
     dataSendTimeStamp = millis();
@@ -552,8 +555,8 @@ void controlInfoCallback(const minho_team_ros::controlInfo& msg)
     else omni.stop_motors();
     
     //dribler1
-    if(msg.dribbler_on) { digitalWrite(MM1,HIGH); digitalWrite(MM2,HIGH); }
-    else { digitalWrite(MM1,LOW); digitalWrite(MM2,LOW); }
+    if(msg.dribbler_on) { digitalWrite(MM1,HIGH); digitalWrite(MM2,HIGH); analogWrite(DRIBLLER1, 255); analogWrite(DRIBLLER2, 255); }
+    else { digitalWrite(MM1,LOW); digitalWrite(MM2,LOW); analogWrite(DRIBLLER1, 0); analogWrite(DRIBLLER2, 0);}
     // Velocities to apply to dribblers
     //if(direct_dribler1!="2") analogWrite(DRIBLLER1, vel_dribler1.toInt());     //PWM Speed Control  
     //if(direct_dribler2!="2") analogWrite(DRIBLLER2, vel_dribler2.toInt());     //PWM Speed Control  

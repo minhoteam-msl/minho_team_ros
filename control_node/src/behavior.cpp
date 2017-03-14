@@ -193,17 +193,20 @@ void Behavior::doWork()
     switch(ai_info_copy.action) {
        case aSTOP: {
            control_info.linear_velocity = control_info.angular_velocity = 0;
+           control_info.dribbler_on = false;
        } break;
 
        case aAPPROACHPOSITION: {
            dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
            goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,30);
+           control_info.dribbler_on = false;
 
        } break;
 
        case aFASTMOVE: {
            dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
            goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,50);
+           control_info.dribbler_on = false;
 
        } break;
 
@@ -228,6 +231,7 @@ void Behavior::doWork()
        case aAPPROACHBALL: {
            dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
            goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,30);
+           control_info.dribbler_on = false;
        } break;
 
        case aPASSBALL: {
@@ -237,9 +241,10 @@ void Behavior::doWork()
            if(fabs(robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)<1.0){
                requestKick srv;
                srv.request.kick_is_pass = true;
+               control_info.dribbler_on = false;
                srv.request.kick_strength = ai_info_copy.target_kick_strength;
                kick_service.call(srv);   
-            }
+            } else control_info.dribbler_on = true;
        } break;
 
        case aKICKBALL: {
@@ -249,9 +254,11 @@ void Behavior::doWork()
            if(fabs(robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)<1.0){
                requestKick srv;
                srv.request.kick_is_pass = false;
+               control_info.dribbler_on = false;
                srv.request.kick_strength = ai_info_copy.target_kick_strength;
                kick_service.call(srv);   
-            }
+            }else control_info.dribbler_on = true;
+            
        } break;
 
        case aHOLDBALL: {
@@ -363,7 +370,7 @@ void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, 
     target_angle = fundamental->cartesian2polar_angleDegNormalize(robot.robot_pose.x, robot.robot_pose.y,
                                                                   path.at(1).x(), path.at(1).y());
 
-    control_info.movement_direction = motion->movementDirection(robot, target_angle+180);
+    control_info.movement_direction = motion->movementDirection(robot, target_angle);
 
     x_min = ai.target_pose.x - 0.10;
     x_max = ai.target_pose.x + 0.10;
@@ -378,9 +385,18 @@ void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, 
         target_next_angle = (int)ai.target_pose.z;
 
     control_info.angular_velocity = motion->angularVelocity(target_next_angle, robot, cconfig);
+    
     if(robot.robot_pose.x>x_min && robot.robot_pose.x<x_max && robot.robot_pose.y>y_min && robot.robot_pose.y<y_max) {
         if(stab_counter>5)control_info.linear_velocity = 0;
-        else {stab_counter++; control_info.linear_velocity = max_vel=30;}
+        else {
+            stab_counter++; 
+            control_info.linear_velocity = max_vel;
+            control_info.movement_direction += 180;
+            while(control_info.movement_direction>360)
+            control_info.movement_direction -=360;
+            while(control_info.movement_direction<0)
+            control_info.movement_direction +=360;
+        }
     }
     else {
         control_info.linear_velocity = max_vel;
