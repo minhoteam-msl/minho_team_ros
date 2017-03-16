@@ -85,6 +85,9 @@ void RoleStriker::computeAction(aiInfo *ai)
             ai->target_pose.y = -center_circle_radius;  
             ai->target_pose.z = 0.0; 
          }
+         
+         kick_spot.x = mRobot.ball_position.x;
+         kick_spot.y = mRobot.ball_position.y;
          break;
       }
       case sOWN_KICKOFF:{
@@ -95,13 +98,11 @@ void RoleStriker::computeAction(aiInfo *ai)
          if(!mRobot.sees_ball){
             //Assume ball is at 0.0, 0.0
             tarx = 0.0;
-            tary = 0.0;   
-         }
-
-         if(initialPlay){
-            initialPlay = false;
-            kick_spot.x = mRobot.ball_position.x;
-            kick_spot.y = mRobot.ball_position.y;
+            tary = 0.0;
+            if(ball_already_passed) {
+                ai->action = aSTOP;
+                return;
+            }   
          }
          
          float distFromKickSpot = sqrt((kick_spot.x-mRobot.ball_position.x)*
@@ -112,12 +113,10 @@ void RoleStriker::computeAction(aiInfo *ai)
          ai->target_pose.x = tarx; 
          if(mBsInfo.posxside){
             ai->target_pose.y = center_circle_radius;
-            ai->target_pose.z = 180.0;
          } else {
             ai->target_pose.y = -center_circle_radius;  
-            ai->target_pose.z = 0.0; 
          }
-         
+              
          if(mRobot.has_ball){
             mAction = aHOLDBALL;
             ai->target_pose = mRobot.robot_pose; //stay still and hold ball
@@ -145,8 +144,10 @@ void RoleStriker::computeAction(aiInfo *ai)
             || fabs(mRobot.ball_position.y)>=fabs(mRobot.robot_pose.y)){
                mAction = aENGAGEBALL;
                ai->target_pose = mRobot.ball_position;
-            }            
+            }      
          }
+         
+         ai->target_pose.z = orientationToTarget(tarx,tary);
          break;  
       }
       case sPRE_THEIR_KICKOFF:
@@ -179,18 +180,21 @@ void RoleStriker::computeAction(aiInfo *ai)
             ai->target_pose.y = mRobot.ball_position.y;
             ai->target_pose.z = 270.0; 
          }     
+         
+         kick_spot.x = mRobot.ball_position.x;
+         kick_spot.y = mRobot.ball_position.y;
          break; 
       }
       case sOWN_FREEKICK:{
-         if(initialPlay){
-            initialPlay = false;
-            kick_spot.x = mRobot.ball_position.x;
-            kick_spot.y = mRobot.ball_position.y;
-         }
          float distFromKickSpot = sqrt((kick_spot.x-mRobot.ball_position.x)*
          (kick_spot.x-mRobot.ball_position.x)
          +(kick_spot.y-mRobot.ball_position.y)*
          (kick_spot.y-mRobot.ball_position.y));
+         
+         float distFromMe = sqrt((mRobot.robot_pose.x-mRobot.ball_position.x)*
+         (mRobot.robot_pose.x-mRobot.ball_position.x)
+         +(mRobot.robot_pose.y-mRobot.ball_position.y)*
+         (mRobot.robot_pose.y-mRobot.ball_position.y));
 
          if(mRobot.has_ball){ // kick to goal
             float shoot_tarx = goal_line_x;
@@ -246,10 +250,12 @@ void RoleStriker::computeAction(aiInfo *ai)
             }              
 
             if(ball_already_passed &&
-            ((distFromKickSpot>0.5&&distFromKickSpot<1.5)&&(ball_velocity<0.25||ball_opdir))
+            ((distFromKickSpot>0.5&&distFromMe<1.5)&&(ball_velocity<0.25||ball_opdir))
             || fabs(mRobot.ball_position.x)<=fabs(mRobot.robot_pose.x)){
                mAction = aENGAGEBALL;
                ai->target_pose = mRobot.ball_position;
+               ai->target_pose.z = orientationToTarget
+               (mRobot.ball_position.x,mRobot.ball_position.y);
             } else {
                ai->target_pose.x = mRobot.robot_pose.x; 
                ai->target_pose.y = mRobot.ball_position.y;
@@ -274,27 +280,23 @@ void RoleStriker::computeAction(aiInfo *ai)
             ai->target_pose.x = mRobot.ball_position.x+thresh_distance*cos(path_direction);
             ai->target_pose.y = mRobot.ball_position.y+thresh_distance*sin(path_direction);
             
-            //check if we are inside of owen penalty area due to thresh_distance
+            //check if we are inside of own penalty area due to thresh_distance
             //if we are, move ourselves to the matching spot on area's edge
             if(fabs(ai->target_pose.x)>big_area_x){
-               float m = (tary- mRobot.ball_position.y)/(tarx- mRobot.ball_position.x);
-               float b = tary-m*tarx;
-               bool intercepts_sides = false;
-               float hsw = m*big_area_x*1.5;
-               float hsh = big_area_y/m;
-               float hh = big_area_x*1.5;
-               float hw = big_area_y;
-               if(-hh <= hsw && hsw <= hh) intercepts_sides = true;
-
-               if(!intercepts_sides){
-                  ai->target_pose.y = big_area_y;
-                  if(mRobot.ball_position.y<0)ai->target_pose.y*=-1;
-                  ai->target_pose.x = (ai->target_pose.y-b)/m;
-               }else {
-                  ai->target_pose.x = big_area_x;
-                  if(!mBsInfo.posxside)ai->target_pose.x*=-1;
-                  ai->target_pose.y = ai->target_pose.x*m+b;
-               }  
+               vec2d intersection;
+               vec2d ball; ball.x = mRobot.ball_position.x; ball.y = mRobot.ball_position.y;
+               vec2d target; target.x = ai->target_pose.x; target.y = ai->target_pose.y;
+               
+               std::vector<line2d> areaSearchLines = rightAreaSearchLines;
+               if(!mBsInfo.posxside) areaSearchLines = leftAreaSearchLines;
+               
+               for(int i=0;i<areaSearchLines.size();i++){
+                   if(getLineIntersection(areaSearchLines[i].p1,areaSearchLines[i].p2,ball,target,&intersection)){
+                      ai->target_pose.x = intersection.x;
+                      ai->target_pose.y = intersection.y;
+                   }
+               }
+               
             }
             ai->target_pose.z = orientationToTarget
             (mRobot.ball_position.x,mRobot.ball_position.y);
@@ -327,6 +329,20 @@ void RoleStriker::setField(fieldDimensions fd)
    big_area_x = goal_line_x-(float)field.fieldDims.AREA_LENGTH2/1000.0;
    big_area_y = (float)field.fieldDims.AREA_WIDTH2/2000.0;
    center_circle_radius = (float)field.fieldDims.CENTER_RADIUS/1000.0;
+   
+   
+   rightAreaSearchLines.clear(); leftAreaSearchLines.clear();
+   line2d horxPos, horxNeg;
+   line2d vertlxPos, vertrxPos, vertlxNeg, vertrxNeg;
+   horxPos.p1.x = horxPos.p2.x = big_area_x; horxPos.p1.y = big_area_y; horxPos.p2.y = -big_area_y;
+   horxNeg.p1.x = horxNeg.p2.x = -big_area_x; horxNeg.p1.y = big_area_y; horxNeg.p2.y = -big_area_y;
+   vertlxPos.p1.y = vertlxPos.p2.y = big_area_y; vertlxPos.p1.x = big_area_x; vertlxPos.p2.x = goal_line_x;
+   vertrxPos.p1.y = vertrxPos.p2.y = -big_area_y; vertrxPos.p1.x = big_area_x; vertrxPos.p2.x = goal_line_x;
+   vertlxNeg.p1.y = vertlxNeg.p2.y = big_area_y; vertlxNeg.p1.x = -big_area_x; vertlxNeg.p2.x = -goal_line_x;
+   vertrxNeg.p1.y = vertrxNeg.p2.y = -big_area_y; vertrxNeg.p1.x = -big_area_x; vertrxNeg.p2.x = -goal_line_x;
+   
+   rightAreaSearchLines.push_back(horxPos); rightAreaSearchLines.push_back(vertlxPos); rightAreaSearchLines.push_back(vertrxPos); 
+   leftAreaSearchLines.push_back(horxNeg); leftAreaSearchLines.push_back(vertlxNeg); leftAreaSearchLines.push_back(vertrxNeg);
 }
 
 bool RoleStriker::pathClearForShooting(float tarx, float *tary)
@@ -415,4 +431,24 @@ int RoleStriker::getKickStrength(float tarx, float tary)
               (kick_dists[index]-kick_dists[index-1]);
    
    return m*dist+(kick_strengths[index]-kick_dists[index]*m);
+}
+
+bool RoleStriker::getLineIntersection(vec2d p0, vec2d p1, vec2d p2, vec2d p3, vec2d *i)
+{
+    vec2d s1, s2;
+    s1.x = p1.x - p0.x;     s1.y = p1.y - p0.y;
+    s2.x = p3.x - p2.x;     s2.y = p3.y - p2.y;
+
+    float s, t;
+    s = (-s1.y * (p0.x - p2.x) + s1.x * (p0.y - p2.y)) / (-s2.x * s1.y + s1.x * s2.y);
+    t = ( s2.x * (p0.y - p2.y) - s2.y * (p0.x - p2.x)) / (-s2.x * s1.y + s1.x * s2.y);
+
+    if (s >= 0 && s <= 1 && t >= 0 && t <= 1)
+    {
+        i->x = p0.x + (t * s1.x);
+        i->y = p0.y + (t * s1.y);
+        return true;
+    }
+
+    return false; // No collision
 }

@@ -16,6 +16,10 @@ typedef struct vec2d{
    float x,y;
 } vec2d;
 
+typedef struct line2d{
+   vec2d p1,p2;
+} line2d;
+
 class Role
 {
   

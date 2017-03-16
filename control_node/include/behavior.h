@@ -29,7 +29,7 @@ enum ACTION {STOP = 0, GO_TO_POSITION, KICK_PASS, ENGAGE_BALL, TEST };
 class Behavior
 {
 public:
-   Behavior(std::string topics_base_name, int rob_id, ros::NodeHandle *par, Fundamental *fund, Voronoi *vor, DijkstraShortestPath *dijk, Motion *mot);
+   Behavior(std::string topics_base_name, int rob_id, bool mode_real, ros::NodeHandle *par, Fundamental *fund, Voronoi *vor, DijkstraShortestPath *dijk, Motion *mot);
    bool controlConfService(requestControlConfig::Request &req, requestControlConfig::Response &res);
    void robotInfoCallback(const robotInfo::ConstPtr &msg);
    void aiInfoCallback(const aiInfo::ConstPtr &msg);
@@ -80,9 +80,11 @@ private:
    Motion *motion;
    //
    int robot_id;
+   bool mode_real;
    QString controlparam_file;
    //
    QElapsedTimer timer_work;
+   
 
 
 };

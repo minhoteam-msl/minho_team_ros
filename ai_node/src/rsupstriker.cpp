@@ -84,21 +84,17 @@ void RoleSupStriker::computeAction(aiInfo *ai)
          break;
       }
       case sOWN_KICKOFF:{
-         float ballx = 0.0, bally = 0.0, tarx = 0.0, tary = 0.0;
-         if(mRobot.sees_ball){ 
-            ballx = mRobot.ball_position.x; bally = mRobot.ball_position.y;
-         }  
+         float  tarx = 0.0, tary = 0.0;
          if(mRobot.has_ball) stab_counter++;
          else stab_counter = 0;
     
-         float distFromKickSpot = sqrt((kick_spot.x-mRobot.ball_position.x)*
-         (kick_spot.x-mRobot.ball_position.x)
-         +(kick_spot.y-mRobot.ball_position.y)*
-         (kick_spot.y-mRobot.ball_position.y));
+         float distFromMe = sqrt((mRobot.robot_pose.x-mRobot.ball_position.x)*
+         (mRobot.robot_pose.x-mRobot.ball_position.x)
+         +(mRobot.robot_pose.y-mRobot.ball_position.y)*
+         (mRobot.robot_pose.y-mRobot.ball_position.y));
      
          if(mRobot.has_ball){
             if(stab_counter<=3) { mAction = aHOLDBALL; ai->target_pose = mRobot.robot_pose; break; }
-            stab_counter = 0;
             ai->target_pose.x = mRobot.robot_pose.x;
             ai->target_pose.y = mRobot.robot_pose.y;
             if(mBsInfo.posxside){
@@ -110,21 +106,27 @@ void RoleSupStriker::computeAction(aiInfo *ai)
             passed_after_engage = true;
             kick_spot.x = mRobot.ball_position.x;
             kick_spot.y = mRobot.ball_position.y;
-         } else if(passed_after_engage && distFromKickSpot<0.5
+          
+         } else {
+            stab_counter = 0;
+            if(passed_after_engage && distFromMe<0.5
             && sqrt(mRobot.ball_velocity.x*mRobot.ball_velocity.x+
             mRobot.ball_velocity.y*mRobot.ball_velocity.y)<0.25){
-            mAction = aENGAGEBALL; 
-            // If the ball was kicked but never left the vicinity of
-            // the robot, engage the ball
-            tarx = ballx; tary = bally; ai->target_pose.x = tarx; 
-            ai->target_pose.y = tary; 
-         } else if(passed_after_engage) { 
-            mAction = aAPPROACHPOSITION;  
-            ai->target_pose = mRobot.robot_pose;
-            tarx = mRobot.ball_position.x;
-            tary = mRobot.ball_position.y;
-         } else {
-            ai->target_pose = mRobot.ball_position;
+                mAction = aENGAGEBALL; 
+                // If the ball was kicked but never left the vicinity of
+                // the robot, engage the ball
+                tarx = mRobot.ball_position.x;
+                tary = mRobot.ball_position.y;; 
+                ai->target_pose.x = tarx; 
+                ai->target_pose.y = tary; 
+                
+             } else if(passed_after_engage) { 
+                mAction = aSTOP;  
+             } else {
+                ai->target_pose = mRobot.ball_position;
+                tarx = mRobot.ball_position.x;
+                tary = mRobot.ball_position.y;
+             }
          }
          
          ai->target_pose.z = orientationToTarget(tarx,tary);
@@ -166,23 +168,17 @@ void RoleSupStriker::computeAction(aiInfo *ai)
          break;   
       }
       case sOWN_FREEKICK:{
-         float ballx = 0.0, bally = 0.0, tarx = 0.0, tary = 0.0;
-         if(mRobot.sees_ball){ 
-            ballx = mRobot.ball_position.x; bally = mRobot.ball_position.y;
-         }  
-        
+         float  tarx = 0.0, tary = 0.0;
          if(mRobot.has_ball) stab_counter++;
          else stab_counter = 0;
-
-         float distFromKickSpot = sqrt((kick_spot.x-mRobot.ball_position.x)*
-         (kick_spot.x-mRobot.ball_position.x)
-         +(kick_spot.y-mRobot.ball_position.y)*
-         (kick_spot.y-mRobot.ball_position.y));
-
+    
+         float distFromMe = sqrt((mRobot.robot_pose.x-mRobot.ball_position.x)*
+         (mRobot.robot_pose.x-mRobot.ball_position.x)
+         +(mRobot.robot_pose.y-mRobot.ball_position.y)*
+         (mRobot.robot_pose.y-mRobot.ball_position.y));
+     
          if(mRobot.has_ball){
             if(stab_counter<=3) { mAction = aHOLDBALL; ai->target_pose = mRobot.robot_pose; break; }
-            stab_counter = 0;
-
             ai->target_pose.x = mRobot.robot_pose.x;
             ai->target_pose.y = mRobot.robot_pose.y;
             tary = mRobot.robot_pose.y;
@@ -192,21 +188,26 @@ void RoleSupStriker::computeAction(aiInfo *ai)
             passed_after_engage = true;
             kick_spot.x = mRobot.ball_position.x;
             kick_spot.y = mRobot.ball_position.y;
-         } else if(passed_after_engage && distFromKickSpot<0.5
+         } else {
+            stab_counter = 0;
+            if(passed_after_engage && distFromMe<0.5
             && sqrt(mRobot.ball_velocity.x*mRobot.ball_velocity.x+
             mRobot.ball_velocity.y*mRobot.ball_velocity.y)<0.25){
-            mAction = aENGAGEBALL; 
-            // If the ball was kicked but never left the vicinity of
-            // the robot, engage the ball
-            tarx = ballx; tary = bally; ai->target_pose.x = tarx; 
-            ai->target_pose.y = tary; 
-         } else if(passed_after_engage) { 
-            mAction = aAPPROACHPOSITION;  
-            ai->target_pose = mRobot.robot_pose;
-            tarx = mRobot.ball_position.x;
-            tary = mRobot.ball_position.y;
-         } else {
-            ai->target_pose = mRobot.ball_position;
+                mAction = aENGAGEBALL; 
+                // If the ball was kicked but never left the vicinity of
+                // the robot, engage the ball
+                tarx = mRobot.ball_position.x;
+                tary = mRobot.ball_position.y;; 
+                ai->target_pose.x = tarx; 
+                ai->target_pose.y = tary; 
+                
+             } else if(passed_after_engage) { 
+                mAction = aSTOP;  
+             } else {
+                ai->target_pose = mRobot.ball_position;
+                tarx = mRobot.ball_position.x;
+                tary = mRobot.ball_position.y;
+             }
          }
          
          ai->target_pose.z = orientationToTarget(tarx,tary);

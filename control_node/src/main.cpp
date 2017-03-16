@@ -91,7 +91,7 @@ int main(int argc, char **argv)
     aptVoronoi = new Voronoi(aptFundamental);
     aptDijkstraShortestPath = new DijkstraShortestPath(aptFundamental, aptVoronoi);
     aptMotion = new Motion();
-    aptBehavior = new Behavior(topic_base_name.str(), robot_id, &control_node, aptFundamental, aptVoronoi, aptDijkstraShortestPath, aptMotion);
+    aptBehavior = new Behavior(topic_base_name.str(), robot_id, mode_real, &control_node, aptFundamental, aptVoronoi, aptDijkstraShortestPath, aptMotion);
     ROS_WARN("MinhoTeam control_node started running on ROS.");
     ros::AsyncSpinner spinner(2);
     spinner.start();

@@ -24,10 +24,12 @@ private:
    bool kicked_after_recv, ball_already_passed;
    vec2d kick_spot;
    std::vector<vec2d> collisionPoints;
+   std::vector<line2d> rightAreaSearchLines,leftAreaSearchLines;
    
    bool pathClearForShooting(float tarx, float *tary);
    vec2d getNearestPointToPath(float a, float c, vec2d point);
    void getObstaclesDisplacement(float *left,float *right);
+   bool getLineIntersection(vec2d p0, vec2d p1, vec2d p2, vec2d p3, vec2d *i);
    // remove later   
    int getKickStrength(float tarx, float tary);
    std::vector<float> kick_dists, kick_strengths;
