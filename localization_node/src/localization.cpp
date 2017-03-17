@@ -114,7 +114,7 @@ void Localization::discoverWorldModel() // Main Function
       processor->creatWorld(); // Creat World arround robot (obstacle and ball positions)
       decideBallPossession(); // Decides if robot posses ball
       computeVelocities(); // Calculates robot velocity
-      //sendWorldInfo(); // Load obstacls to current_state for further publish (only sends Blobs)
+      sendWorldInfo(); // Load obstacls to current_state for further publish (only sends Blobs)
       generateDebugData(); // generate Debug Data
       memset(&odometry,0,sizeof(localizationEstimate)); // Clears odometry object to do nto use past values
 
