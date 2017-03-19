@@ -231,6 +231,7 @@ int main(int argc, char **argv)
 	ros::NodeHandle coms_node;
 	std::stringstream base_relay_topic;
 	//Setup ROS
+	message.msg_id = 1;
 	if(!mode_real){
 	   hw_topic_name << "/minho_gazebo_robot" << (int)agent_id;
 	   robot_topic_name << "/minho_gazebo_robot" << (int)agent_id;
