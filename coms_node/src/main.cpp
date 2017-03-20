@@ -360,10 +360,8 @@ void serializeROSMessage(Message *msg, uint8_t **packet,  uint32_t *packet_size)
 template<typename Message>
 void deserializeROSMessage(udp_packet *packet, Message *msg)
 {  
-   ROS_INFO("Start parse %d",packet->packet_size);
    ros::serialization::IStream istream(packet->packet, packet->packet_size);
    ros::serialization::deserialize(istream, *msg);
-   ROS_INFO("End parse %d",packet->packet_size);
 }
 
 /// \brief main thread to send robot information update over UDP socket
