@@ -7,6 +7,7 @@
 #include "minho_team_ros/interAgentInfo.h"
 #include "minho_team_ros/position.h"
 #include "minho_team_ros/baseStationInfo.h"
+#include "std_msgs/UInt8.h"
 #include <iostream>
 #include <string.h>
 #include <sstream>
@@ -37,6 +38,7 @@ using minho_team_ros::robotInfo; //Namespace for robotInfo msg - SUBSCRIBING
 using minho_team_ros::goalKeeperInfo; //Namespace for goalKeeperInfo msg - SUBSCRIBING
 using minho_team_ros::interAgentInfo; //Namespace for interAgentInfo msg - SENDING OVER UDP/SUBSCRIBING OVER UDP
 using minho_team_ros::baseStationInfo; //Namespace for baseStationInfo msg - SENDING OVER UDP/SUBSCRIBING OVER UDP
+using std_msgs::UInt8;
 
 // ###### GLOBAL DATA ######
 // \brief subscriber for hardwareInfo message
@@ -358,8 +360,10 @@ void serializeROSMessage(Message *msg, uint8_t **packet,  uint32_t *packet_size)
 template<typename Message>
 void deserializeROSMessage(udp_packet *packet, Message *msg)
 {  
+   ROS_INFO("Start parse %d",packet->packet_size);
    ros::serialization::IStream istream(packet->packet, packet->packet_size);
    ros::serialization::deserialize(istream, *msg);
+   ROS_INFO("End parse %d",packet->packet_size);
 }
 
 /// \brief main thread to send robot information update over UDP socket
@@ -439,35 +443,37 @@ void processReceivedData(void *packet)
    if(!_thrun) return;
    // deserialize message
    udp_packet *temp = (udp_packet *)packet;
-   if(temp->packet_size<20){ //comes from basestation
-      baseStationInfo incoming_data;
-      deserializeROSMessage<baseStationInfo>((udp_packet *)packet,&incoming_data); 
-      delete((udp_packet *)packet);
-      if(incoming_data.agent_id==agent_id) return;
-      // Publish to matching topic
-      if(incoming_data.agent_id>=1 && incoming_data.agent_id<=TOTAL_AGENTS){
-         pthread_mutex_lock(&publishers_mutex); //Lock mutex
-         if(num_subscribers[incoming_data.agent_id-1]>0){
+    UInt8 msg;
+    ros::serialization::IStream istream(temp->packet, sizeof(msg.data));
+    ros::serialization::deserialize(istream, msg);
+    if(msg.data==1){
+        interAgentInfo incoming_data;
+        deserializeROSMessage<interAgentInfo>((udp_packet *)packet,&incoming_data); 
+        delete((udp_packet *)packet);
+        if(incoming_data.agent_id==agent_id) return;
+        // Publish to matching topic
+        if(incoming_data.agent_id>=1 && incoming_data.agent_id<=TOTAL_AGENTS){
+        pthread_mutex_lock(&publishers_mutex); //Lock mutex
+        if(num_subscribers[incoming_data.agent_id-1]>0){
             publishers[incoming_data.agent_id-1].publish(incoming_data);
-         }
-         pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
-      }
-   } else {
-      interAgentInfo incoming_data;
-      deserializeROSMessage<interAgentInfo>((udp_packet *)packet,&incoming_data); 
-      delete((udp_packet *)packet);
-      if(incoming_data.agent_id==agent_id) return;
-      // Publish to matching topic
-      if(incoming_data.agent_id>=1 && incoming_data.agent_id<=TOTAL_AGENTS){
-         pthread_mutex_lock(&publishers_mutex); //Lock mutex
-         if(num_subscribers[incoming_data.agent_id-1]>0){
-            publishers[incoming_data.agent_id-1].publish(incoming_data);
-         }
-         pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
-      }
-   }
-   return;
-           
+        }
+        pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
+        }
+    } else {
+        //comes from basestation
+        baseStationInfo incoming_data;
+        deserializeROSMessage<baseStationInfo>((udp_packet *)packet,&incoming_data); 
+        delete((udp_packet *)packet);
+        if(incoming_data.agent_id==agent_id) return;
+        // Publish to matching topic
+        if(incoming_data.agent_id>=1 && incoming_data.agent_id<=TOTAL_AGENTS){
+            pthread_mutex_lock(&publishers_mutex); //Lock mutex
+            if(num_subscribers[incoming_data.agent_id-1]>0){
+                publishers[incoming_data.agent_id-1].publish(incoming_data);
+            }
+            pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
+        }
+    }
 }
 
 /// \brief checks if Gzserver is running in case of simulated robots
