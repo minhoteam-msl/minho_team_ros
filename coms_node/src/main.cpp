@@ -486,7 +486,7 @@ bool checkGzserverConnection()
       char output[2];
       is.read(output,2);
       c.wait();
-      if(atoi(output)!=2) {
+      if(atoi(output)<2) {
          ROS_ERROR("COMS_NODE: gzserver not running ... killing processes."); 
          _thrun = false;
          return false;

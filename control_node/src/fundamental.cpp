@@ -452,3 +452,38 @@ bool Fundamental::intersect_Segment_and_Circle(Segment seg, Point circle_center,
     return intersect;
 }
 
+//
+/*
+ * line_point          -
+ * circle_center       -
+ * radius              -
+ * intersection_points -
+ */
+//
+bool Fundamental::intersect_Line_and_Circle(Point line_pointA, Point line_pointB, Point circle_center, float radius, vector<Point>& intersection_points)
+{
+    bool intersect = false;
+    Point intersect_point;
+
+    Circle circle(Circ_Point(circle_center.x(), circle_center.y()), CGAL::Exact_rational(radius * radius), CGAL::CLOCKWISE);
+    Circ_Line circ_line(Circ_Point(line_pointA.x(), line_pointA.y()), Circ_Point(line_pointB.x(), line_pointB.y()));
+
+    vector<InterRes> output;
+    Dispatcher disp = CGAL::dispatch_output<InterRes>(back_inserter(output));
+
+    CGAL::intersection(circ_line, circle, disp);
+
+    if(output.size() > 0) {
+        intersect_point = Point(CGAL::to_double(output[0].first.x()), CGAL::to_double(output[0].first.y()));
+        intersection_points.push_back(intersect_point);
+        intersect = true;
+    }
+
+    if(output.size() > 1) {
+        intersect_point = Point(CGAL::to_double(output[1].first.x()), CGAL::to_double(output[1].first.y()));
+        intersection_points.push_back(intersect_point);
+    }
+
+    return intersect;
+}
+

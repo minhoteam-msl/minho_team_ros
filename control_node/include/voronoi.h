@@ -51,6 +51,7 @@ public:
     vector<segment> get_VoronoiSegments_Visualizer();
     Locate_Result locatePoint(Point point);
     Ccb_Halfedge_Circulator getHalfedgeCirculator(Face_Handle face_handle);
+    void get_Vertices_of_VoronoiFace(Face_Handle face_handle, vector<Point>& vertices);
     void clearVoronoi();
 
 

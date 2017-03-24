@@ -115,6 +115,43 @@ Ccb_Halfedge_Circulator Voronoi::getHalfedgeCirculator(Face_Handle face_handle)
 }
 
 //
+void Voronoi::get_Vertices_of_VoronoiFace(Face_Handle face_handle, vector<Point>& vertices)
+{
+    Ccb_Halfedge_Circulator edge_circulator_begin = voronoi.ccb_halfedges(face_handle);
+    Ccb_Halfedge_Circulator edge_circulator = edge_circulator_begin;
+
+    do{
+        if(edge_circulator->is_segment()) {
+
+            Point p_source = edge_circulator->source()->point();
+            Point p_target = edge_circulator->target()->point();
+
+            bool has_p_source = false;
+            bool has_p_target = false;
+
+            for(unsigned int i=0; i<vertices.size(); i++) {
+                if(p_source == vertices.at(i))
+                    has_p_source = true;
+                if(p_target == vertices.at(i))
+                    has_p_target = true;
+            }
+
+            if(!has_p_source)
+                vertices.push_back(p_source);
+            if(!has_p_target)
+                vertices.push_back(p_target);
+        }
+    }while(++edge_circulator != edge_circulator_begin);
+
+    if(vertices.size() == 0) {
+        if(edge_circulator_begin->has_source())
+            vertices.push_back(edge_circulator_begin->source()->point());
+        else if(edge_circulator_begin->has_target())
+            vertices.push_back(edge_circulator_begin->target()->point());
+    }
+}
+
+//
 void Voronoi::clearVoronoi()
 {
     voronoi.clear();

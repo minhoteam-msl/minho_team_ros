@@ -88,14 +88,16 @@ public:
     void clearDijkstraPath();
 
 private:
-    void calculate_Radius_of_Obstacles(robotInfo robot);
+    void calculate_Radius_of_Obstacles(robotInfo robot, Point target_point, bool& source_in_radius, bool& target_in_radius);
     void insert_ObstaclesCircle_Visualizer(float obst_circle);
     bool directPath_without_Obstacles(Point source_point, Point target_point, vector<Point>& direct_path);
     void insert_VoronoiSegments_at_Arrangement();
     void insert_ArrangementSegments(Arr_Segment arr_seg);
     void insert_IntersectSegments_Visualizer(segment seg);
     void insert_FaceIntersectionSegments_at_Arrangement(Point point, Face_Handle face_handle);
-    void insert_FaceSegments_at_Arrangement(Point point, Face_Handle face_handle);
+    void insert_FaceSegments_with_ObstaclesCircle_at_Arrangement(Point point, const vector<Point>& vertices);
+    void insert_FaceSegments_with_SiteObstacle_at_Arrangement(Point point, Face_Handle face_handle, const vector<Point>& vertices);
+    bool insert_Source_and_Target_at_Arrangement(Point source_point, Point target_point, bool source_in_radius, bool target_in_radius);
     void construct_Arrangement();
     bool calculate_DijkstraPath(Point source_point, Point target_point, vector<Point>& dijkstra_path);
     void insert_DijkstraPath_Visualizer(position pos);

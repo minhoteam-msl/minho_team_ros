@@ -183,7 +183,7 @@ bool checkGzserverConnection(int signal)
       char output[2];
       is.read(output,2);
       c.wait();
-      if(atoi(output)!=2) {
+      if(atoi(output)<2) {
          ROS_ERROR("AI_NODE: gzserver not running ... killing processes."); 
          _thrun = false;
          timer.it_interval.tv_sec = 0;

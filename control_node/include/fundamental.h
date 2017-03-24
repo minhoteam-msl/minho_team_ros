@@ -142,6 +142,7 @@ public:
     float getRobotDiameter();
     bool intersect_Segment_and_Circle(Segment seg, Point circle_center, float radius);
     bool intersect_Segment_and_Circle(Segment seg, Point circle_center, float radius, vector<Point>& intersection_points);
+    bool intersect_Line_and_Circle(Point line_pointA, Point line_pointB, Point circle_center, float radius, vector<Point>& intersection_points);
 
 private:
     bool initParameters();
