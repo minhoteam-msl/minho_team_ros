@@ -102,7 +102,6 @@ void RLE::drawInterestPoints(Scalar color, Mat *destination, UAV_COLORS_BIT idx)
     int target = 0;
     for(unsigned k = 0; k < rlData.size(); k++)
     {
-
         if(idx&UAV_WHITE_BIT ) target = rlData[k].center;
         else if(idx&UAV_BLACK_BIT || idx&UAV_ORANGE_BIT) target = rlData[k].start;
 
@@ -110,22 +109,26 @@ void RLE::drawInterestPoints(Scalar color, Mat *destination, UAV_COLORS_BIT idx)
     }
 }
 
-// Filter found RLE's
-void RLE::pushData(std::vector<Point> &destination,Mat& img, UAV_COLORS_BIT idx)
+void RLE::LinespushData(std::vector<Point> &destination, std::vector<int> &save_length,Mat& img)
 {
-    // TODO: Filter by distance - uncertainty
-    int target = 0;
-    if(idx&UAV_WHITE_BIT){ // for line points
-        for(unsigned k = 0; k < rlData.size(); k++){
-          target = rlData[k].center;
-          destination.push_back(cv::Point(target%img.cols, target/img.cols));
-        }
-    } else if(idx&UAV_BLACK_BIT || idx&UAV_ORANGE_BIT){ // for obstacle points
-        for(unsigned k = 0; k < rlData.size(); k++){
-          target = rlData[k].start;
-          destination.push_back(cv::Point(target%img.cols, target/img.cols));
-        }
-    }
+  int target = 0;
+
+  for(unsigned k = 0; k < rlData.size(); k++){
+    save_length.push_back(rlData[k].lengthColor);
+    target = rlData[k].center;
+    destination.push_back(cv::Point(target%img.cols,target/img.cols));
+  }
+}
+
+// Filter found RLE's
+void RLE::pushData(std::vector<Point> &destination,Mat& img)
+{
+  int target = 0;
+
+  for(unsigned k = 0; k < rlData.size(); k++){
+    target = rlData[k].start;
+    destination.push_back(cv::Point(target%img.cols,target/img.cols));
+  }
 }
 
 void RLE::draw(cv::Scalar colorBefore, cv::Scalar colorOfInterest, cv::Scalar colorAfter, cv::Mat *destination)

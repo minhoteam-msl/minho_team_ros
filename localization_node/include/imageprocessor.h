@@ -3,10 +3,10 @@
 
 #include "kmeans.h"
 #include "RLE.h"
+#include <QTime>
 #include "ScanLines.h"
 #include "Vec.h"
 #include "blackflycam.h"
-#include "Utils/types.h"
 #include "ros/ros.h"
 #include "minho_team_ros/mirrorConfig.h"
 #include "minho_team_ros/visionHSVConfig.h"
@@ -15,9 +15,11 @@
 #include "minho_team_ros/PID.h"
 #include "minho_team_ros/ROI.h"
 #include "minho_team_ros/worldConfig.h"
+#include <iostream>
+#include <vector>
 #include "Blob.h"
-#include <QTime>
 //#include <QTime>
+#define LINE_LIMIT 3
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
 
 using namespace std;
@@ -36,7 +38,7 @@ public:
    ImageProcessor(int rob_id, bool begin, bool *init_success);
    typedef Mat* (ImageProcessor::*imageAcquisitionFunction)(bool *success);
    /* Detection Functions */
-   void detectInterestPoints(int orientation); // Detects linePoints, ballPoints and obstaclePoints
+   void detectInterestPoints(); // Detects linePoints, ballPoints and obstaclePoints
    //void detectBallPosition(); // Given the detected ballRLE find the optimal candidate
    void creatWorld();
 
@@ -101,6 +103,7 @@ public:
 
    /* WORLD STATE INFORMATION Buffers */
    vector<Point>linePoints;
+   vector<int>linePointsLength;
    vector<Point>obstaclePoints;
    vector<Point>ballCentroids;
    vector<Point>ballPoints;
@@ -122,6 +125,7 @@ public:
    void changeBlobsConfiguration(worldConfig::ConstPtr msg);
    void changeRLEConfiguration(worldConfig::ConstPtr msg);
    void setCalibrationTargets(cameraProperty::ConstPtr msg);
+   void pushData_Validator();
 
    //Blobs
    Blob obsBlob, ballBlob;
@@ -150,6 +154,7 @@ private:
    mirrorConfig mirrorConf;
    vector<double> distPix;
    vector<double> distReal;
+   vector<int> distPixVal;
    vector<vector<Point3d> >distLookUpTable;
    double robotHeight;
 

@@ -43,7 +43,8 @@ public:
     void drawLine(int pt1, int pt2, cv::Scalar color, cv::Mat *img);
     void drawCircle(int pt, int radius, cv::Scalar color, cv::Mat *img);
     void drawInterestPoints(cv::Scalar color,cv::Mat *destination,UAV_COLORS_BIT idx);
-    void pushData(std::vector<Point> &destination, Mat &img, UAV_COLORS_BIT idx);
+    void LinespushData(std::vector<Point> &destination, std::vector<int> &save_length, Mat& img);
+    void pushData(std::vector<Point> &destination, Mat& img);
 };
 
 #endif

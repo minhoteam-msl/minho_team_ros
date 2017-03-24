@@ -10,7 +10,7 @@
 
 using namespace cv;
 class ScanLines
-{   
+{
 public:
 
 	cv::Point start; /** Starting point of the scan line. */

@@ -13,14 +13,13 @@ Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success
    processor = new ImageProcessor(rob_id,use_camera,&correct_initialization); // true -> use camera
    if(!correct_initialization) { (*init_success) = false; return; }
    confserver = new ConfigServer(par);
-   ROS_INFO("Confserver ready.");
+
    correct_initialization = initWorldMap();
    if(!correct_initialization) { (*init_success) = false; return; }
-   ROS_INFO("Init world map ready.");
    correct_initialization = initializeKalmanFilter();
    if(!correct_initialization) { (*init_success) = false; return; }
 
-   ROS_INFO("Kalman ready.");
+
    confserver->setOmniVisionConf(processor->getMirrorConfAsMsg(),processor->getVisionConfAsMsg(),processor->getImageConfAsMsg(), processor->getBallConfAsMsg(), processor->getObsConfAsMsg(), processor->getRLEConfAsMsg());
    confserver->setProps(processor->getCamProperties());
    confserver->setPIDValues(processor->getPropControlerPID());
@@ -45,7 +44,6 @@ Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success
    connect(confserver,SIGNAL(changedWorldConfiguration(worldConfig::ConstPtr)),this,SLOT(changeWorldConfiguration(worldConfig::ConstPtr)));
    //#########################################################################
 
-   ROS_INFO("Signals and Slots ready.");
    //## Setup ROS Pubs and Subs ##
    //#############################
    //Initialize robotInfo publisher
@@ -83,16 +81,26 @@ void Localization::discoverWorldModel() // Main Function
    // Acquire image using function pointer
    buffer = CALL_MEMBER_FN((*processor),processor->acquireImage)(&have_image);
    // Localization code
+   is_hardware_ready=true;
    if(have_image && is_hardware_ready){
-      //current_hardware_state.imu_value = 0;
+      current_hardware_state.imu_value = 0;
       if(reloc){
         last_state.robot_pose.z = current_hardware_state.imu_value;
         //ROS_INFO("Reloc Angle: %d",current_hardware_state.imu_value);
       }
 
       //loctime.start();
-      //calcHistOrientation();
-      processor->detectInterestPoints(current_state.robot_pose.z);
+      // Detect points of interest like lines, obstacles and ball
+      processor->detectInterestPoints(); //  máximo 10ms que demorou (em média)
+      // Calculate Orientation with histograms
+      calcHistOrientation();
+      // Fuse odometry and vision orientation with kalmanFilter
+      fuseOrientationEstimates();
+      // Maps points to real World
+      processor->mapPoints(current_state.robot_pose.z);
+      //std::cerr << "Tempo de deteção dos pontos:  " << loctime.elapsed() <<endl;
+
+
 
       if(reloc){ // Global localization
 
@@ -107,13 +115,13 @@ void Localization::discoverWorldModel() // Main Function
          // Do local localization
          computeLocalLocalization();
          fuseEstimates();
-         meanTime = (meanTime + loctime.elapsed())/2;
-         //std::cerr << "Tempo localização:  " << meanTime <<endl;
+
+         //std::cerr << "Tempo localização:  " << loctime.elapsed() <<endl;
       }
 
       processor->creatWorld(); // Creat World arround robot (obstacle and ball positions)
-      decideBallPossession(); // Decides if robot posses ball
       computeVelocities(); // Calculates robot velocity
+      decideBallPossession(); // Decides if robot posses ball
       sendWorldInfo(); // Load obstacls to current_state for further publish (only sends Blobs)
       generateDebugData(); // generate Debug Data
       memset(&odometry,0,sizeof(localizationEstimate)); // Clears odometry object to do nto use past values
@@ -157,7 +165,7 @@ void Localization::discoverWorldModel() // Main Function
       timing = requiredTiming-measure.elapsed();
       if(timing<0) timing = requiredTiming;
 
-      //std::cerr << "Tempo localização:  " << measure.elapsed()) <<endl;
+      //std::cerr << "Tempo localização:  " << measure.elapsed() <<endl;
       parentTimer->start(timing);
    }
 
@@ -308,7 +316,6 @@ bool Localization::initWorldMap()
    }
 
    file.close();
-      
    return true;
 }
 
@@ -506,6 +513,32 @@ float Localization::normalizeAngleDeg(float angle)
    return angle;
 }
 
+void Localization::fuseOrientationEstimates()
+{
+  // PREDICTION PHASE (Using physical data -> Odometry)
+  // X' = A*X + B*u (where B*u is the data from the odometry)
+  kalman.predictedState.z = last_state.robot_pose.z + odometry.angle;
+  kalman.predictedState.z = normalizeAngleDeg(kalman.predictedState.z);
+  if(vision.angle < 90.0 && kalman.predictedState.z > 270.0) kalman.predictedState.z -= 360.0;
+  if(vision.angle > 270.0 && kalman.predictedState.z < 90.0) kalman.predictedState.z += 360.0;
+
+  // P' = A*Pant*A' + Q
+  kalman.predictedCovariance.z = kalman.lastCovariance.z + kalman.Q.z;
+
+  // CORRECTION PHASE
+  //K = P'/(P'+R)
+  kalman.K.z = kalman.predictedCovariance.z/(kalman.predictedCovariance.z+kalman.R.z);
+
+  //K = P'/(P'+R)
+  // óptima (ŷ) = Previsão + (Ganho Kalman) * (Medição - Previsão)
+  current_state.robot_pose.z = kalman.predictedState.z + kalman.K.z*(vision.angle - kalman.predictedState.z);
+  current_state.robot_pose.z = normalizeAngleDeg(current_state.robot_pose.z);
+
+  //P = (1-K)*P'
+  // Variância da estimativa = Variância da previsão * (1 – Ganho do Kalman)
+  kalman.covariance.z = (1-kalman.K.z)*kalman.predictedCovariance.z;
+}
+
 // Kalman filter
 void Localization::fuseEstimates()
 {
@@ -516,34 +549,34 @@ void Localization::fuseEstimates()
    // X' = A*X + B*u (where B*u is the data from the odometry)
    kalman.predictedState.x = last_state.robot_pose.x + odometry.x;
    kalman.predictedState.y = last_state.robot_pose.y + odometry.y;
-   kalman.predictedState.z = last_state.robot_pose.z + odometry.angle;
+   /*kalman.predictedState.z = last_state.robot_pose.z + odometry.angle;
    kalman.predictedState.z = normalizeAngleDeg(kalman.predictedState.z);
    if(vision.angle < 90.0 && kalman.predictedState.z > 270.0) kalman.predictedState.z -= 360.0;
-   if(vision.angle > 270.0 && kalman.predictedState.z < 90.0) kalman.predictedState.z += 360.0;
+   if(vision.angle > 270.0 && kalman.predictedState.z < 90.0) kalman.predictedState.z += 360.0;*/
 
    // P' = A*Pant*A' + Q
    kalman.predictedCovariance.x = kalman.lastCovariance.x + kalman.Q.x;
    kalman.predictedCovariance.y = kalman.lastCovariance.y + kalman.Q.y;
-   kalman.predictedCovariance.z = kalman.lastCovariance.z + kalman.Q.z;
+   //kalman.predictedCovariance.z = kalman.lastCovariance.z + kalman.Q.z;
 
    // CORRECTION PHASE
    //K = P'/(P'+R)
    kalman.K.x = kalman.predictedCovariance.x/(kalman.predictedCovariance.x+kalman.R.x);
    kalman.K.y = kalman.predictedCovariance.y/(kalman.predictedCovariance.y+kalman.R.y);
-   kalman.K.z = kalman.predictedCovariance.z/(kalman.predictedCovariance.z+kalman.R.z);
+   //kalman.K.z = kalman.predictedCovariance.z/(kalman.predictedCovariance.z+kalman.R.z);
 
    //K = P'/(P'+R)
    // óptima (ŷ) = Previsão + (Ganho Kalman) * (Medição - Previsão)
    current_state.robot_pose.x = kalman.predictedState.x + kalman.K.x*(vision.x - kalman.predictedState.x);
    current_state.robot_pose.y = kalman.predictedState.y + kalman.K.y*(vision.y - kalman.predictedState.y);
-   current_state.robot_pose.z = kalman.predictedState.z + kalman.K.z*(vision.angle - kalman.predictedState.z);
-   current_state.robot_pose.z = normalizeAngleDeg(current_state.robot_pose.z);
+   /*current_state.robot_pose.z = kalman.predictedState.z + kalman.K.z*(vision.angle - kalman.predictedState.z);
+   current_state.robot_pose.z = normalizeAngleDeg(current_state.robot_pose.z);*/
 
    //P = (1-K)*P'
    // Variância da estimativa = Variância da previsão * (1 – Ganho do Kalman)
    kalman.covariance.x = (1-kalman.K.x)*kalman.predictedCovariance.x;
    kalman.covariance.y = (1-kalman.K.y)*kalman.predictedCovariance.y;
-   kalman.covariance.z = (1-kalman.K.z)*kalman.predictedCovariance.z;
+   //kalman.covariance.z = (1-kalman.K.z)*kalman.predictedCovariance.z;
 }
 
 void Localization::computeVelocities()
@@ -565,10 +598,6 @@ void Localization::computeVelocities()
       // ########################################################################
       if(current_state.robot_velocity.x>2.5) current_state.robot_velocity.x = 0;
       if(current_state.robot_velocity.y>2.5) current_state.robot_velocity.y = 0;
-
-      current_state.ball_velocity.x = lpf_weight*((current_state.ball_position.x-last_vel_state.ball_position.x)/(time_interval*(float)it_limit))+lpf_minor*last_vel_state.ball_velocity.x;  
-      current_state.ball_velocity.y = lpf_weight*((current_state.ball_position.y-last_vel_state.ball_position.y)/(time_interval*(float)it_limit))+lpf_minor*last_vel_state.ball_velocity.y;
-
       last_vel_state = current_state;
    }
 
@@ -581,20 +610,6 @@ void Localization::decideBallPossession()
    // if the robot possesses the ball or not
    // ########################################################################
    current_state.has_ball = current_hardware_state.ball_sensor;
-   float mindist = 1000.0; int nearBall = 0;
-   for(int i=0;i<processor->ballBlob.UMblobs.size();i++){
-      if(processor->ballBlob.UMblobs[i].dist_to_robot<=mindist){
-         mindist = processor->ballBlob.UMblobs[i].dist_to_robot;
-         nearBall = i;
-      }      
-   }
-
-   if(!processor->ballBlob.UMblobs.size()) current_state.sees_ball = false;
-   else {
-      current_state.sees_ball = true;
-      current_state.ball_position.x = processor->ballBlob.UMblobs[nearBall].center.x + current_state.robot_pose.x;
-      current_state.ball_position.y = processor->ballBlob.UMblobs[nearBall].center.y + current_state.robot_pose.y;
-   }
 }
 
 void Localization::generateDebugData()
@@ -763,11 +778,9 @@ bool Localization::computeGlobalLocalization(int side) //compute initial localiz
    float localGap = 0.5;
    for(float x=leastPos.x-localGap; x<=leastPos.x+localGap; x+=0.1){
       for(float y=leastPos.y-localGap; y<=leastPos.y+localGap; y+=0.1){
-        for(float X = x-localGap; X < x+localGap; X+=0.1){
-          for(float Y = x-localGap; Y < x+localGap; Y+=0.1){
             positionError = 0.0;
-            wp.x = X;
-            wp.y = Y;
+            wp.x = x;
+            wp.y = y;
             inboundPoints = 0;
             for(unsigned int p=0;p<processor->mappedLinePoints.size();p++){ //Counts inbound points and compute error
               point.x = processor->mappedLinePoints[p].x;
@@ -782,10 +795,8 @@ bool Localization::computeGlobalLocalization(int side) //compute initial localiz
             if((positionError>0) && (inboundPoints>=processor->mappedLinePoints.size()*0.9)){
               if(positionError<leastError){
                 leastError = positionError;
-                leastPos.x = X;
-                leastPos.y = Y;
-              }
-            }
+                leastPos.x = x;
+                leastPos.y = y;
           }
         }
       }

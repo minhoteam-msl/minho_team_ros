@@ -53,7 +53,7 @@ void Blob::filterBlobs(int num, BlobType blobType)
 			break;
 		case BALL_BLOB:
 		for(unsigned i = 0; i<UMblobs.size();i++){
-			if(UMblobs[i].points.size()<=num){ // || (UMblobs[i].radius_id*2)>=0.30
+			if(UMblobs[i].points.size()<num){ // || (UMblobs[i].radius_id*2)>=0.30
 				UMblobs.erase(UMblobs.begin()+i);
 				i--;
 			}

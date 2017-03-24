@@ -42,8 +42,9 @@ int main(int argc, char **argv)
 	if(argc>2 && mode=="-static"){
 	   ROS_WARN("Image acquisition set to static image.");
 	   use_camera = false;
+		 //side = atoi(argv[2]);
 	} else ROS_WARN("Image acquisition set to GigE Camera.");
-	side = atoi(argv[2]);
+	side = 0;
 	bool correct_initialization = true;
 	int robot_id = 1;
 	// Scan ip address for

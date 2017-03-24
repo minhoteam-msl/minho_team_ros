@@ -9,7 +9,6 @@
 #include "minho_team_ros/requestReloc.h"
 #include "minho_team_ros/interestPoint.h"
 #include "minho_team_ros/requestExtendedDebug.h"
-#include "minho_team_ros/position.h"
 #include "minho_team_ros/obstacle.h"
 
 using namespace ros;
@@ -19,7 +18,6 @@ using minho_team_ros::robotInfo; //Namespace for vision information msg - PUBLIS
 using minho_team_ros::requestReloc;
 using minho_team_ros::interestPoint;
 using minho_team_ros::requestExtendedDebug;
-using minho_team_ros::position;
 using minho_team_ros::obstacle;
 
 class Localization : public QObject
@@ -93,6 +91,7 @@ public slots:
    void hardwareCallback(const hardwareInfo::ConstPtr &msg);
    void discoverWorldModel(); // Main Funcition
    void fuseEstimates(); // Fuse vision and odometry estimations
+   void fuseOrientationEstimates();
    void computeVelocities(); // Computes ball and robot velocities
    void decideBallPossession(); // decides wether the robot has or not the ball
    void sendWorldInfo();

@@ -55,7 +55,7 @@ ImageProcessor::ImageProcessor(int rob_id, bool use_camera, bool *init_success)
             return;
         } else printCameraInfo();
     } else { // Load static image
-      QString path = imgFolderPath+QString("image.png");
+      QString path = imgFolderPath+QString("2,50.png");
       static_image = imread(path.toStdString().c_str());
       if(static_image.empty()){
          ROS_ERROR("Failed to read static image");
@@ -90,17 +90,20 @@ bool ImageProcessor::initWorldMapping()
     QString max_distance = in.readLine();
     QString step = in.readLine();
     QString pixel_distances = in.readLine();
+    QString line_length = in.readLine();
     max_distance = max_distance.right(max_distance.size()-max_distance.indexOf('=')-1);
     step = step.right(step.size()-step.indexOf('=')-1);
     pixel_distances = pixel_distances.right(pixel_distances.size()-pixel_distances.indexOf('=')-1);
+    line_length = line_length.right(line_length.size()-line_length.indexOf('=')-1);
 
 
     mirrorConf.max_distance = max_distance.toFloat();
     mirrorConf.step = step.toFloat();
     int expected_args = (int)(mirrorConf.max_distance/mirrorConf.step);
     QStringList mappedDists = pixel_distances.split(",");
+    QStringList lineLeng = line_length.split(","); // está a ler apenas,falta fazer o resto
 
-    if(expected_args!=mappedDists.size() || expected_args<=0 || mappedDists.size()<=0) {
+    if(expected_args!=mappedDists.size() || expected_args<=0 || mappedDists.size()<=0 || expected_args!=lineLeng.size() || lineLeng.size()<=0 || mappedDists.size()!=lineLeng.size()) {
        ROS_ERROR("Bad Configuration in %s",MIRRORFILENAME);
        return false;
     }
@@ -109,7 +112,9 @@ bool ImageProcessor::initWorldMapping()
     for(float dist=mirrorConf.step;dist<=mirrorConf.max_distance;dist+=mirrorConf.step) distReal.push_back(dist);
     for(int i=0;i<mappedDists.size();i++) {
       distPix.push_back(mappedDists[i].toDouble());
+      distPixVal.push_back(lineLeng[i].toInt());
       mirrorConf.pixel_distances.push_back(mappedDists[i].toInt());
+      mirrorConf.lines_length.push_back(lineLeng[i].toInt());
     }
     file.close();
     //
@@ -163,10 +168,10 @@ bool ImageProcessor::initializeBasics(int rob_id)
     imageParamsPath = cfgDir+agent+"/"+QString(IMAGEFILENAME);
     lutPath = cfgDir+agent+"/"+QString(LUTFILENAME);
     maskPath = cfgDir+agent+"/"+QString(MASKFILENAME);
+    fieldMapPath = fieldsDir+field+".map";
     pidPath = cfgDir+agent+"/"+QString(PIDFILENAME);
     worldPath = cfgDir+agent+"/"+QString(WORLDFILENAME);
     kalmanPath = cfgDir+agent+"/"+QString(KALMANFILENAME);
-    fieldMapPath = fieldsDir+field+".map";
 
     ROS_INFO("System Configuration : %s in %s Field",agent.toStdString().c_str(),
     field.toStdString().c_str());
@@ -197,14 +202,14 @@ void ImageProcessor::rleModInitialization()
 {
     // Create Scan Lines used by RLE Algorithm
     idxImage = Mat(IMG_SIZE,IMG_SIZE,CV_8UC1,Scalar(0));
-    linesRad = ScanLines(idxImage,UAV_RADIAL, Point(imageConf.center_x,imageConf.center_y), 220, 70, 235,2,1);
-    linesCir = ScanLines(idxImage,UAV_CIRCULAR,Point(imageConf.center_x,imageConf.center_y), 20, 70, 235,0,0);
-
+    linesRad = ScanLines(idxImage,UAV_RADIAL, Point(imageConf.center_x,imageConf.center_y), 120, 75, 235,2,1);
+    linesCir = ScanLines(idxImage,UAV_CIRCULAR,Point(imageConf.center_x,imageConf.center_y), 20, 75, 235,0,0);
 }
 
 // Preprocessed current image, preparing it for RLE scan
 void ImageProcessor::preProcessIndexedImage()
 {
+    //int n_pixeis = 0;
     vector<int> s;
     Point temp;
 
@@ -222,12 +227,15 @@ void ImageProcessor::preProcessIndexedImage()
     // Pre process circular sensors
     for (unsigned k = 0 ; k < linesCir.scanlines.size() ; k++){
         s = linesCir.getLine(k);
+        //n_pixeis = n_pixeis + s.size();
         for(unsigned i = 0; i < s.size(); i++)
         {
             temp = linesCir.getPointXYFromInteger(s[i]);
             idxImage.ptr()[s[i]] = getClassifier(temp.x,temp.y);
         }
     }
+    /*std::cerr << n_pixeis << endl;
+    n_pixeis = 0;*/
 }
 
 void ImageProcessor::drawInterestInfo(Mat *buffer)
@@ -235,7 +243,7 @@ void ImageProcessor::drawInterestInfo(Mat *buffer)
    rleBallRad.drawInterestPoints(Scalar(255,0,0),buffer,UAV_ORANGE_BIT);
    rleObs.drawInterestPoints(Scalar(255,0,255),buffer,UAV_BLACK_BIT);
    rleObs_2.drawInterestPoints(Scalar(255,0,255),buffer,UAV_BLACK_BIT);
-   rleLinesRad_2.drawInterestPoints(Scalar(0,0,0),buffer,UAV_WHITE_BIT);
+   //rleLinesRad_2.drawInterestPoints(Scalar(255,0,255),buffer,UAV_BLACK_BIT);
    rleLinesRad.drawInterestPoints(Scalar(0,0,255),buffer,UAV_WHITE_BIT);
    rleLinesCir.drawInterestPoints(Scalar(0,255,255),buffer,UAV_WHITE_BIT);
 
@@ -243,14 +251,19 @@ void ImageProcessor::drawInterestInfo(Mat *buffer)
 
 void ImageProcessor::drawScanlines(Mat *buffer)
 {
-  //linesRad.draw(*buffer,Scalar(0,0,255));
-  rleLinesRad_2.draw(Scalar(255,255,255), Scalar(0,0,0), Scalar(255,255,255), buffer);
-  rleLinesRad.draw(Scalar(255,255,255), Scalar(255,0,0), Scalar(255,255,255), buffer);
-  //linesCir.draw(*buffer,(255,0,255));
-  rleLinesCir.draw(Scalar(255,255,255), Scalar(0,0,255), Scalar(255,255,255), buffer);
-  rleObs.draw(Scalar(255,255,255), Scalar(255,0,255), Scalar(255,255,255), buffer);
-  rleObs_2.draw(Scalar(255,255,255), Scalar(255,0,255), Scalar(255,255,255), buffer);
-  rleBallRad.draw(Scalar(255,255,255), Scalar(0,255,255), Scalar(255,255,255), buffer);
+  Mat img(IMG_SIZE,IMG_SIZE, CV_8UC3, Scalar(0,0,0));
+  linesRad.draw(img,Scalar(0,255,0));
+  //rleLinesRad_2.draw(Scalar(255,255,255), Scalar(0,0,0), Scalar(255,255,255), buffer);
+  rleLinesRad.draw(Scalar(255,255,255), Scalar(255,255,255), Scalar(255,255,255), &img);
+  linesCir.draw(img,Scalar(0,255,0));
+  rleLinesCir.draw(Scalar(255,255,255), Scalar(255,255,255), Scalar(255,255,255), &img);
+  rleObs.draw(Scalar(255,255,255), Scalar(255,0,255), Scalar(255,255,255), &img);
+  rleObs_2.draw(Scalar(255,255,255), Scalar(255,0,255), Scalar(255,255,255), &img);
+  rleBallRad.draw(Scalar(255,255,255), Scalar(0,255,255), Scalar(255,255,255), &img);
+
+  //rleLinesRad_2.draw(Scalar(255,255,255), Scalar(255,0,255), Scalar(255,255,255), buffer);
+
+  *buffer=img;
 }
 void ImageProcessor::drawWorldInfo(Mat *buffer)
 {
@@ -293,7 +306,7 @@ void ImageProcessor::drawWorldPoints(Mat *buffer)
 }
 
 // Detects interest points, as line points, ball points and obstacle points using RLE
-void ImageProcessor::detectInterestPoints(int orientation)
+void ImageProcessor::detectInterestPoints()
 {
     // Preprocess camera image, indexing it with predefined labels
     preProcessIndexedImage();
@@ -301,35 +314,36 @@ void ImageProcessor::detectInterestPoints(int orientation)
     // Run Different RLE's
 
     // RLE Lines
-    rleLinesRad = RLE(linesRad, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 4, 1, 4, 25);
-    rleLinesCir = RLE(linesCir, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 8, 4, 8, 25);
-    rleLinesRad_2 = RLE(linesRad, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 2, 1, 2, 30);
+    rleLinesRad = RLE(linesRad, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 4, 2, 4, 30);
+    rleLinesCir = RLE(linesCir, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 4, 2, 4, 20);
+    //rleLinesRad_2 = RLE(linesRad, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 2, 1, 2, 30);
 
     // RLE Ball
-    rleBallRad = RLE(linesRad, UAV_GREEN_BIT, UAV_ORANGE_BIT, UAV_GREEN_BIT, int(ballRLE.value_a), ballRLE.value_b, ballRLE.value_c, ballRLE.window);
+    //rleBallRad = RLE(linesRad, UAV_GREEN_BIT, UAV_ORANGE_BIT, UAV_GREEN_BIT, int(ballRLE.value_a), ballRLE.value_b, ballRLE.value_c, ballRLE.window);
+    rleBallRad = RLE(linesRad, UAV_NOCOLORS_BIT, UAV_ORANGE_BIT, UAV_NOCOLORS_BIT, 0, ballRLE.value_b, 0, 40);
 
     // RLE Obstacles
-    rleObs = RLE(linesRad, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 20, 8, 0, 30);
+    rleObs = RLE(linesRad, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 4, 2, 0, 30);
     rleObs_2 = RLE(linesRad, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 0, 30, 0, 5);
-
+    //rleLinesRad_2 = RLE(linesCir, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 4, 1, 4, 30);
 
     //Analyze and parse RLE's
     linePoints.clear(); obstaclePoints.clear(); ballPoints.clear();
+    linePointsLength.clear();
+
 
     // Lines RLE
-    rleLinesRad.pushData(linePoints,idxImage,UAV_WHITE_BIT);
-    rleLinesRad_2.pushData(linePoints,idxImage,UAV_WHITE_BIT);
-    rleLinesCir.pushData(linePoints,idxImage,UAV_WHITE_BIT);
+    rleLinesRad.LinespushData(linePoints, linePointsLength, idxImage);
+    //rleLinesRad_2.LinespushData(linePoints, linePointsLength, idxImage);
+    rleLinesCir.LinespushData(linePoints, linePointsLength, idxImage);
 
     // Obstacles RLE
-    rleObs.pushData(obstaclePoints,idxImage,UAV_BLACK_BIT);
-    rleObs_2.pushData(obstaclePoints,idxImage,UAV_BLACK_BIT);
+    rleObs.pushData(obstaclePoints, idxImage);
+    rleObs_2.pushData(obstaclePoints, idxImage);
+    //rleLinesRad_2.pushData(obstaclePoints, idxImage);
 
     // Ball RLE
-    rleBallRad.pushData(ballPoints,idxImage,UAV_ORANGE_BIT);
-
-    // Maps line and obstacle points to world
-    mapPoints(orientation);
+    rleBallRad.pushData(ballPoints, idxImage);
 
 }
 
@@ -341,36 +355,53 @@ void ImageProcessor::creatWorld()
   // Create Blobs due to obstacle points detected
   obsBlob.createBlobs(mappedObstaclePoints, obsParameters.value_a, obsParameters.value_b, getCenter(), OBS_BLOB);
   ballBlob.createBlobs(mappedBallPoints, ballParameters.value_a, ballParameters.value_b, getCenter(), BALL_BLOB);
+
 }
 
 // Maps poins to real world
 void ImageProcessor::mapPoints(int robot_heading)
 {
+  int count = 0;
    mappedLinePoints.clear(); mappedObstaclePoints.clear(); mappedBallPoints.clear();
 
    Point2d point;
    Point3d point_v2;
    double sqDist = 0.00;
-
+   int temp = 0,value = 0;
+   unsigned int index = 0;
 
    // Map line points
    for(unsigned int i = 0; i < linePoints.size(); i++){
-      point_v2 = worldMappingP3(linePoints[i]);
-      if(point_v2.x<=(mirrorConf.max_distance-0.5) && point_v2.x>RROBOT) {
 
-        point.x = point_v2.x;
-        point.y = point_v2.y;
+     temp = d2p(Point(imageConf.center_x,imageConf.center_y),linePoints[i]);
+     while(temp>distPix[index] && index<(distPix.size()-1))index++;
+     if(temp>distPix[distPix.size()-1]){
+         value=1000;
+       }
+     else if(index<=0) value = 1000;
+     else value = distPixVal[index-1]+(((temp-distPix[index-1])*(distPixVal[index]-distPixVal[index-1]))/(distPix[index]-distPix[index-1]));
 
-        point = mapPointToRobot(robot_heading, point);
+     //std::cerr << "Numero de pontos para limitar: " << value << "  Numero possuido de pontos: " << linePointsLength[i];
 
-        point_v2.x = point.x;
-        point_v2.y = point.y;
+     if(linePointsLength[i]<(value+LINE_LIMIT) && linePointsLength[i]>(value-LINE_LIMIT)){
+       //std::cerr << "    Entra";
+       point_v2 = worldMappingP3(linePoints[i]);
+       if(point_v2.x<=(mirrorConf.max_distance-0.5) && point_v2.x>RROBOT) {
 
-        mappedLinePoints.push_back(point_v2);
+          point.x = point_v2.x;
+          point.y = point_v2.y;
 
-      }
+          point = mapPointToRobot(robot_heading, point);
+
+          point_v2.x = point.x;
+          point_v2.y = point.y;
+
+          mappedLinePoints.push_back(point_v2);
+
+        }
+     }
+     //std::cerr << endl;
    }
-
    // Map obstacle points
    for(unsigned int j = 0; j < obstaclePoints.size(); j++){
      point = worldMapping(obstaclePoints[j]);
@@ -405,7 +436,12 @@ double ImageProcessor::d2pWorld(int pixeis)
         return 100;
     }
     else return distReal[index-1]+(((pixeis-distPix[index-1])*(distReal[index]-distReal[index-1]))/(distPix[index]-distPix[index-1]));
+}
 
+// Returns the distance between two points
+int ImageProcessor::d2p(Point p1, Point p2)
+{
+    return sqrt(pow(p2.x-p1.x,2)+pow(p2.y-p1.y,2));
 }
 
 // Maps a point (pixel) to world values, returning world distance and angle
@@ -556,12 +592,6 @@ void ImageProcessor::setBuffer(Mat *buf)
 double ImageProcessor::getRobotHeight()
 {
     return robotHeight;
-}
-
-// Returns the distance between two points
-int ImageProcessor::d2p(Point p1, Point p2)
-{
-    return sqrt(pow(p2.x-p1.x,2)+pow(p2.y-p1.y,2));
 }
 
 // Returns the availability of new camera frames
@@ -801,10 +831,14 @@ bool ImageProcessor::writeMirrorConfig()
 
     in<<"MAX_DISTANCE="<<mirrorConf.max_distance<<"\r\n";
     in<<"STEP="<<mirrorConf.step<<"\r\n";
-    QString dists = "";
-    for(unsigned int i=0;i<mirrorConf.pixel_distances.size();i++)dists+=QString::number(mirrorConf.pixel_distances[i])+QString(",");
+    QString dists = "", length = "";
+    for(unsigned int i=0;i<mirrorConf.pixel_distances.size();i++){
+      dists+=QString::number(mirrorConf.pixel_distances[i])+QString(",");
+      length+=QString::number(mirrorConf.lines_length[i])+QString(",");
+    }
     dists = dists.left(dists.size()-1);
     in<<"PIXEL_DISTANCES="<<dists<<"\r\n";
+    in<<"LINES_LENGTH="<<length<<"\r\n";
 
     QString message = QString("#DONT CHANGE THE ORDER OF THE CONFIGURATIONS");
     in << message;
@@ -1189,4 +1223,5 @@ void ImageProcessor::detectBallPosition()
             }
         }
     }
-}*/
+}
+*/
