@@ -332,8 +332,9 @@ void ImageProcessor::detectInterestPoints()
 
 
     // Lines RLE
-    rleLinesRad.LinespushData(linePoints, idxImage, distPix, distPixVal, Point(imageConf.center_x,imageConf.center_y));
+    //rleLinesRad.LinespushData(linePoints, idxImage, distPix, distPixVal, Point(imageConf.center_x,imageConf.center_y));
     //rleLinesRad_2.LinespushData(linePoints, linePointsLength, idxImage);
+    rleLinesRad.LinespushDataC(linePoints, idxImage);
     rleLinesCir.LinespushDataC(linePoints, idxImage);
 
     // Obstacles RLE
