@@ -81,9 +81,7 @@ void Localization::discoverWorldModel() // Main Function
    // Acquire image using function pointer
    buffer = CALL_MEMBER_FN((*processor),processor->acquireImage)(&have_image);
    // Localization code
-   is_hardware_ready=true;
    if(have_image && is_hardware_ready){
-      current_hardware_state.imu_value = 0;
       if(reloc){
         last_state.robot_pose.z = current_hardware_state.imu_value;
         //ROS_INFO("Reloc Angle: %d",current_hardware_state.imu_value);
@@ -102,8 +100,7 @@ void Localization::discoverWorldModel() // Main Function
 
 
 
-      if(reloc){ // Global localization
-
+      if(reloc){
          // Do global localization
          //loctime.start();
          reloc = computeGlobalLocalization(fieldSide);
@@ -687,7 +684,7 @@ void Localization::calcHistOrientation()
     }
   }
   histEstimate = indice + startAngle;
-  //ROS_INFO("angulo: %d",histEstimate);
+  ROS_INFO("angulo: %d",histEstimate);
   if(current_hardware_state.imu_value < 90.0 && histEstimate > 270.0) histEstimate -= 360.0;
   if(current_hardware_state.imu_value > 270.0 && histEstimate < 90.0) histEstimate += 360.0;
   current_hardware_state.imu_value = 0.0 * current_hardware_state.imu_value + 1.0 * histEstimate;

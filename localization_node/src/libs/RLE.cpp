@@ -127,8 +127,6 @@ void RLE::LinespushData(std::vector<Point> &destination, Mat& img, std::vector<d
     else if(index<=0) value = 0;
     else value = distPixVal[index-1]+(((temp-distPix[index-1])*(distPixVal[index]-distPixVal[index-1]))/(distPix[index]-distPix[index-1]));
 
-    //std::cerr << "Numero de pontos para limitar: " << value << "  Numero possuido de pontos: " << linePointsLength[i];
-
     if(rlData[k].lengthColor<(value+LINE_LIMIT) && rlData[k].lengthColor>(value-LINE_LIMIT)) destination.push_back(point);
   }
 }

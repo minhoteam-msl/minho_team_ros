@@ -319,8 +319,8 @@ void ImageProcessor::detectInterestPoints()
     //rleLinesRad_2 = RLE(linesRad, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 2, 1, 2, 30);
 
     // RLE Ball
-    //rleBallRad = RLE(linesRad, UAV_GREEN_BIT, UAV_ORANGE_BIT, UAV_GREEN_BIT, int(ballRLE.value_a), ballRLE.value_b, ballRLE.value_c, ballRLE.window);
-    rleBallRad = RLE(linesRad, UAV_NOCOLORS_BIT, UAV_ORANGE_BIT, UAV_NOCOLORS_BIT, 0, ballRLE.value_b, 0, 40);
+    rleBallRad = RLE(linesRad, UAV_GREEN_BIT, UAV_ORANGE_BIT, UAV_GREEN_BIT, int(ballRLE.value_a), ballRLE.value_b, ballRLE.value_c, ballRLE.window);
+    //rleBallRad = RLE(linesRad, UAV_NOCOLORS_BIT, UAV_ORANGE_BIT, UAV_NOCOLORS_BIT, 0, ballRLE.value_b, 0, 40);
 
     // RLE Obstacles
     rleObs = RLE(linesRad, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 4, 2, 0, 30);
