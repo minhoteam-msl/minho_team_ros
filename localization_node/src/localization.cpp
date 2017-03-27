@@ -684,7 +684,7 @@ void Localization::calcHistOrientation()
     }
   }
   histEstimate = indice + startAngle;
-  ROS_INFO("angulo: %d",histEstimate);
+  ROS_INFO("angulo: %d",histEstimate-90);
   if(current_hardware_state.imu_value < 90.0 && histEstimate > 270.0) histEstimate -= 360.0;
   if(current_hardware_state.imu_value > 270.0 && histEstimate < 90.0) histEstimate += 360.0;
   current_hardware_state.imu_value = 0.0 * current_hardware_state.imu_value + 1.0 * histEstimate;
