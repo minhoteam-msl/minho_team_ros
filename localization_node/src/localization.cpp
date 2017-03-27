@@ -348,7 +348,7 @@ void Localization::changeMirrorConfiguration(mirrorConfig::ConstPtr msg)
 {
    ROS_WARN("New configuration of mirror will be set.");
    parentTimer->stop();
-   processor->updateDists(msg->max_distance,msg->step,msg->pixel_distances);
+   processor->updateDists(msg->max_distance,msg->step,msg->pixel_distances, msg->lines_length);
    processor->generateMirrorConfiguration();
    if(processor->writeMirrorConfig())ROS_INFO("New %s saved!",MIRRORFILENAME);
    parentTimer->start(requiredTiming);

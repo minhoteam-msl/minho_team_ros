@@ -109,12 +109,35 @@ void RLE::drawInterestPoints(Scalar color, Mat *destination, UAV_COLORS_BIT idx)
     }
 }
 
-void RLE::LinespushData(std::vector<Point> &destination, std::vector<int> &save_length,Mat& img)
+void RLE::LinespushData(std::vector<Point> &destination, Mat& img, std::vector<double> &distPix,  std::vector<int> &distPixVal, Point robotCenter)
+{
+  int temp = 0, value = 0;
+  unsigned int index = 0;
+  Point point;
+
+  for(unsigned k = 0; k < rlData.size(); k++){
+    index = 0;
+    point = Point(rlData[k].center%img.cols,rlData[k].center/img.cols);
+    temp = d2p(robotCenter,point);
+
+    while(temp>distPix[index] && index<(distPix.size()-1))index++;
+    if(temp>distPix[distPix.size()-1]){
+        value=1000;
+    }
+    else if(index<=0) value = 0;
+    else value = distPixVal[index-1]+(((temp-distPix[index-1])*(distPixVal[index]-distPixVal[index-1]))/(distPix[index]-distPix[index-1]));
+
+    //std::cerr << "Numero de pontos para limitar: " << value << "  Numero possuido de pontos: " << linePointsLength[i];
+
+    if(rlData[k].lengthColor<(value+LINE_LIMIT) && rlData[k].lengthColor>(value-LINE_LIMIT)) destination.push_back(point);
+  }
+}
+
+void RLE::LinespushDataC(std::vector<Point> &destination, Mat& img)
 {
   int target = 0;
 
   for(unsigned k = 0; k < rlData.size(); k++){
-    save_length.push_back(rlData[k].lengthColor);
     target = rlData[k].center;
     destination.push_back(cv::Point(target%img.cols,target/img.cols));
   }

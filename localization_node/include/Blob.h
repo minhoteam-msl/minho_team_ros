@@ -3,7 +3,7 @@
 
 #include "ScanLines.h"
 #include "RLE.h"
-#include "Utils/types.h"
+#include "Common/Utils/types.h"
 #include <iostream>
 
 using namespace cv;

@@ -177,6 +177,17 @@ typedef union fieldDimensions{
     int dimensions[23];
 } fieldDimensions;
 
+
+//############ WEIGHTS PARAMETERS ###############
+//###############################################
+
+#define REFERENCE 2*2
+#define DISTANCE 4*4
+
+#define LINE_LIMIT 4
+//###############################################
+//###############################################
+
 /// \brief defines the type of roles available to choose
 typedef enum Roles{rSTOP=0,rGOALKEEPER,rSUP_STRIKER,rSTRIKER} Roles;
 /// \brief defines the game states known by the system

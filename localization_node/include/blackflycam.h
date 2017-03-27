@@ -15,7 +15,7 @@
 #include <QTextStream>
 #include <QStringList>
 #include <QPoint>
-#include "Utils/types.h"
+#include "Common/Utils/types.h"
 
 using namespace FlyCapture2;
 using namespace cv;

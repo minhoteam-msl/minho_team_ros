@@ -43,8 +43,10 @@ public:
     void drawLine(int pt1, int pt2, cv::Scalar color, cv::Mat *img);
     void drawCircle(int pt, int radius, cv::Scalar color, cv::Mat *img);
     void drawInterestPoints(cv::Scalar color,cv::Mat *destination,UAV_COLORS_BIT idx);
-    void LinespushData(std::vector<Point> &destination, std::vector<int> &save_length, Mat& img);
+    void LinespushDataC(std::vector<Point> &destination, Mat& img);
+    void LinespushData(std::vector<Point> &destination, Mat& img, std::vector<double> &distPix, std::vector<int> &distPixVal, Point robotCenter);
     void pushData(std::vector<Point> &destination, Mat& img);
+    inline int d2p(Point p1, Point p2) {  return sqrt(pow(p2.x-p1.x,2)+pow(p2.y-p1.y,2)); }
 };
 
 #endif

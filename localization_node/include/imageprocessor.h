@@ -19,7 +19,7 @@
 #include <vector>
 #include "Blob.h"
 //#include <QTime>
-#define LINE_LIMIT 3
+
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
 
 using namespace std;
@@ -87,7 +87,7 @@ public:
    void generateMirrorConfiguration();
    bool writeMirrorConfig();
    bool writeImageConfig();
-   void updateDists(double max, double step, vector<short unsigned int>pix_dists);
+   void updateDists(double max, double step, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length);
    mirrorConfig getMirrorConfAsMsg();
    inline double getMaxDistance() { return mirrorConf.max_distance; }
    visionHSVConfig getVisionConfAsMsg();
@@ -103,7 +103,6 @@ public:
 
    /* WORLD STATE INFORMATION Buffers */
    vector<Point>linePoints;
-   vector<int>linePointsLength;
    vector<Point>obstaclePoints;
    vector<Point>ballCentroids;
    vector<Point>ballPoints;

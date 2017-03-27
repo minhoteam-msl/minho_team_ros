@@ -329,13 +329,12 @@ void ImageProcessor::detectInterestPoints()
 
     //Analyze and parse RLE's
     linePoints.clear(); obstaclePoints.clear(); ballPoints.clear();
-    linePointsLength.clear();
 
 
     // Lines RLE
-    rleLinesRad.LinespushData(linePoints, linePointsLength, idxImage);
+    rleLinesRad.LinespushData(linePoints, idxImage, distPix, distPixVal, Point(imageConf.center_x,imageConf.center_y));
     //rleLinesRad_2.LinespushData(linePoints, linePointsLength, idxImage);
-    rleLinesCir.LinespushData(linePoints, linePointsLength, idxImage);
+    rleLinesCir.LinespushDataC(linePoints, idxImage);
 
     // Obstacles RLE
     rleObs.pushData(obstaclePoints, idxImage);
@@ -367,24 +366,9 @@ void ImageProcessor::mapPoints(int robot_heading)
    Point2d point;
    Point3d point_v2;
    double sqDist = 0.00;
-   int temp = 0,value = 0;
-   unsigned int index = 0;
 
    // Map line points
    for(unsigned int i = 0; i < linePoints.size(); i++){
-
-     temp = d2p(Point(imageConf.center_x,imageConf.center_y),linePoints[i]);
-     while(temp>distPix[index] && index<(distPix.size()-1))index++;
-     if(temp>distPix[distPix.size()-1]){
-         value=1000;
-       }
-     else if(index<=0) value = 1000;
-     else value = distPixVal[index-1]+(((temp-distPix[index-1])*(distPixVal[index]-distPixVal[index-1]))/(distPix[index]-distPix[index-1]));
-
-     //std::cerr << "Numero de pontos para limitar: " << value << "  Numero possuido de pontos: " << linePointsLength[i];
-
-     if(linePointsLength[i]<(value+LINE_LIMIT) && linePointsLength[i]>(value-LINE_LIMIT)){
-       //std::cerr << "    Entra";
        point_v2 = worldMappingP3(linePoints[i]);
        if(point_v2.x<=(mirrorConf.max_distance-0.5) && point_v2.x>RROBOT) {
 
@@ -399,8 +383,6 @@ void ImageProcessor::mapPoints(int robot_heading)
           mappedLinePoints.push_back(point_v2);
 
         }
-     }
-     //std::cerr << endl;
    }
    // Map obstacle points
    for(unsigned int j = 0; j < obstaclePoints.size(); j++){
@@ -478,14 +460,16 @@ void ImageProcessor::generateMirrorConfiguration()
    }
 }
 
-void ImageProcessor::updateDists(double max, double step, vector<short unsigned int>pix_dists)
+void ImageProcessor::updateDists(double max, double step, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length)
 {
    distReal.clear(); distPix.clear();
    for(float dist=step;dist<=max;dist+=step) distReal.push_back(dist);
    for(int i=0;i<pix_dists.size();i++) distPix.push_back((double)pix_dists[i]);
+   for(int i=0;i<line_length.size();i++) distPixVal.push_back((int)line_length[i]);
 
    mirrorConf.pixel_distances = pix_dists;
    mirrorConf.max_distance = max;
+   mirrorConf.lines_length = line_length;
    mirrorConf.step = step;
 }
 
@@ -832,13 +816,18 @@ bool ImageProcessor::writeMirrorConfig()
     in<<"MAX_DISTANCE="<<mirrorConf.max_distance<<"\r\n";
     in<<"STEP="<<mirrorConf.step<<"\r\n";
     QString dists = "", length = "";
-    for(unsigned int i=0;i<mirrorConf.pixel_distances.size();i++){
-      dists+=QString::number(mirrorConf.pixel_distances[i])+QString(",");
-      length+=QString::number(mirrorConf.lines_length[i])+QString(",");
+    if(mirrorConf.pixel_distances.size() == mirrorConf.lines_length.size()){
+      for(unsigned int i=0;i<mirrorConf.pixel_distances.size();i++){
+        dists+=QString::number(mirrorConf.pixel_distances[i])+QString(",");
+        length+=QString::number(mirrorConf.lines_length[i])+QString(",");
+      }
+      dists = dists.left(dists.size()-1);
+      length = length.left(length.size()-1);
+      in<<"PIXEL_DISTANCES="<<dists<<"\r\n";
+      in<<"LINES_LENGTH="<<length<<"\r\n";
     }
-    dists = dists.left(dists.size()-1);
-    in<<"PIXEL_DISTANCES="<<dists<<"\r\n";
-    in<<"LINES_LENGTH="<<length<<"\r\n";
+    else ROS_ERROR("Error!! Sizes not equal on %s!!",MIRRORFILENAME);
+
 
     QString message = QString("#DONT CHANGE THE ORDER OF THE CONFIGURATIONS");
     in << message;
