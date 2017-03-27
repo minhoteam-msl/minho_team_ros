@@ -173,6 +173,15 @@ void* udpReceivingThread(void *socket);
 /// sent by other agents. Thread returns to pool after doing its work
 /// \param packet - data packet to be deserialized into a ROS message
 void processReceivedData(void *packet);
+
+/// \brief gets syncronization agent id's for this agent. The primary
+/// syncronizator is id-1
+int getSyncId() {if(agent_id==1) return 6; else return agent_id-1;}
+
+/// \brief holds state of robot sync (if inside sync ring or not)
+bool syncState[NUM_ROBOT_AGENTS+1];
+/// \brief holds state of agent
+bool agentState[NUM_ROBOT_AGENTS+1];
 // #########################
 
 
