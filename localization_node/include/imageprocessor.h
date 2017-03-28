@@ -87,7 +87,7 @@ public:
    void generateMirrorConfiguration();
    bool writeMirrorConfig();
    bool writeImageConfig();
-   void updateDists(double max, double step, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length);
+   void updateDists(double max, double step,int line_filter, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length);
    mirrorConfig getMirrorConfAsMsg();
    inline double getMaxDistance() { return mirrorConf.max_distance; }
    visionHSVConfig getVisionConfAsMsg();

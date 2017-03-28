@@ -19,7 +19,7 @@ BlackflyCam::BlackflyCam(bool cal, int robot_id)
 
     //Parameters for calibration
     minError_Lumi=lumiTarget*0.05;
-    minError_Sat=satTarget*0.1;
+    minError_Sat=satTarget*0.05;
     //minError_UV_1=127+(127*0.15);
     //minError_UV_2=127-(127*0.15);
     minError_RGB=127*0.1;
@@ -624,7 +624,6 @@ bool BlackflyCam::cameraCalibrate()
     float sat=getSaturation();
     float brig=getBrigtness();
     float shu=getShuttertime();
-    static int times;
 
     if(firsttime){
         ///wBluePID->reset();
@@ -645,8 +644,7 @@ bool BlackflyCam::cameraCalibrate()
     if(msvError>minError_Lumi || msvError<-(minError_Lumi))
     {
         changed=true;
-        times = 0;
-        if(gain>=(getGainMax()-getGainMax()/4)){
+        if(gain>=(getGainMax()-(getGainMax()/4))){
             shu = ShuPID->calc_pid(shu,msvError);
             setShutter(SHU);
             setProps(GAI);
@@ -660,13 +658,12 @@ bool BlackflyCam::cameraCalibrate()
             setProps(GAI);
         }
     }
-    else times++;
-    minError_Sat=satTarget*0.1;
-    if(msv>(satTarget - minError_Sat) && msv<(satTarget + minError_Sat) &&(times>=4 || changed==false))
+
+    if(msv>(satTarget - minError_Sat) && msv<(satTarget + minError_Sat) && changed==false)
     {
-        times=0;
         calcSatHistogram();
-        msvError=satTarget-calcMean();
+        msv = calcMean();
+        msvError=satTarget-msv;
         if(msvError>minError_Sat || msvError<(-minError_Sat))
         {
             changed=true;
@@ -865,6 +862,8 @@ bool BlackflyCam::writePropConfig()
 Point2d BlackflyCam::getError(int prop_in_use)
 {
 	Point2d point;
+  point.x = 0.00;
+  point.y = 0.00;
 		if(prop_in_use<=6 && prop_in_use>=0 && calibrate){
 			if(prop_in_use==0){point.x=BrigPID->getError(); point.y=getBrigtness();}
 			if(prop_in_use==1){point.x=GainPID->getError(); point.y=getGain();}

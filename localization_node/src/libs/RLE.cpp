@@ -109,10 +109,11 @@ void RLE::drawInterestPoints(Scalar color, Mat *destination, UAV_COLORS_BIT idx)
     }
 }
 
-void RLE::LinespushData(std::vector<Point> &destination, Mat& img, std::vector<double> &distPix,  std::vector<int> &distPixVal, Point robotCenter)
+void RLE::LinespushData(std::vector<Point> &destination, Mat& img, std::vector<double> &distPix,  std::vector<int> &distPixVal, Point robotCenter, int filter)
 {
-  int temp = 0, value = 0;
+  int temp = 0, value = 0, limit = 0;
   unsigned int index = 0;
+  double limit_v2 =0.00;
   Point point;
 
   for(unsigned k = 0; k < rlData.size(); k++){
@@ -124,10 +125,37 @@ void RLE::LinespushData(std::vector<Point> &destination, Mat& img, std::vector<d
     if(temp>distPix[distPix.size()-1]){
         value=1000;
     }
-    else if(index<=0) value = 1000;
+    else if(index<=0) value = 0;
     else value = distPixVal[index-1]+(((temp-distPix[index-1])*(distPixVal[index]-distPixVal[index-1]))/(distPix[index]-distPix[index-1]));
 
-    if(rlData[k].lengthColor<(value+LINE_LIMIT) && rlData[k].lengthColor>(value-LINE_LIMIT)) destination.push_back(point);
+    //limit = (int)((value * (filter/100.00))+0.5);
+    /*limit = (int)(value * (filter/100.00));
+
+    std:cerr << "Comprimento de cor: " << rlData[k].lengthColor << "  Valor obtido de comparação: " << value << "  Valor do filtro: " << limit << "  ";
+
+    if(rlData[k].lengthColor>=(value-limit) && rlData[k].lengthColor<=(value+limit)){
+      destination.push_back(point);
+      std::cerr << "Guardou" << endl;
+    }
+    else std::cerr << "Filtra" << endl;*/
+
+    //limit = ((rlData[k].lengthColor-value)/value)*100;
+    limit = rlData[k].lengthColor-value;
+    if(limit<=0) limit = 0;
+    else if(value == 0) limit = 100;
+    else {
+      limit_v2 = (double)limit/value;
+      limit = limit_v2 * 100;
+    }
+
+    //std:cerr << "Comprimento de cor: " << rlData[k].lengthColor << "  Valor obtido de comparação: " << value << "  Valor do filtro: " << limit << "  ";
+
+    if(limit <= filter){
+      destination.push_back(point);
+      //std::cerr << "Guardou" << endl;
+    }
+    //else std::cerr << "Filtra" << endl;
+
   }
 }
 

@@ -345,7 +345,7 @@ void Localization::changeMirrorConfiguration(mirrorConfig::ConstPtr msg)
 {
    ROS_WARN("New configuration of mirror will be set.");
    parentTimer->stop();
-   processor->updateDists(msg->max_distance,msg->step,msg->pixel_distances, msg->lines_length);
+   processor->updateDists(msg->max_distance,msg->step,msg->filter_lines,msg->pixel_distances, msg->lines_length);
    processor->generateMirrorConfiguration();
    if(processor->writeMirrorConfig())ROS_INFO("New %s saved!",MIRRORFILENAME);
    parentTimer->start(requiredTiming);
@@ -367,7 +367,7 @@ void Localization::changeCameraProperties(cameraProperty::ConstPtr msg)
      ROS_WARN("New property value set.");
      parentTimer->stop();
      if(msg->targets == false)processor->setCamPropreties(msg);
-     else processor->setCalibrationTargets(msg);
+     else if(msg->targets == true)processor->setCalibrationTargets(msg);
      parentTimer->start(requiredTiming);
    }
    else ROS_WARN("Camera not Connected!.");

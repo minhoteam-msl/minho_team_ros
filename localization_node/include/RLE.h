@@ -44,7 +44,7 @@ public:
     void drawCircle(int pt, int radius, cv::Scalar color, cv::Mat *img);
     void drawInterestPoints(cv::Scalar color,cv::Mat *destination,UAV_COLORS_BIT idx);
     void LinespushDataC(std::vector<Point> &destination, Mat& img);
-    void LinespushData(std::vector<Point> &destination, Mat& img, std::vector<double> &distPix, std::vector<int> &distPixVal, Point robotCenter);
+    void LinespushData(std::vector<Point> &destination, Mat& img, std::vector<double> &distPix, std::vector<int> &distPixVal, Point robotCenter, int filter);
     void pushData(std::vector<Point> &destination, Mat& img);
     inline int d2p(Point p1, Point p2) {  return sqrt(pow(p2.x-p1.x,2)+pow(p2.y-p1.y,2)); }
 };

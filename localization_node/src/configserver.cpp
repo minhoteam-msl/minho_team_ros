@@ -140,13 +140,17 @@ void ConfigServer::init_mock_image()
 }
 bool ConfigServer::camPropertyConfService(requestCamProperty::Request &req,requestCamProperty::Response &res)
 {
-   if(req.property.property_id==5 && req.property.blue==true){prop_used=6; res.property=props_msg[6];}
-   else if(!req.property.targets){res.property=props_msg[req.property.property_id]; prop_used = res.property.property_id;}
+   if(req.property.property_id==5 && req.property.blue==true && req.property.targets==false){
+     prop_used=6; res.property=props_msg[6];
+   }
+   else if(!req.property.targets){
+     res.property=props_msg[req.property.property_id]; prop_used = res.property.property_id;
+   }
    else if(req.property.targets && req.property.blue){
      res.property.targets=true;
      res.property.val_a = targets.y;
    }
-   else {
+   else if(req.property.targets){
      res.property.targets=false;
      res.property.val_a = targets.x;
    }

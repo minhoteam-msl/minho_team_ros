@@ -91,14 +91,17 @@ bool ImageProcessor::initWorldMapping()
     QString step = in.readLine();
     QString pixel_distances = in.readLine();
     QString line_length = in.readLine();
+    QString filter_li = in.readLine();
     max_distance = max_distance.right(max_distance.size()-max_distance.indexOf('=')-1);
     step = step.right(step.size()-step.indexOf('=')-1);
     pixel_distances = pixel_distances.right(pixel_distances.size()-pixel_distances.indexOf('=')-1);
     line_length = line_length.right(line_length.size()-line_length.indexOf('=')-1);
+    filter_li = filter_li.right(filter_li.size()-filter_li.indexOf('=')-1);
 
 
     mirrorConf.max_distance = max_distance.toFloat();
     mirrorConf.step = step.toFloat();
+    mirrorConf.filter_lines = filter_li.toInt();
     int expected_args = (int)(mirrorConf.max_distance/mirrorConf.step);
     QStringList mappedDists = pixel_distances.split(",");
     QStringList lineLeng = line_length.split(","); // está a ler apenas,falta fazer o resto
@@ -332,9 +335,9 @@ void ImageProcessor::detectInterestPoints()
 
 
     // Lines RLE
-    //rleLinesRad.LinespushData(linePoints, idxImage, distPix, distPixVal, Point(imageConf.center_x,imageConf.center_y));
-    //rleLinesRad_2.LinespushData(linePoints, linePointsLength, idxImage);
-    rleLinesRad.LinespushDataC(linePoints, idxImage);
+    rleLinesRad.LinespushData(linePoints, idxImage, distPix, distPixVal, Point(imageConf.center_x,imageConf.center_y), mirrorConf.filter_lines);
+    //rleLinesRad_2.LinespushData(linePoints, idxImage, distPix, distPixVal, Point(imageConf.center_x,imageConf.center_y), mirrorConf.filter_lines);
+    //rleLinesRad.LinespushDataC(linePoints, idxImage);
     rleLinesCir.LinespushDataC(linePoints, idxImage);
 
     // Obstacles RLE
@@ -461,7 +464,7 @@ void ImageProcessor::generateMirrorConfiguration()
    }
 }
 
-void ImageProcessor::updateDists(double max, double step, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length)
+void ImageProcessor::updateDists(double max, double step,int line_filter, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length)
 {
    distReal.clear(); distPix.clear();
    for(float dist=step;dist<=max;dist+=step) distReal.push_back(dist);
@@ -472,6 +475,7 @@ void ImageProcessor::updateDists(double max, double step, vector<short unsigned 
    mirrorConf.max_distance = max;
    mirrorConf.lines_length = line_length;
    mirrorConf.step = step;
+   mirrorConf.filter_lines = line_filter;
 }
 
 // Paints a pixel accordingly to its classifier
@@ -816,6 +820,7 @@ bool ImageProcessor::writeMirrorConfig()
 
     in<<"MAX_DISTANCE="<<mirrorConf.max_distance<<"\r\n";
     in<<"STEP="<<mirrorConf.step<<"\r\n";
+    QString message = QString("#DONT CHANGE THE ORDER OF THE CONFIGURATIONS");
     QString dists = "", length = "";
     if(mirrorConf.pixel_distances.size() == mirrorConf.lines_length.size()){
       for(unsigned int i=0;i<mirrorConf.pixel_distances.size();i++){
@@ -826,12 +831,11 @@ bool ImageProcessor::writeMirrorConfig()
       length = length.left(length.size()-1);
       in<<"PIXEL_DISTANCES="<<dists<<"\r\n";
       in<<"LINES_LENGTH="<<length<<"\r\n";
+      in<<"FILTER_PERCENTAGE="<<mirrorConf.filter_lines<<"\r\n";
+      in << message;
     }
     else ROS_ERROR("Error!! Sizes not equal on %s!!",MIRRORFILENAME);
 
-
-    QString message = QString("#DONT CHANGE THE ORDER OF THE CONFIGURATIONS");
-    in << message;
     file.close();
     return true;
 }
