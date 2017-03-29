@@ -6,7 +6,7 @@ ImageProcessor::ImageProcessor(int rob_id, bool use_camera, bool *init_success)
     // Initialize GigE Camera Driver
     if(use_camera) {
       camera=true;
-      omniCamera = new BlackflyCam(false, rob_id); //OmniVisionCamera Handler
+      omniCamera = new BlackflyCam(true, rob_id); //OmniVisionCamera Handler
       ROS_INFO("Using GigE Camera for image acquisition.");
       acquireImage = &ImageProcessor::getImage;
     } else {

@@ -129,18 +129,18 @@ void RLE::LinespushData(std::vector<Point> &destination, Mat& img, std::vector<d
     else value = distPixVal[index-1]+(((temp-distPix[index-1])*(distPixVal[index]-distPixVal[index-1]))/(distPix[index]-distPix[index-1]));
 
     //limit = (int)((value * (filter/100.00))+0.5);
-    /*limit = (int)(value * (filter/100.00));
+    limit = (int)(value * (filter/100.00));
 
-    std:cerr << "Comprimento de cor: " << rlData[k].lengthColor << "  Valor obtido de comparação: " << value << "  Valor do filtro: " << limit << "  ";
+    //std:cerr << "Comprimento de cor: " << rlData[k].lengthColor << "  Valor obtido de comparação: " << value << "  Valor do filtro: " << limit << "  ";
 
     if(rlData[k].lengthColor>=(value-limit) && rlData[k].lengthColor<=(value+limit)){
       destination.push_back(point);
-      std::cerr << "Guardou" << endl;
+      //std::cerr << "Guardou" << endl;
     }
-    else std::cerr << "Filtra" << endl;*/
+    //else std::cerr << "Filtra" << endl;
 
     //limit = ((rlData[k].lengthColor-value)/value)*100;
-    limit = rlData[k].lengthColor-value;
+    /*limit = rlData[k].lengthColor-value;
     if(limit<=0) limit = 0;
     else if(value == 0) limit = 100;
     else {
@@ -148,13 +148,13 @@ void RLE::LinespushData(std::vector<Point> &destination, Mat& img, std::vector<d
       limit = limit_v2 * 100;
     }
 
-    //std:cerr << "Comprimento de cor: " << rlData[k].lengthColor << "  Valor obtido de comparação: " << value << "  Valor do filtro: " << limit << "  ";
+    std:cerr << "Comprimento de cor: " << rlData[k].lengthColor << "  Valor obtido de comparação: " << value << "  Valor do filtro: " << limit << "  ";
 
     if(limit <= filter){
       destination.push_back(point);
       //std::cerr << "Guardou" << endl;
     }
-    //else std::cerr << "Filtra" << endl;
+    //else std::cerr << "Filtra" << endl;*/
 
   }
 }
