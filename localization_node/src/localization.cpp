@@ -177,6 +177,7 @@ void Localization::sendWorldInfo()
     p.y = processor->obsBlob.UMblobs[i].center.y+current_state.robot_pose.y;
     current_state.obstacles.push_back(p);
   }
+
 }
 
 void Localization::initVariables()
@@ -595,6 +596,10 @@ void Localization::computeVelocities()
       // ########################################################################
       if(current_state.robot_velocity.x>2.5) current_state.robot_velocity.x = 0;
       if(current_state.robot_velocity.y>2.5) current_state.robot_velocity.y = 0;
+
+      current_state.ball_velocity.x = lpf_weight*((current_state.ball_position.x-last_vel_state.ball_position.x)/(time_interval*(float)it_limit))+lpf_minor*last_vel_state.ball_velocity.x;
+      current_state.ball_velocity.y = lpf_weight*((current_state.ball_position.y-last_vel_state.ball_position.y)/(time_interval*(float)it_limit))+lpf_minor*last_vel_state.ball_velocity.y;
+
       last_vel_state = current_state;
    }
 
@@ -607,6 +612,19 @@ void Localization::decideBallPossession()
    // if the robot possesses the ball or not
    // ########################################################################
    current_state.has_ball = current_hardware_state.ball_sensor;
+   float mindist = 1000.0; int nearBall = 0;
+   for(int i=0;i<processor->ballBlob.UMblobs.size();i++){
+      if(processor->ballBlob.UMblobs[i].dist_to_robot<=mindist){
+         mindist = processor->ballBlob.UMblobs[i].dist_to_robot;
+         nearBall = i;
+      }
+   }
+   if(!processor->ballBlob.UMblobs.size()) current_state.sees_ball = false;
+   else {
+      current_state.sees_ball = true;
+      current_state.ball_position.x = processor->ballBlob.UMblobs[nearBall].center.x + current_state.robot_pose.x;
+      current_state.ball_position.y = processor->ballBlob.UMblobs[nearBall].center.y + current_state.robot_pose.y;
+   }
 }
 
 void Localization::generateDebugData()
