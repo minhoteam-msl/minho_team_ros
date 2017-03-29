@@ -33,7 +33,7 @@ void DijkstraShortestPath::calculate_Radius_of_Obstacles(robotInfo robot, Point 
     for(unsigned int i=0; i<robot.obstacles.size(); i++)
     {
         if(robot.obstacles.at(i).isenemy) {
-            radius = 1.0;
+            radius = 2.0;
 
         }else {
             radius = 0.6; //radius:60cm->0.6

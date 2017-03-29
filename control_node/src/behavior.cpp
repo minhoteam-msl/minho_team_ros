@@ -237,6 +237,12 @@ void Behavior::doWork()
        } break;
 
        case aAPPROACHBALL: {
+           if(robot_info_copy.sees_ball){
+               obstacle ballobs;
+               ballobs.x = robot_info_copy.ball_position.x;
+               ballobs.y = robot_info_copy.ball_position.y;
+               robot_info_copy.obstacles.push_back(ballobs);
+           }
            if(USE_PATH)
                dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
            goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,maxvel-20);

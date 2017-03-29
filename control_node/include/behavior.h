@@ -19,6 +19,9 @@
 #include "voronoi.h"
 #include "dijkstrashortestpath.h"
 #include "motion.h"
+#include "minho_team_ros/obstacle.h"
+
+using minho_team_ros::obstacle;
 
 
 //
