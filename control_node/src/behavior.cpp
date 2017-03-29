@@ -5,7 +5,7 @@ pthread_mutex_t ai_info_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t control_config_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define USE_PATH 1
-
+#define maxvel 60
 Behavior::Behavior(std::string topics_base_name, int rob_id, bool mode_real, ros::NodeHandle *par, Fundamental *fund, Voronoi *vor, DijkstraShortestPath *dijk, Motion *mot)
 {
     motion = mot;
@@ -203,7 +203,7 @@ void Behavior::doWork()
        case aAPPROACHPOSITION: {
            if(USE_PATH)
                dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
-           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,30);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,maxvel-20);
            control_info.dribbler_on = false;
 
        } break;
@@ -211,7 +211,7 @@ void Behavior::doWork()
        case aFASTMOVE: {
            if(USE_PATH)
                dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
-           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,50);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,maxvel);
            control_info.dribbler_on = false;
 
        } break;
@@ -219,14 +219,14 @@ void Behavior::doWork()
       case aRECEIVEBALL: {
            if(USE_PATH)
                dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
-           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,30);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,maxvel-20);
            control_info.dribbler_on = true;
        } break;
 
        case aENGAGEBALL: {
            if(USE_PATH)
                dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
-           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,30);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,maxvel);
            float distToBall = sqrt(
                (robot_info_copy.robot_pose.x-ai_info_copy.target_pose.x)*
                (robot_info_copy.robot_pose.x-ai_info_copy.target_pose.x)
@@ -239,12 +239,12 @@ void Behavior::doWork()
        case aAPPROACHBALL: {
            if(USE_PATH)
                dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
-           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,30);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,maxvel-20);
            control_info.dribbler_on = false;
        } break;
 
        case aPASSBALL: {
-           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,50);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,maxvel);
            control_info.linear_velocity = 0;
            if(fabs(robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)<1.0){
                requestKick srv;
@@ -257,7 +257,7 @@ void Behavior::doWork()
        } break;
 
        case aKICKBALL: {
-           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,30);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,maxvel);
            control_info.linear_velocity = 0;
            if(fabs(robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)<1.0){
                requestKick srv;
@@ -277,7 +277,7 @@ void Behavior::doWork()
        case aDRIBBLEBALL: {
            if(USE_PATH)
                dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
-           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,30);
+           goToPosition2(robot_info_copy, ai_info_copy, control_config_copy,path,maxvel);
            control_info.dribbler_on = true;
        } break;
 
