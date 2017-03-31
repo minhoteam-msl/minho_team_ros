@@ -39,11 +39,12 @@ int main(int argc, char **argv)
 	ros::NodeHandle localization_node;
 	bool use_camera = true;
 	QString mode = QString::fromLocal8Bit(argv[1]);
-	if(argc>2 && mode=="-static"){
+	if(argc>=2 && mode=="-static"){
 	   ROS_WARN("Image acquisition set to static image.");
 	   use_camera = false;
 		 //side = atoi(argv[2]);
 	} else ROS_WARN("Image acquisition set to GigE Camera.");
+	
 	side = 0;
 	bool correct_initialization = true;
 	int robot_id = 1;

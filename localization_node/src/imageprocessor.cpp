@@ -21,11 +21,11 @@ ImageProcessor::ImageProcessor(int rob_id, bool use_camera, bool *init_success)
     } else ROS_INFO("Reading information for %s.",agent.toStdString().c_str());
 
     // Assign mask image
-    mask = imread(maskPath.toStdString());
+    /*mask = imread(maskPath.toStdString());
     if(mask.empty()){
         ROS_ERROR("Error Reading %s.",MASKFILENAME);
         (*init_success) = false; return;
-    }else ROS_INFO("%s Ready.", MASKFILENAME);
+    }else ROS_INFO("%s Ready.", MASKFILENAME);*/
 
     // Read color segmentation Look Up Table
     if(!readLookUpTable()){ // Read and Initialize Look Up Table
@@ -92,13 +92,29 @@ bool ImageProcessor::initWorldMapping()
     QString pixel_distances = in.readLine();
     QString line_length = in.readLine();
     QString filter_li = in.readLine();
+    QString mask_cont = in.readLine();
     max_distance = max_distance.right(max_distance.size()-max_distance.indexOf('=')-1);
     step = step.right(step.size()-step.indexOf('=')-1);
     pixel_distances = pixel_distances.right(pixel_distances.size()-pixel_distances.indexOf('=')-1);
     line_length = line_length.right(line_length.size()-line_length.indexOf('=')-1);
     filter_li = filter_li.right(filter_li.size()-filter_li.indexOf('=')-1);
-
-
+    mask_cont = mask_cont.right(mask_cont.size()-mask_cont.indexOf('=')-1);
+    vector<position> contour; contour.clear();
+    QStringList points = mask_cont.split(",");
+    QStringList point; QString xcoord, ycoord;
+    position contourpt;
+    mirrorConf.mask_contour.clear();
+    
+    for(int i=0;i<points.size();i++){
+        point = points[i].split(";");
+        xcoord = point[0].right(point[0].size()-1);
+        ycoord = point[1].left(point[1].size()-1);
+        contourpt.x = xcoord.toInt();
+        contourpt.y = ycoord.toInt();
+        mirrorConf.mask_contour.push_back(contourpt);
+    }
+    
+    
     mirrorConf.max_distance = max_distance.toFloat();
     mirrorConf.step = step.toFloat();
     mirrorConf.filter_lines = filter_li.toInt();
@@ -462,9 +478,22 @@ void ImageProcessor::generateMirrorConfiguration()
          distLookUpTable[j].push_back(Point3d(dist,angulo,weight));
      }
    }
+   
+   // create mask image
+   mask = Mat(480,480,CV_8UC3,Scalar(0,0,0));
+   vector<Point> maskContourPoints; maskContourPoints.clear();
+   for(int i=0;i<mirrorConf.mask_contour.size();i++){
+      maskContourPoints.push_back(Point((int)mirrorConf.mask_contour[i].x,
+      (int)mirrorConf.mask_contour[i].y));
+   }
+   const cv::Point *pts = (const cv::Point*) Mat(maskContourPoints).data;
+   int npts = Mat(maskContourPoints).rows;
+
+   fillPoly(mask, &pts,&npts, 1, Scalar(0,0,255));
+   imwrite(maskPath.toStdString(),mask);
 }
 
-void ImageProcessor::updateDists(double max, double step,int line_filter, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length)
+void ImageProcessor::updateDists(double max, double step,int line_filter, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length,mirrorConfig msg)
 {
    distReal.clear(); distPix.clear();
    for(float dist=step;dist<=max;dist+=step) distReal.push_back(dist);
@@ -476,6 +505,9 @@ void ImageProcessor::updateDists(double max, double step,int line_filter, vector
    mirrorConf.lines_length = line_length;
    mirrorConf.step = step;
    mirrorConf.filter_lines = line_filter;
+   
+   // update mask
+   mirrorConf.mask_contour = msg.mask_contour;
 }
 
 // Paints a pixel accordingly to its classifier
@@ -822,6 +854,14 @@ bool ImageProcessor::writeMirrorConfig()
     in<<"STEP="<<mirrorConf.step<<"\r\n";
     QString message = QString("#DONT CHANGE THE ORDER OF THE CONFIGURATIONS");
     QString dists = "", length = "";
+    
+    QString maskpts = "MASK_CONTOUR=";
+    for(int i=0;i<mirrorConf.mask_contour.size();i++){
+        maskpts += "("+QString::number((int)mirrorConf.mask_contour[i].x)+";"+QString::number((int)mirrorConf.mask_contour[i].y)+"),";
+    } 
+    maskpts = maskpts.left(maskpts.length() - 1);
+    
+    
     if(mirrorConf.pixel_distances.size() == mirrorConf.lines_length.size()){
       for(unsigned int i=0;i<mirrorConf.pixel_distances.size();i++){
         dists+=QString::number(mirrorConf.pixel_distances[i])+QString(",");
@@ -832,6 +872,7 @@ bool ImageProcessor::writeMirrorConfig()
       in<<"PIXEL_DISTANCES="<<dists<<"\r\n";
       in<<"LINES_LENGTH="<<length<<"\r\n";
       in<<"FILTER_PERCENTAGE="<<mirrorConf.filter_lines<<"\r\n";
+      in<<maskpts << "\r\n";
       in << message;
     }
     else ROS_ERROR("Error!! Sizes not equal on %s!!",MIRRORFILENAME);
@@ -1168,54 +1209,3 @@ void ImageProcessor::setCalibrationTargets(cameraProperty::ConstPtr msg)
   else omniCamera->setLumiTarget(msg->val_a);
 
 }
-
-/*
-// Detects ball position based on ball points or image segmentation
-void ImageProcessor::detectBallPosition()
-{
-    ballCandidates.clear();
-    int size = 60;int cx = 0, cy = 0;
-    int size2 = size/2;
-    Vec3b *colorRow = NULL; uchar *tempRow = NULL;Q_UNUSED(colorRow);
-    int classifier = 0;
-    for(unsigned int centroids = 0; centroids < ballCentroids.size(); centroids++){
-        cx = ballCentroids[centroids].y; cy = ballCentroids[centroids].x;
-        Mat tempCandidate = Mat(size,size,CV_8UC1,Scalar(0));
-        for(int row=-size2+cx;row<size2+cx;row++){
-            colorRow = original.ptr<Vec3b>(row);
-            tempRow = tempCandidate.ptr<uchar>(row-cx+size2);
-            for(int col=-size2+cy; col<size2+cy;col++){
-                classifier = getClassifier(col,row);
-                if(classifier != UAV_ORANGE_BIT){
-                    tempRow[col-cy+size2] = 255;
-                }
-
-            }
-        }
-
-        //Analyse tempCandidate which was the candidate (binary representation)
-        vector<Mat> contours; Moments moment;
-        double area;
-        Point2f center; float radius;
-        findContours(tempCandidate, contours, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
-        for (unsigned int i = 0; i < contours.size(); i++){
-            if (contourArea(contours[i])>3 && contourArea(contours[i])<2500){
-                moment = moments(contours[i], true);
-                area = moment.m00;
-                Rect rBound = boundingRect(contours[i]); // calculate min enclosing circle and rectangle
-                minEnclosingCircle((Mat)contours[i], center, radius);
-
-                double wh = fabs(1 - ((double)rBound.width / rBound.height)); // calculate circle ratios
-                double pi = fabs(1 - (fabs(area)) / (CV_PI * pow(radius, 2)));
-                if (wh<=0.6 && pi<=0.6){
-                    Point cc = center;
-                    cc.x += ballCentroids[centroids].x-size2;
-                    cc.y += ballCentroids[centroids].y-size2;
-                    ballCandidates.push_back(Point3d(cc.x,cc.y,radius));
-                    circle(original,cc,radius,Scalar(255,255,0),2);
-                }
-            }
-        }
-    }
-}
-*/

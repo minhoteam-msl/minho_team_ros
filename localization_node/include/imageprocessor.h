@@ -15,6 +15,7 @@
 #include "minho_team_ros/PID.h"
 #include "minho_team_ros/ROI.h"
 #include "minho_team_ros/worldConfig.h"
+#include "minho_team_ros/position.h"
 #include <iostream>
 #include <vector>
 #include "Blob.h"
@@ -30,6 +31,7 @@ using minho_team_ros::cameraProperty;
 using minho_team_ros::PID;
 using minho_team_ros::ROI;
 using minho_team_ros::worldConfig;
+using minho_team_ros::position;
 
 class ImageProcessor
 {
@@ -87,7 +89,7 @@ public:
    void generateMirrorConfiguration();
    bool writeMirrorConfig();
    bool writeImageConfig();
-   void updateDists(double max, double step,int line_filter, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length);
+   void updateDists(double max, double step,int line_filter, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length, mirrorConfig msg);
    mirrorConfig getMirrorConfAsMsg();
    inline double getMaxDistance() { return mirrorConf.max_distance; }
    visionHSVConfig getVisionConfAsMsg();
