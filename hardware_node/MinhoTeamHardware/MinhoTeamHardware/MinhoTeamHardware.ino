@@ -1,3 +1,4 @@
+#define USB_CON
 #include <Omni3MD.h>
 // ##### INCLUDES #####
 // ####################
@@ -278,6 +279,7 @@ void setup() {
   Timer1.stop();
 
   Serial.begin(57600);
+  while(!Serial){delay(500);}
   Serial.flush();
   Serial1.begin(9600);
   Serial1.flush();
@@ -364,10 +366,10 @@ void loop() {
   // Publish Data
   if(millis()-dataSendTimeStamp>dataSendLimitTime){
     int ball = analogRead(BALLPIN);
-    /*char ballstr[10];
+    char ballstr[10];
     sprintf(ballstr,"sensor %d",ball);
-    nh.logwarn(ballstr);*/
-    if(ball<310) hwinfo_msg.ball_sensor = 1;
+    nh.logwarn(ballstr);
+    if(ball<285) hwinfo_msg.ball_sensor = 1;
     else hwinfo_msg.ball_sensor = 0;
     publishData();
     dataSendTimeStamp = millis();
