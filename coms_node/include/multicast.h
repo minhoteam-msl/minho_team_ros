@@ -20,11 +20,13 @@
  * along with this package.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define MULTICAST_IP	"224.16.32.111"
+#define MULTICAST_IP	"224.16.32.49" // default one
 #define MULTICAST_PORT	64646
 #define TTL				64
 #include "ros/ros.h"
 #define RECEIVE_OUR_DATA 1
+#include <iostream>
+#include <fstream>
 
 //	*************************
 //  Open Socket

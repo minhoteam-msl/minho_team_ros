@@ -46,7 +46,7 @@ void RoleSupStriker::determineAction()
 void RoleSupStriker::computeAction(aiInfo *ai)
 {
    static int stab_counter = 0;
-   mBsInfo.posxside = !mBsInfo.posxside; // Temporary, to test against running goalkeeper
+   //mBsInfo.posxside = !mBsInfo.posxside; // Temporary, to test against running goalkeeper
    determineAction();
    (*ai) = aiInfo(); 
    ai->role = mRole;

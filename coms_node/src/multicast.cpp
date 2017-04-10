@@ -105,8 +105,27 @@ int openSocket(std::string interface, std::string *ip_base, uint8_t *agent_id,in
    struct ip_mreq mreq;
 	int multiSocket;
 	int opt;
-	char address[20];
-
+    char address[20];
+	
+   std::string mcastIP = MULTICAST_IP; // default value
+   // red iptable.cfg from common
+   std::string ipFilePath = getenv("HOME");
+   std::string line = "";
+   ipFilePath += "/Common/iptable.cfg";
+   std::ifstream file; file.open(ipFilePath);
+   if(file.is_open()){
+      while (getline(file,line)){
+          if(line.size()>0 && line[0]!='#'){
+             if(line.find("MC")!=std::string::npos){
+                mcastIP = line.substr(0,line.find(" "));
+                ROS_INFO("Found Multicast IP config at iptable.cfg - %s",mcastIP.c_str());   
+             }
+          }
+      }
+      file.close();
+   } else ROS_ERROR("Failed to read iptable.cfg");
+   
+   
    bzero(&multicastAddress, sizeof(struct sockaddr_in));
    multicastAddress.sin_family = AF_INET;
    multicastAddress.sin_port = htons(MULTICAST_PORT);
@@ -115,7 +134,7 @@ int openSocket(std::string interface, std::string *ip_base, uint8_t *agent_id,in
 	bzero(&destAddress, sizeof(struct sockaddr_in));
 	destAddress.sin_family = AF_INET;
 	destAddress.sin_port = htons(MULTICAST_PORT);
-	destAddress.sin_addr.s_addr = inet_addr(MULTICAST_IP);
+	destAddress.sin_addr.s_addr = inet_addr(mcastIP.c_str());
 
 	if((multiSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
 	{
@@ -147,7 +166,7 @@ int openSocket(std::string interface, std::string *ip_base, uint8_t *agent_id,in
     }
  
 	memset((void *) &mreq, 0, sizeof(mreq));
-	mreq.imr_multiaddr.s_addr = inet_addr(MULTICAST_IP);
+	mreq.imr_multiaddr.s_addr = inet_addr(mcastIP.c_str());
 	mreq.imr_interface.s_addr = inet_addr(address);
 
 	if((setsockopt(multiSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq))) == -1)

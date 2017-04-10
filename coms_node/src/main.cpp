@@ -459,9 +459,10 @@ void* sendRobotInformationUpdate(void *data)
       
       begin = end;
       clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-      printf ("\r Send Freq %f Hz",
-            1.0/((end.tv_nsec - begin.tv_nsec) / 1000000000.0 +
-            (end.tv_sec  - begin.tv_sec)));
+      float freq = 1.0/((end.tv_nsec - begin.tv_nsec) / 1000000000.0 +
+            (end.tv_sec  - begin.tv_sec));
+      if(freq<20.0 || freq>35.0) ROS_ERROR("Sync Problem %.2fHz",freq);
+      
       if (sendData(socket_fd,packet,packet_size) <= 0){
          error("Failed to send a packet.");
       } 

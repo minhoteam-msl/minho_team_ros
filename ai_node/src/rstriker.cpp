@@ -54,7 +54,7 @@ void RoleStriker::determineAction()
 
 void RoleStriker::computeAction(aiInfo *ai)
 {
-   mBsInfo.posxside = !mBsInfo.posxside; // Temporary, to test against running goalkeeper
+   //mBsInfo.posxside = !mBsInfo.posxside; // Temporary, to test against running goalkeeper
    determineAction();
    (*ai) = aiInfo(); 
    ai->role = mRole;
