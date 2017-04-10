@@ -40,6 +40,7 @@
 #include "minho_team_ros/pathData.h" // CALLING SERVICE
 #include "minho_team_ros/position.h"
 #include "minho_team_ros/requestControlConfig.h"
+#include "minho_team_ros/obstacle.h"
 //include CGAL for Voronoi Diagram
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
@@ -80,6 +81,7 @@ using minho_team_ros::position;
 using minho_team_ros::requestControlConfig;
 using minho_team_ros::segment;
 using minho_team_ros::pathData;
+using minho_team_ros::obstacle;
 
 
 //typedef CGAL

@@ -21,21 +21,23 @@
 class Motion
 {
 public:
-    Motion();
-    int angularVelocity(int target_angle, robotInfo robot, controlConfig control);
-    int movementDirection(robotInfo robot, int target_angle);
+    Motion(Fundamental *fund);
+    int angularVelocity_PID(float robot_angle, float reference_angle, controlConfig cconfig);
+    int movementDirection(int robot_angle, int reference_angle);
 
-    int linearVelocity_slope(float distance_robotTotarget, controlConfig control, bool new_target);
+    int linearVelocity(controlConfig cconfig, const vector<Point>& path, int ai_action, float percent_vel);
 
 
 private:
-    //PID Angular Velocity
-    float previous_error, integral;
-    struct timeval startTimerPID, stopTimerPID;
-    //Linear Velocity Slope
-    float acceleration_distance, deceleration_distance;
-    float acceleration_distance_aux, distance_robotTotarget_aux;
-    float acceleration_slope, deceleration_slope;
+    int linearVelocity_PID(float error, controlConfig cconfig, int max_linear_velocity);
+
+    Fundamental *fundamental;
+    //PID angular velocity
+    float rot_previous_error, rot_integral;
+    struct timeval rot_start_timer, rot_stop_timer;
+    //PID linear velocity
+    float lin_previous_error, lin_integral;
+    struct timeval lin_start_timer, lin_stop_timer;
 
 };
 

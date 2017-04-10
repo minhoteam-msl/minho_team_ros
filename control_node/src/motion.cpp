@@ -1,62 +1,172 @@
 #include "motion.h"
 
-Motion::Motion()
+Motion::Motion(Fundamental *fund)
 {
-    previous_error = 0.0; integral = 0.0;
-    acceleration_distance = 0.0; deceleration_distance = 0.0;
-    acceleration_distance_aux = 0.0; distance_robotTotarget_aux = 0.0;
-    acceleration_slope = 0.0, deceleration_slope = 0.0;
+    fundamental = fund;
+
+    rot_previous_error = 0.0; rot_integral = 0.0;
+    lin_previous_error = 0.0; lin_integral = 0.0;
 }
 
 //
-int Motion::angularVelocity(int target_angle, robotInfo robot, controlConfig control)
+int Motion::angularVelocity_PID(float robot_angle, float reference_angle, controlConfig cconfig)
 {
     int angular_velocity = 0;
 
-    int robot_angle = (int)robot.robot_pose.z;
+    float error = robot_angle - reference_angle;
 
-    float error = (float)(robot_angle - target_angle);
+    if(error>180.0)
+        error -= 360.0;
 
-    if(error>180)
-        error -= 360;
-
-    gettimeofday(&stopTimerPID,NULL);
-    double dt = (stopTimerPID.tv_usec - startTimerPID.tv_usec)/1000000.0;
+    gettimeofday(&rot_stop_timer,NULL);
+    float dt = (rot_stop_timer.tv_usec - rot_start_timer.tv_usec)/1000000.0;
     if(dt<0.0)
         dt = 0.03333;
 
-    float proportionalAction = control.P * error;
+    float proportionalAction = cconfig.Kp_rot * error;
 
-    if((error*previous_error)<=0)
-        integral = 0.0;
+    if((error*rot_previous_error)<=0)
+        rot_integral = 0.0;
 
-    float integralAction = control.I * integral;
+    float integralAction = cconfig.Ki_rot * rot_integral;
 
-    float derivative = (error-previous_error)/dt;
-    float derivativeAction = control.D * derivative;
+    float derivative = (error-rot_previous_error)/dt;
+    float derivativeAction = cconfig.Kd_rot * derivative;
 
     angular_velocity = (int)(proportionalAction + integralAction + derivativeAction);
 
-    if(angular_velocity > control.max_angular_velocity)
-        angular_velocity = control.max_angular_velocity;
-    else if(angular_velocity < -control.max_angular_velocity)
-        angular_velocity = -control.max_angular_velocity;
+    if(angular_velocity > cconfig.max_angular_velocity)
+        angular_velocity = cconfig.max_angular_velocity;
+    else if(angular_velocity < -(int)cconfig.max_angular_velocity)
+        angular_velocity = -(int)cconfig.max_angular_velocity;
     else
-        integral += error * dt;
+        rot_integral += error * dt;
 
-    previous_error = error;
+    rot_previous_error = error;
 
-    //ROS_INFO("proport: %f  integ: %f  deriv: %f\n",proportionalAction,integralAction, derivativeAction);
-
-    gettimeofday(&startTimerPID,NULL);
+    gettimeofday(&rot_start_timer,NULL);
 
     return angular_velocity;
 }
 
 //
-int Motion::movementDirection(robotInfo robot, int target_angle)
+int Motion::linearVelocity_PID(float error, controlConfig cconfig, int max_linear_velocity)
 {
-    int movement_direction = 360 - (int)robot.robot_pose.z + target_angle;
+    //cout<<"Kp_lin: "<<cconfig.Kp_lin<<" Ki_lin: "<<cconfig.Ki_lin<<" Kd_lin: "<<cconfig.Kd_lin<<endl;
+    //cout<<"max_linear_velocity: "<<max_linear_velocity<<endl;
+    //cout<<"error: "<<error<<endl;
+
+    int linear_velocity = 0;
+
+    gettimeofday(&lin_stop_timer,NULL);
+    float dt = (lin_stop_timer.tv_usec - lin_start_timer.tv_usec)/1000000.0;
+    if(dt<0.0)
+        dt = 0.03333;
+
+    float proportionalAction = cconfig.Kp_lin * error;
+
+    float integralAction = cconfig.Ki_lin * lin_integral;
+
+    float derivative = (error-lin_previous_error)/dt;
+    float derivativeAction = cconfig.Kd_lin * derivative;
+
+    linear_velocity = (int)(proportionalAction + integralAction + derivativeAction);
+
+    if(linear_velocity > max_linear_velocity)
+        linear_velocity = max_linear_velocity;
+    else
+        lin_integral += error * dt;
+
+    lin_previous_error = error;
+
+    gettimeofday(&lin_start_timer,NULL);
+
+    return linear_velocity;
+}
+
+//
+int Motion::linearVelocity(controlConfig cconfig, const vector<Point>& path, int ai_action, float percent_vel)
+{
+    int linear_velocity = 0;
+    float dist_seg = 0.0;
+    float dist_total = 0.0;
+    float error = 0.0;
+    float dist_robot_ball = 0.0;
+    int max_linear_velocity = 0;
+
+    if(path.size() > 1) {
+
+        for(int i=0; i<(int)path.size()-1; i++) {
+
+            dist_seg = fundamental->distance(path.at(i).x(), path.at(i).y(), path.at(i+1).x(), path.at(i+1).y());
+
+            dist_total += dist_seg;
+            //cout<<"seg: "<<i<<" : "<<i+1<<"  dist_seg_path: "<<dist_seg<<endl;
+        }
+        //cout<<endl;
+        //cout<<"dist_total: "<<dist_total<<endl<<endl;
+    }
+
+    if(ai_action==aENGAGEBALL)
+        dist_robot_ball = 0.25;
+
+    error = dist_total-dist_robot_ball;
+    if(error<0.0)
+        error = 0.0;
+
+    max_linear_velocity = cconfig.max_linear_velocity * percent_vel;
+
+    linear_velocity = linearVelocity_PID(error, cconfig, max_linear_velocity);
+
+    //cout<<"lin_vel: "<<linear_velocity<<endl<<endl;
+
+    return linear_velocity;
+}
+
+//
+/*
+int Motion::linearVelocity(robotInfo robot, controlConfig cconfig, const vector<Point>& path, int& movement_direction)
+{
+    int linear_velocity = 0;
+    float dist_seg = 0.0;
+    float dist_total = 0.0;
+    float error = 0.0;
+    int reference_angle = 0;
+
+    if(path.size() > 1) {
+
+        reference_angle = fundamental->cartesian2polar_angleDegNormalize(path.at(0).x(), path.at(0).y(),
+                                                                      path.at(1).x(), path.at(1).y());
+        movement_direction = movementDirection((int)robot.robot_pose.z, reference_angle);
+
+        for(int i=0; i<(int)path.size()-1; i++) {
+
+            dist_seg = fundamental->distance(path.at(i).x(), path.at(i).y(), path.at(i+1).x(), path.at(i+1).y());
+
+            dist_total += dist_seg;
+            //cout<<"seg: "<<i<<" : "<<i+1<<"  dist_seg_path: "<<dist_seg<<endl;
+        }
+        //cout<<endl;
+        //cout<<"dist_total: "<<dist_total<<endl<<endl;
+
+    }
+
+    error = dist_total-0.25;
+    if(error<0.0)
+        error = 0.0;
+
+    linear_velocity = linearVelocity_PID(error, cconfig);
+
+    //cout<<"lin_vel: "<<linear_velocity<<endl<<endl;
+
+    return linear_velocity;
+}
+*/
+
+//
+int Motion::movementDirection(int robot_angle, int reference_angle)
+{
+    int movement_direction = 360 - robot_angle + reference_angle;
 
     if(movement_direction >= 360)
         movement_direction -= 360;
@@ -64,37 +174,6 @@ int Motion::movementDirection(robotInfo robot, int target_angle)
     return movement_direction;
 }
 
-//
-/*
- * (velocity)
- *   |       ___________________
- *   |      /                   \
- *   |     /                     \
- *   |    /                       \
- *   |_ _/_ _ _ _ _ _ _ _ _ _ _ _ _\_ _ _ _(distance)
- *
- */
-//
-int Motion::linearVelocity_slope(float distance_robotTotarget, controlConfig control, bool new_target)
-{
-    if(new_target) {
-        ROS_INFO("dist: %f cacc: %f\n",distance_robotTotarget,control.acceleration);
-        acceleration_distance = control.acceleration * distance_robotTotarget;
-        deceleration_distance = control.deceleration * distance_robotTotarget;
-        acceleration_slope = ((float)control.max_linear_velocity)/acceleration_distance;
-        deceleration_slope = ((float)control.max_linear_velocity)/deceleration_distance;
-        acceleration_distance_aux = distance_robotTotarget - acceleration_distance;
-        distance_robotTotarget_aux = distance_robotTotarget;
-        return 10;
-    }
-
-    if(distance_robotTotarget>deceleration_distance && distance_robotTotarget<acceleration_distance_aux)
-        return control.max_linear_velocity;
-    else if(distance_robotTotarget>acceleration_distance_aux)
-        return (int)(-acceleration_slope * (distance_robotTotarget - distance_robotTotarget_aux));
-    else
-        return (int)(deceleration_slope * distance_robotTotarget);
-}
 
 
 //tanh((x-10)*(1/2))*tanh((-x-0)*(1/2))*80

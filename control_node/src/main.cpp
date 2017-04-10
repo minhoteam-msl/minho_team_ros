@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 
     if(!mode_real) {
       ROS_INFO("Running control_node for Simulated Robot %d",robot_id);
-      node_name << (int)robot_id << std::time(0); topic_base_name << "minho_gazebo_robot" << robot_id;
+      node_name << robot_id; topic_base_name << "minho_gazebo_robot" << robot_id;
     }
 
     //Initialize ROS
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     aptFundamental = new Fundamental();
     aptVoronoi = new Voronoi(aptFundamental);
     aptDijkstraShortestPath = new DijkstraShortestPath(aptFundamental, aptVoronoi);
-    aptMotion = new Motion();
+    aptMotion = new Motion(aptFundamental);
     aptBehavior = new Behavior(topic_base_name.str(), robot_id, mode_real, &control_node, aptFundamental, aptVoronoi, aptDijkstraShortestPath, aptMotion);
     ROS_WARN("MinhoTeam control_node started running on ROS.");
     ros::AsyncSpinner spinner(2);

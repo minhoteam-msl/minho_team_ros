@@ -1,7 +1,5 @@
 #include "dijkstrashortestpath.h"
 
-#define DEBUG 0
-
 DijkstraShortestPath::DijkstraShortestPath(Fundamental *fund, Voronoi *vor)
 {
     voronoi = vor;
@@ -24,16 +22,14 @@ void DijkstraShortestPath::calculate_Radius_of_Obstacles(robotInfo robot, Point 
     Obstacles_Circle obst_circle;
     float source_dist_obst, target_dist_obst;
     float radius;
-    bool source_cond, target_cond;
 
-    source_cond = target_cond = true;
     source_in_radius = target_in_radius = false;
 
 
     for(unsigned int i=0; i<robot.obstacles.size(); i++)
     {
         if(robot.obstacles.at(i).isenemy) {
-            radius = 2.0;
+            radius = 1.0;
 
         }else {
             radius = 0.6; //radius:60cm->0.6
@@ -42,19 +38,20 @@ void DijkstraShortestPath::calculate_Radius_of_Obstacles(robotInfo robot, Point 
         source_dist_obst = fundamental->distance(robot.robot_pose.x,robot.robot_pose.y, robot.obstacles.at(i).x,robot.obstacles.at(i).y);
         target_dist_obst = fundamental->distance(target_point.x(),target_point.y(), robot.obstacles.at(i).x,robot.obstacles.at(i).y);
 
-        if(source_dist_obst <= radius && source_cond) {
-            source_in_radius = true;
-            source_cond = false;
-            radius = source_dist_obst-0.1;
+        if(target_dist_obst <= radius) {
+            radius = 0.6;
+            if(target_dist_obst <= radius)
+                target_in_radius = true;
+        }
+
+        if(source_dist_obst <= radius) {
+            source_in_radius = true;     
+            //radius = source_dist_obst-0.1;
             //if(radius<0.6)
                 //radius=0.6;
         }
 
-        if(target_dist_obst <= radius && target_cond) {
-            target_in_radius = true;
-            target_cond = false;
-            //radius = target_dist_obst-0.1;
-        }
+
 
 
         obst_circle.circle_center = Point(robot.obstacles.at(i).x,robot.obstacles.at(i).y);
@@ -450,6 +447,23 @@ vector<position> DijkstraShortestPath::get_DijkstraPath_Visualizer()
 }
 
 //
+/*void DijkstraShortestPath::subTarget_subSource(const vector<Point>& path_points, bool source_in_radius, bool target_in_radius)
+{
+    if(path_points.size() > 1) {
+
+
+        if(source_in_radius) {
+
+        }
+
+        if(target_in_radius) {
+
+        }
+
+    }
+}*/
+
+//
 void DijkstraShortestPath::dijkstraPath_with_ObstaclesCircle(const vector<Point>& path_points, vector<double>& dijkstra_path_obst_circle)
 {
     int i;
@@ -524,7 +538,7 @@ vector<position> DijkstraShortestPath::get_DijkstraPath_with_ObstaclesCircle_Vis
  * state           - If state  >0: warning | =0: ok | <0: error
  */
 //
-void DijkstraShortestPath::smoothPath(vector<double>& path_points, vector<Point>& curve_points)
+void DijkstraShortestPath::smoothPath(vector<double>& path_points, vector<Point>& curve_points)    //ver melhor esta função!!!!!!!!!!!!!!!!!!
 {
     int number = path_points.size()/2;
 
@@ -573,7 +587,7 @@ void DijkstraShortestPath::smoothPath(vector<double>& path_points, vector<Point>
                 s1227(curve, 0, parameter_value, &leftknot, &curve_samples[2*i], &state);
 
                 if(state!=0)
-                    if(DEBUG) cout<<"s1227 returned status: "<<state<<endl;
+                    cout<<"s1227 returned status: "<<state<<endl;
             }
 
             for(int i=0; i<curve_samples.size(); i+=2) {
@@ -612,8 +626,8 @@ void DijkstraShortestPath::smoothPath_with_ObstaclesCircle(vector<Point>& curve_
     float dist0, dist1;
     float point_x, point_y;
     float angle0, angle1, angle_first, angle_second, angle_interval, angle_step;
-    int points_number_aux;
-    int points_number = 8;  //este valor pode ser calculado pelo perimetro
+    int intervals_number_aux;
+    int intervals_number = 12;  //este valor pode ser calculado pelo perimetro
     position pos;
 
     if(curve_points.size() > 1) {
@@ -623,7 +637,8 @@ void DijkstraShortestPath::smoothPath_with_ObstaclesCircle(vector<Point>& curve_
             for(int j=0; j<(int)curve_points.size()-1; j++) {
 
                 intersect = fundamental->intersect_Segment_and_Circle(Segment(curve_points.at(j),curve_points.at(j+1)),
-                                                                      obstacles_circle.at(i).circle_center, obstacles_circle.at(i).radius, points);
+                                                                      obstacles_circle.at(i).circle_center,
+                                                                      obstacles_circle.at(i).radius + 0.1, points);
 
                 for(int k=0; k<points.size(); k++)
                     points_intersect.push_back(points.at(k));
@@ -681,15 +696,10 @@ void DijkstraShortestPath::smoothPath_with_ObstaclesCircle(vector<Point>& curve_
                                     else if(angle_interval < -M_PI)
                                         angle_interval += (2.0 * M_PI);
 
-                                    angle_step = angle_interval/(float)points_number;
+                                    angle_step = angle_interval/(float)intervals_number;
 
-                                    points_number_aux = 0;
-                                    while(points_number_aux <= points_number) {
-
-                                        point_x = obstacles_circle.at(i).circle_center.x() + (obstacles_circle.at(i).radius + 0.1) * cos(angle_first);
-                                        point_y = obstacles_circle.at(i).circle_center.y() + (obstacles_circle.at(i).radius + 0.1) * sin(angle_first);
-
-                                        curve_points_aux.push_back(Point(point_x,point_y));
+                                    intervals_number_aux = 1;
+                                    while(intervals_number_aux < intervals_number) {
 
                                         angle_first += angle_step;
 
@@ -698,7 +708,12 @@ void DijkstraShortestPath::smoothPath_with_ObstaclesCircle(vector<Point>& curve_
                                         else if(angle_first < -M_PI)
                                             angle_first += (2.0 * M_PI);
 
-                                        points_number_aux++;
+                                        point_x = obstacles_circle.at(i).circle_center.x() + (obstacles_circle.at(i).radius + 0.1) * cos(angle_first);
+                                        point_y = obstacles_circle.at(i).circle_center.y() + (obstacles_circle.at(i).radius + 0.1) * sin(angle_first);
+
+                                        curve_points_aux.push_back(Point(point_x,point_y));
+
+                                        intervals_number_aux++;
                                     }
                                 }
 
@@ -742,10 +757,10 @@ void DijkstraShortestPath::smoothPath_with_ObstaclesCircle(vector<Point>& curve_
                         else if(angle_interval < -M_PI)
                             angle_interval += (2.0 * M_PI);
 
-                        angle_step = angle_interval/(float)points_number;
+                        angle_step = angle_interval/(float)intervals_number;
 
-                        points_number_aux = 0;
-                        while(points_number_aux <= points_number) {
+                        intervals_number_aux = 0;
+                        while(intervals_number_aux <= intervals_number) {
 
                             point_x = obstacles_circle.at(i).circle_center.x() + (obstacles_circle.at(i).radius + 0.1) * cos(angle_first);
                             point_y = obstacles_circle.at(i).circle_center.y() + (obstacles_circle.at(i).radius + 0.1) * sin(angle_first);
@@ -759,7 +774,7 @@ void DijkstraShortestPath::smoothPath_with_ObstaclesCircle(vector<Point>& curve_
                             else if(angle_first < -M_PI)
                                 angle_first += (2.0 * M_PI);
 
-                            points_number_aux++;
+                            intervals_number_aux++;
                         }
                     }
                     points_intersect.clear();
@@ -848,16 +863,99 @@ void DijkstraShortestPath::shortest_SmoothPath_with_ObstaclesCircle(const vector
     }
 }
 
-//end path
+//
 void DijkstraShortestPath::insert_Path_Visualizer(position pos)
 {
     path_visualizer.push_back(pos);
 }
 
-//end path
+//
 vector<position> DijkstraShortestPath::get_Path_Visualizer()
 {
     return path_visualizer;
+}
+
+//
+/*
+ * num_points      - number of control points
+ * order           - order of curve (degree + 1)
+ *
+ * parameter_value - The parameter value at which to compute position and derivatives
+ * state           - If state  >0: warning | =0: ok | <0: error
+ */
+//
+void DijkstraShortestPath::pathInterpolation(const vector<Point>& path_points, vector<Point>& curve_points)   //ver melhor esta função!!!!!!!!!!!!!!!!!!
+{
+    vector<double> path_points_aux;
+    int num_points;
+
+    for(unsigned int i=0; i<path_points.size(); i++) {
+        path_points_aux.push_back(path_points.at(i).x());
+        path_points_aux.push_back(path_points.at(i).y());
+    }
+
+    num_points = path_points_aux.size()/2;
+
+    if(num_points > 2) {
+
+        vector<int> type;
+        int order = 3;  //ou 4!!!! config!!!!
+        double cstartpar = 0.0;
+        double cendpar;
+        SISLCurve* curve = NULL;
+        double* gpar = NULL;
+        int jnbpar = 0;
+        int jstat = 0;
+
+        for(int i=0; i<num_points; i++)
+            type.push_back(1);
+
+        s1356(&path_points_aux[0], num_points, 2, &type[0], 0, 0, 1, order, cstartpar, &cendpar, &curve, &gpar, &jnbpar, &jstat);
+
+        if(!curve) {
+            throw runtime_error("Error occured while generating curve.");
+        }else {
+            int number_samples = 40;  // !!!!!
+            int leftknot;
+            vector<double> curve_samples(2*number_samples);
+            int state;
+            position pos;
+
+            for(int i=0; i<number_samples; i++) {
+
+                double parameter_value = curve->et[curve->ik-1]+(curve->et[curve->in]-curve->et[curve->ik-1])*i/((double)number_samples-1.0);
+                //cout<<"parvalue: "<<parameter_value<<endl;
+
+                s1227(curve, 0, parameter_value, &leftknot, &curve_samples[2*i], &state);
+
+                if(state!=0)
+                    cout<<"s1227 returned status: "<<state<<endl;
+            }
+
+            for(int i=0; i<curve_samples.size(); i+=2) {
+                curve_points.push_back(Point(curve_samples.at(i),curve_samples.at(i+1)));
+                pos.x = curve_samples.at(i);
+                pos.y = curve_samples.at(i+1);
+                insert_PathInterpolation_Visualizer(pos);
+            }
+
+            freeCurve(curve);
+        }
+    }else {
+        //curve_points.;
+    }
+}
+
+//
+void DijkstraShortestPath::insert_PathInterpolation_Visualizer(position pos)
+{
+    path_interpolation_visualizer.push_back(pos);
+}
+
+//
+vector<position> DijkstraShortestPath::get_PathInterpolation_Visualizer()
+{
+    return path_interpolation_visualizer;
 }
 
 //
@@ -869,6 +967,7 @@ void DijkstraShortestPath::Test1(robotInfo robot, Point target_point, vector<Poi
     vector<Point> dijkstra_path;
     vector<double> dijkstra_path_obst_circle;
     vector<Point> smooth_path;
+    vector<Point> shortest_path;
     bool has_path, direct_path, inserted_source_target;
     bool source_in_radius, target_in_radius;
 
@@ -893,16 +992,19 @@ void DijkstraShortestPath::Test1(robotInfo robot, Point target_point, vector<Poi
             has_path = calculate_DijkstraPath(source_point, target_point, dijkstra_path);
 
             if(has_path) {
+                //if(source_in_radius || target_in_radius)
+                    //subtarget
                 dijkstraPath_with_ObstaclesCircle(dijkstra_path, dijkstra_path_obst_circle);
                 smoothPath(dijkstra_path_obst_circle, smooth_path);
                 smoothPath_with_ObstaclesCircle(smooth_path);
-                shortest_SmoothPath_with_ObstaclesCircle(smooth_path, path);
+                shortest_SmoothPath_with_ObstaclesCircle(smooth_path, shortest_path);
+                pathInterpolation(shortest_path, path);
             }else {
-                if(DEBUG)cout<<"not has path"<<endl;
+                cout<<"not has path"<<endl;
 
             }
         }else { //não sei se é necessário este else
-           if(DEBUG) cout<<"do not inserted source and target"<<endl;
+            cout<<"do not inserted source and target"<<endl;
 
         }
     }
@@ -923,6 +1025,7 @@ void DijkstraShortestPath::clearDijkstraPath()
     smooth_path_visualizer.clear();
     smooth_path_obst_circle_visualizer.clear();
     path_visualizer.clear();
+    path_interpolation_visualizer.clear();
 }
 
 

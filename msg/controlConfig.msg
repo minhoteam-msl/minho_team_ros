@@ -1,8 +1,11 @@
 uint8 max_linear_velocity
 uint8 max_angular_velocity
-float32 P
-float32 I
-float32 D
+float32 Kp_rot
+float32 Ki_rot
+float32 Kd_rot
+float32 Kp_lin
+float32 Ki_lin
+float32 Kd_lin
 float32 acceleration
 float32 deceleration
 bool send_voronoi_seg
@@ -12,4 +15,5 @@ bool send_dijk_path_obst_circle
 bool send_smooth_path
 bool send_smooth_path_obst_circle
 bool send_path
+bool send_path_interpolation
 bool send_obstacles_circle

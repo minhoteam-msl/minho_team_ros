@@ -19,20 +19,16 @@
 #include "voronoi.h"
 #include "dijkstrashortestpath.h"
 #include "motion.h"
-#include "minho_team_ros/obstacle.h"
-
-using minho_team_ros::obstacle;
-
 
 //
-enum ROLE {GOALKEEPER = 0, DEFENSE, SUP_ATTACKER, ATTACKER };
-enum ACTION {STOP = 0, GO_TO_POSITION, KICK_PASS, ENGAGE_BALL, TEST };
+#define USE_PATH 1
 
 
 class Behavior
 {
 public:
-   Behavior(std::string topics_base_name, int rob_id, bool mode_real, ros::NodeHandle *par, Fundamental *fund, Voronoi *vor, DijkstraShortestPath *dijk, Motion *mot);
+   Behavior(std::string topics_base_name, int robot_id, bool mode_real, ros::NodeHandle *par, Fundamental *fund,
+            Voronoi *vor, DijkstraShortestPath *dijk, Motion *mot);
    bool controlConfService(requestControlConfig::Request &req, requestControlConfig::Response &res);
    void robotInfoCallback(const robotInfo::ConstPtr &msg);
    void aiInfoCallback(const aiInfo::ConstPtr &msg);
@@ -45,7 +41,7 @@ private:
    bool readControlParameters();
    bool writeControlParameters();
    void goToPosition1(robotInfo robot, aiInfo ai, controlConfig cconfig);
-   void goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, const vector<Point>& path, int max_vel);
+   void goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, const vector<Point>& path, float percent_vel);
 
    /// \brief pointer to parent ros node
    ros::NodeHandle *parent;
@@ -87,7 +83,6 @@ private:
    QString controlparam_file;
    //
    QElapsedTimer timer_work;
-   
 
 
 };

@@ -82,6 +82,7 @@ public:
     vector<position> get_SmoothPath_Visualizer();
     vector<position> get_SmoothPath_with_ObstaclesCircle_Visualizer();
     vector<position> get_Path_Visualizer();
+    vector<position> get_PathInterpolation_Visualizer();
 
     void Test1(robotInfo robot, Point target_point, vector<Point>& path);
 
@@ -109,6 +110,8 @@ private:
     void insert_SmoothPath_with_ObstaclesCircle_Visualizer(position pos);
     void shortest_SmoothPath_with_ObstaclesCircle(const vector<Point>& curve_points, vector<Point>& shortest_path);
     void insert_Path_Visualizer(position pos);
+    void pathInterpolation(const vector<Point>& path_points, vector<Point>& curve_points);
+    void insert_PathInterpolation_Visualizer(position pos);
 
     Fundamental *fundamental;
     Voronoi *voronoi;
@@ -122,6 +125,7 @@ private:
     vector<position> smooth_path_visualizer;
     vector<position> smooth_path_obst_circle_visualizer;
     vector<position> path_visualizer;
+    vector<position> path_interpolation_visualizer;
 
 };
 
