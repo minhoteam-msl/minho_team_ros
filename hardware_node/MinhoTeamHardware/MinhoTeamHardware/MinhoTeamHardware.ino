@@ -366,9 +366,9 @@ void loop() {
   // Publish Data
   if(millis()-dataSendTimeStamp>dataSendLimitTime){
     int ball = analogRead(BALLPIN);
-    char ballstr[10];
+    /*char ballstr[10];
     sprintf(ballstr,"sensor %d",ball);
-    nh.logwarn(ballstr);
+    nh.logwarn(ballstr);*/
     if(ball<285 && ball>0) hwinfo_msg.ball_sensor = 1;
     else hwinfo_msg.ball_sensor = 0;
     publishData();
