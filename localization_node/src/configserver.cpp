@@ -178,7 +178,6 @@ void ConfigServer::processCamPropertyConfig(const cameraProperty::ConstPtr &msg)
 			props_msg[msg->property_id]=*msg;
 			prop_used = msg->property_id;
 		}
-
 	}
 	emit changedCameraProperties(msg);
 }

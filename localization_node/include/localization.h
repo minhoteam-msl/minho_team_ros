@@ -36,6 +36,7 @@ private:
    QTimer *parentTimer;
    Mat *buffer, processed;
    int requiredTiming;
+   double odometry_verify;
    float time_interval;
 
    //Confserver variables

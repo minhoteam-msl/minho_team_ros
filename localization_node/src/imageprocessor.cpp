@@ -6,7 +6,7 @@ ImageProcessor::ImageProcessor(int rob_id, bool use_camera, bool *init_success)
     // Initialize GigE Camera Driver
     if(use_camera) {
       camera=true;
-      omniCamera = new BlackflyCam(true, rob_id); //OmniVisionCamera Handler
+      omniCamera = new BlackflyCam(false, rob_id); //OmniVisionCamera Handler
       ROS_INFO("Using GigE Camera for image acquisition.");
       acquireImage = &ImageProcessor::getImage;
     } else {
@@ -55,7 +55,7 @@ ImageProcessor::ImageProcessor(int rob_id, bool use_camera, bool *init_success)
             return;
         } else printCameraInfo();
     } else { // Load static image
-      QString path = imgFolderPath+QString("2,50.png");
+      QString path = imgFolderPath+QString("image.png");
       static_image = imread(path.toStdString().c_str());
       if(static_image.empty()){
          ROS_ERROR("Failed to read static image");
@@ -92,19 +92,21 @@ bool ImageProcessor::initWorldMapping()
     QString pixel_distances = in.readLine();
     QString line_length = in.readLine();
     QString filter_li = in.readLine();
+    QString scan_size = in.readLine();
     QString mask_cont = in.readLine();
     max_distance = max_distance.right(max_distance.size()-max_distance.indexOf('=')-1);
     step = step.right(step.size()-step.indexOf('=')-1);
     pixel_distances = pixel_distances.right(pixel_distances.size()-pixel_distances.indexOf('=')-1);
     line_length = line_length.right(line_length.size()-line_length.indexOf('=')-1);
     filter_li = filter_li.right(filter_li.size()-filter_li.indexOf('=')-1);
+    scan_size = scan_size.right(scan_size.size()-scan_size.indexOf('=')-1);
     mask_cont = mask_cont.right(mask_cont.size()-mask_cont.indexOf('=')-1);
     vector<position> contour; contour.clear();
     QStringList points = mask_cont.split(",");
     QStringList point; QString xcoord, ycoord;
     position contourpt;
     mirrorConf.mask_contour.clear();
-    
+
     for(int i=0;i<points.size();i++){
         point = points[i].split(";");
         xcoord = point[0].right(point[0].size()-1);
@@ -113,11 +115,12 @@ bool ImageProcessor::initWorldMapping()
         contourpt.y = ycoord.toInt();
         mirrorConf.mask_contour.push_back(contourpt);
     }
-    
-    
+
+
     mirrorConf.max_distance = max_distance.toFloat();
     mirrorConf.step = step.toFloat();
     mirrorConf.filter_lines = filter_li.toInt();
+    mirrorConf.scanline_length = scan_size.toInt();
     int expected_args = (int)(mirrorConf.max_distance/mirrorConf.step);
     QStringList mappedDists = pixel_distances.split(",");
     QStringList lineLeng = line_length.split(","); // está a ler apenas,falta fazer o resto
@@ -181,6 +184,8 @@ bool ImageProcessor::initializeBasics(int rob_id)
 
     agent = "Robot"+QString::number(rob_id);
     field = in.readLine();
+    if(field == "LAR")field_radius = 2.25;
+    else field_radius = 4.25;
 
     imgFolderPath = commonDir+QString(IMAGES_PATH);
     mirrorParamsPath = cfgDir+agent+"/"+QString(MIRRORFILENAME);
@@ -221,8 +226,8 @@ void ImageProcessor::rleModInitialization()
 {
     // Create Scan Lines used by RLE Algorithm
     idxImage = Mat(IMG_SIZE,IMG_SIZE,CV_8UC1,Scalar(0));
-    linesRad = ScanLines(idxImage,UAV_RADIAL, Point(imageConf.center_x,imageConf.center_y), 120, 75, 235,2,1);
-    linesCir = ScanLines(idxImage,UAV_CIRCULAR,Point(imageConf.center_x,imageConf.center_y), 20, 75, 235,0,0);
+    linesRad = ScanLines(idxImage,UAV_RADIAL, Point(imageConf.center_x,imageConf.center_y), 120, 75, mirrorConf.scanline_length,2,1);
+    linesCir = ScanLines(idxImage,UAV_CIRCULAR,Point(imageConf.center_x,imageConf.center_y), 20, 75, mirrorConf.scanline_length,0,0);
 }
 
 // Preprocessed current image, preparing it for RLE scan
@@ -343,7 +348,7 @@ void ImageProcessor::detectInterestPoints()
 
     // RLE Obstacles
     rleObs = RLE(linesRad, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 4, 2, 0, 30);
-    rleObs_2 = RLE(linesRad, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 0, 30, 0, 5);
+    rleObs_2 = RLE(linesRad, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 0, 30, 0, 30);
     //rleLinesRad_2 = RLE(linesCir, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 4, 1, 4, 30);
 
     //Analyze and parse RLE's
@@ -478,7 +483,7 @@ void ImageProcessor::generateMirrorConfiguration()
          distLookUpTable[j].push_back(Point3d(dist,angulo,weight));
      }
    }
-   
+
    // create mask image
    mask = Mat(480,480,CV_8UC3,Scalar(0,0,0));
    vector<Point> maskContourPoints; maskContourPoints.clear();
@@ -493,7 +498,7 @@ void ImageProcessor::generateMirrorConfiguration()
    imwrite(maskPath.toStdString(),mask);
 }
 
-void ImageProcessor::updateDists(double max, double step,int line_filter, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length,mirrorConfig msg)
+void ImageProcessor::updateDists(double max, double step,int line_filter,int scanline_size, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length,mirrorConfig msg)
 {
    distReal.clear(); distPix.clear();
    for(float dist=step;dist<=max;dist+=step) distReal.push_back(dist);
@@ -505,9 +510,11 @@ void ImageProcessor::updateDists(double max, double step,int line_filter, vector
    mirrorConf.lines_length = line_length;
    mirrorConf.step = step;
    mirrorConf.filter_lines = line_filter;
-   
+   mirrorConf.scanline_length = scanline_size;
+
    // update mask
    mirrorConf.mask_contour = msg.mask_contour;
+   rleModInitialization();
 }
 
 // Paints a pixel accordingly to its classifier
@@ -854,14 +861,14 @@ bool ImageProcessor::writeMirrorConfig()
     in<<"STEP="<<mirrorConf.step<<"\r\n";
     QString message = QString("#DONT CHANGE THE ORDER OF THE CONFIGURATIONS");
     QString dists = "", length = "";
-    
+
     QString maskpts = "MASK_CONTOUR=";
     for(int i=0;i<mirrorConf.mask_contour.size();i++){
         maskpts += "("+QString::number((int)mirrorConf.mask_contour[i].x)+";"+QString::number((int)mirrorConf.mask_contour[i].y)+"),";
-    } 
+    }
     maskpts = maskpts.left(maskpts.length() - 1);
-    
-    
+
+
     if(mirrorConf.pixel_distances.size() == mirrorConf.lines_length.size()){
       for(unsigned int i=0;i<mirrorConf.pixel_distances.size();i++){
         dists+=QString::number(mirrorConf.pixel_distances[i])+QString(",");
@@ -872,6 +879,7 @@ bool ImageProcessor::writeMirrorConfig()
       in<<"PIXEL_DISTANCES="<<dists<<"\r\n";
       in<<"LINES_LENGTH="<<length<<"\r\n";
       in<<"FILTER_PERCENTAGE="<<mirrorConf.filter_lines<<"\r\n";
+      in<<"SCANLINE_LENGTH="<<mirrorConf.scanline_length<<"\r\n";
       in<<maskpts << "\r\n";
       in << message;
     }
@@ -1205,7 +1213,11 @@ Point2d ImageProcessor::getPropError(int prop_in_use)
 
 void ImageProcessor::setCalibrationTargets(cameraProperty::ConstPtr msg)
 {
-  if(msg->blue==true)omniCamera->setSatTarget(msg->val_a);
-  else omniCamera->setLumiTarget(msg->val_a);
+  if(msg->blue==true){
+    omniCamera->setSatTarget(msg->val_a);
+  }
+  else {
+    omniCamera->setLumiTarget(msg->val_a);
+  }
 
 }

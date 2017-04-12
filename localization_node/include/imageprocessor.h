@@ -89,7 +89,7 @@ public:
    void generateMirrorConfiguration();
    bool writeMirrorConfig();
    bool writeImageConfig();
-   void updateDists(double max, double step,int line_filter, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length, mirrorConfig msg);
+   void updateDists(double max, double step, int line_filter, int scanline_size, vector<short unsigned int>pix_dists, vector<short unsigned int>line_length, mirrorConfig msg);
    mirrorConfig getMirrorConfAsMsg();
    inline double getMaxDistance() { return mirrorConf.max_distance; }
    visionHSVConfig getVisionConfAsMsg();
@@ -134,6 +134,7 @@ public:
    inline worldConfig getBallConfAsMsg(){ return ballParameters;}
    inline worldConfig getObsConfAsMsg(){ return obsParameters;}
    inline worldConfig getRLEConfAsMsg(){ return ballRLE;}
+   inline double getFieldRadius(){ return field_radius;}
 
 private:
    /* Camera Driver and parameters*/
@@ -145,6 +146,7 @@ private:
    QString staticImgPath;
    Mat element;
    bool camera;
+   double field_radius;
 
    /*Lut Variables*/
    int YUVLookUpTable[256*256*256];

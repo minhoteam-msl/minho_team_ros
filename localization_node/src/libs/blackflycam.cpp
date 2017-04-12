@@ -19,9 +19,7 @@ BlackflyCam::BlackflyCam(bool cal, int robot_id)
 
     //Parameters for calibration
     minError_Lumi=lumiTarget*0.05;
-    minError_Sat=satTarget*0.05;
-    //minError_UV_1=127+(127*0.15);
-    //minError_UV_2=127-(127*0.15);
+    minError_Sat=satTarget*0.08;
     minError_RGB=127*0.1;
 
     firsttime=true;
@@ -225,7 +223,6 @@ void BlackflyCam::setBrigtnessState(bool state)
 {
     props[BRI].absControl=state;
 }
-
 
 void BlackflyCam::setShutter(float value)
 {
@@ -522,7 +519,7 @@ void BlackflyCam::calcSatHistogram()
       first = false;
   }
   else{
-      for(int i=0;i<Hsv.cols*Hsv.rows;i=i+10)
+      for(int i=0;i<Hsv.cols*Hsv.rows;i++)
           histvalue[(int)Hsv.ptr()[i]]++;
   }
 }
@@ -617,18 +614,12 @@ bool BlackflyCam::cameraCalibrate()
     setRegions();
     bool changed=false;
 
-    //float wblue=getWhite_Balance_valueB();
-    //float wred=getWhite_Balance_valueA();
-    //float gamma=getGamma();
     float gain=getGain();
     float sat=getSaturation();
     float brig=getBrigtness();
     float shu=getShuttertime();
 
     if(firsttime){
-        ///wBluePID->reset();
-        ///wRedPID->reset();
-        //GammaPID->reset();
         GainPID->reset();
         SatPID->reset();
         BrigPID->reset();
@@ -640,10 +631,10 @@ bool BlackflyCam::cameraCalibrate()
     calcLumiHistogram();
     msv=calcMean();
     msvError=lumiTarget-msv;
-
+    std::cerr << msv << endl;
     if(msvError>minError_Lumi || msvError<-(minError_Lumi))
     {
-        changed=true;
+        changed = true;
         if(gain>=(getGainMax()-(getGainMax()/4))){
             shu = ShuPID->calc_pid(shu,msvError);
             setShutter(SHU);
@@ -659,46 +650,34 @@ bool BlackflyCam::cameraCalibrate()
         }
     }
 
-    if(msv>(satTarget - minError_Sat) && msv<(satTarget + minError_Sat) && changed==false)
+    if(changed == false)
     {
-        calcSatHistogram();
-        msv = calcMean();
-        msvError=satTarget-msv;
-        if(msvError>minError_Sat || msvError<(-minError_Sat))
-        {
-            changed=true;
-            sat=SatPID->calc_pid(sat,msvError);
-            setSaturation(sat);
-            setProps(SAT);
-        }
+      calcSatHistogram();
+      msv = calcMean();
+      msvError=satTarget-msv;
+
+      if(msvError>minError_Sat || msvError<(-minError_Sat))
+      {
+        changed=true;
+        sat=SatPID->calc_pid(sat,msvError);
+        setSaturation(sat);
+        setProps(SAT);
+      }
 
 	  Scalar rgbMean=averageRGB();
-
-	  /*Scalar uvMean=averageUV();
-	  if(uvMean[0]>minError_UV_1 || uvMean[0]<minError_UV_2 || uvMean[1]>minError_UV_1 || uvMean[1]<minError_UV_2)
-        {
-            changed=true;
-            msvError = 127-uvMean[0];
-            float msvError_2 = 127-uvMean[1];
-			      wblue=wBluePID->calc_pid(wblue,msvError);
-			      wred=wRedPID->calc_pid(wred,msvError_2);
-            setWhite_Balance_valueA(wred);
-            setWhite_Balance_valueB(wblue);
-            setProps(WB);
-        }*/
-
-        if((rgbMean[0]>minError_RGB || rgbMean[1]>minError_RGB || rgbMean[2]>minError_RGB) && brig<=(getBrigtnessMax()/2))
-        {
-           changed = true;
-           float rgbError = 0;
-           for(int i = 0; i < 3; i++)rgbError += rgbMean[i];
-           brig = BrigPID->calc_pid(brig,rgbError/3);
-           if(brig>(getBrigtnessMax()/2))brig = (getBrigtnessMax()/2);
-           setBrigtness(brig);
-           setProps(BRI);
-         }
-       }
-    return changed;
+    if((rgbMean[0]>minError_RGB || rgbMean[1]>minError_RGB || rgbMean[2]>minError_RGB) && brig<=(getBrigtnessMax()/2))
+    {
+      //std::cerr << "Entra sempre na calibração do brightness" << endl;
+      changed = true;
+      float rgbError = 0;
+      for(int i = 0; i < 3; i++)rgbError += rgbMean[i];
+      brig = BrigPID->calc_pid(brig,rgbError/3);
+      if(brig>(getBrigtnessMax()/2))brig = (getBrigtnessMax()/2);
+      setBrigtness(brig);
+      setProps(BRI);
+    }
+  }
+  return changed;
 }
 
 
@@ -769,6 +748,8 @@ bool BlackflyCam::initPidValues(int robot_id)
     lumiTarget = pid_list[0].toInt();
     satTarget = pid_list[1].toInt();
 
+    std::cerr << "Targets: " << lumiTarget << "  " << satTarget << endl;
+
     file.close();
 
     if(count_list!=0){
@@ -810,7 +791,7 @@ bool BlackflyCam::writePIDConfig()
 	in<<"EXPOSSURE="<<"0,0,0"<<"\r\n";
 	in<<"WHITE="<<roi_white.x<<","<<roi_white.y<<","<<roi_white.height<<"\r\n";
 	in<<"BLACK="<<roi_black.x<<","<<roi_black.y<<","<<roi_black.height<<"\r\n";
-  in<<"TARGETS"<<lumiTarget<<","<<satTarget<<"\r\n";
+  in<<"TARGETS="<<lumiTarget<<","<<satTarget<<"\r\n";
 	QString message = QString("#Property=Kp, Ki, Kd\r\n");
     in << message;
     message = QString("#ROI=X,Y,AREA\r\n#TARGETS=LUMI, SAT");
@@ -883,12 +864,14 @@ Point2d BlackflyCam::getError(int prop_in_use)
 void BlackflyCam::setSatTarget(int val)
 {
   satTarget = val;
+  minError_Sat=satTarget*0.05;
   writePIDConfig();
 }
 
 void BlackflyCam::setLumiTarget(int val)
 {
   lumiTarget = val;
+  minError_Lumi=lumiTarget*0.05;
   writePIDConfig();
 }
 
