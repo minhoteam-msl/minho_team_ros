@@ -1,7 +1,5 @@
 //ROS includes
 #include "ros/ros.h"
-#include "text_color.h"
-#include <algorithm>
 //Application includes
 #include "minho_team_ros/hardwareInfo.h"
 #include "minho_team_ros/robotInfo.h"
@@ -21,16 +19,12 @@
 #include <boost/process.hpp>
 
 #define BUFFER_SIZE 5120
-#define DATA_UPDATE_HZ 33
+#define DATA_UPDATE_HZ 30
 #define DATA_UPDATE_USEC 1000000/DATA_UPDATE_HZ
 #define MAX_DELAY_TIME_US 5000
 #define NUM_ROBOT_AGENTS 5
-#define MAX_RETRIES 5
-#define MIN_PACKETS MAX_RETRIES/2+1
 #define TOTAL_AGENTS NUM_ROBOT_AGENTS+1
 
-
-#define SDEBUG 0
 /// \brief struct to represet a udp packet, containing
 /// a serialized ROS message
 typedef struct udp_packet{
@@ -80,25 +74,8 @@ interAgentInfo message;
 /// \brief shared_array of uint8 (unsigned char) used in message 
 /// deserialization
 boost::shared_array<uint8_t> serialization_buffer;
-/// \brief defines if node is used for simulated robot or real robot
-bool mode_real = true;
 // #########################
 
-
-// ###### SYNCRO DATA#######
-/// \brief holds state of agent
-bool agentState[TOTAL_AGENTS];
-/// \brief holds number of received packets by agents
-unsigned int recvAgentPackets[TOTAL_AGENTS];
-/// \brief send queue for synchronization
-std::vector<unsigned int> syncTable;
-/// \brief id of the predecessor agent
-int predecessorAgentId = 0;
-/// \brief amount of packets received from predecessorAgentId
-unsigned int predRecvPackets = 0;
-
-struct timespec begin, end;
-// #########################
 
 // ###### SOCKET DATA#######
 /// \brief UDP socket descriptor
@@ -121,38 +98,17 @@ pthread_mutex_t message_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t socket_mutex = PTHREAD_MUTEX_INITIALIZER;
 /// \brief a mutex to avoid multi-thread access to ROS publishers
 pthread_mutex_t publishers_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-/// \brief a mutex to avoid multi-thread access sync data
-pthread_mutex_t syncq_mutex = PTHREAD_MUTEX_INITIALIZER;
-/// \brief a mutex to avoid multi-thread access sync data
-pthread_mutex_t state_mutex = PTHREAD_MUTEX_INITIALIZER;
-/// \brief a mutex to avoid multi-thread access sync data
-pthread_mutex_t sendreq_mutex = PTHREAD_MUTEX_INITIALIZER;
-/// \brief condition variable to help syncronize send thread
-pthread_cond_t sendreq_cv = PTHREAD_COND_INITIALIZER;
-/// \brief condition variable to help syncronize send thread
-pthread_cond_t sync_cv = PTHREAD_COND_INITIALIZER;
-/// \brief a mutex to avoid multi-thread access sync data
-pthread_mutex_t predrecv_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 /// \brief thread pool to allow dynamic task assignment
 threadpool thpool_t;
 ///  \brief buffer to hold received data
 uint8_t buffer[BUFFER_SIZE];
 /// \brief main udp data receiving thread
 pthread_t recv_monitor_thread;
-/// \brief thread to implement syncronism with
-/// the other agents
-pthread_t sync_thread,syncwd_thread;
 /// \brief main sending thread
 pthread_t send_info_thread;
 /// \brief periodic_info struct containing info to make
 /// thread a timed function
 periodic_info pi_sendth;
-/// \brief periodic_info struct containing info to make
-/// thread a timed function
-periodic_info pi_syncth;
-
 /// \brief int variable to control thread running
 volatile bool _thrun = true;
 /// \brief auxilizar variables to test connection of gzserver
@@ -192,11 +148,8 @@ template<typename Message>
 void deserializeROSMessage(udp_packet *packet, void *msg);
 
 /// \brief main thread to send robot information update over UDP socket
+/// \param signal - system signal for timing purposes
 void* sendRobotInformationUpdate(void *data);
-
-/// \brief thread that detects the network state, telling which robots
-/// \brief are online and updates send queue
-void* synchronizeAgents(void *data);
 
 /// \brief checks if Gzserver is running in case of simulated robots
 bool checkGzserverConnection();
@@ -216,20 +169,23 @@ void setupMultiCastSocket(uint8_t receive_own_packets);
 /// \param socket - pointer to socket descriptor to use 
 void* udpReceivingThread(void *socket);
 
-/// \brief thread that triggers new data being sent over multicast 
-void* syncWatchdog(void *data);
-
 /// \brief function used by threadpool threads to process incoming data
 /// sent by other agents. Thread returns to pool after doing its work
 /// \param packet - data packet to be deserialized into a ROS message
 void processReceivedData(void *packet);
 
-/// \brief function that controls triggering of sending signal,
-/// using number of received packets by the predecessor
-bool predecessorSentData();
+/// \brief gets syncronization agent id's for this agent. The primary
+/// syncronizator is id-1
+int getSyncId() {if(agent_id==1) return 6; else return agent_id-1;}
+
+/// \brief holds state of robot sync (if inside sync ring or not)
+bool syncState[NUM_ROBOT_AGENTS+1];
+/// \brief holds state of agent
+bool agentState[NUM_ROBOT_AGENTS+1];
 // #########################
 
-long unsigned int packetid = 0;
+
+bool mode_real = true;
 
 /// \brief this node acts as a bridge between the other agents (robots and base
 /// station) and each robot's ROS. It uses UDP broadcast transmission and sends
@@ -244,6 +200,7 @@ int main(int argc, char **argv)
       exit(1); 
    }
    
+   srand(time(NULL));
    int robot_id = 0;
    if(argc==3){
       robot_id = atoi(argv[2]);
@@ -327,24 +284,13 @@ int main(int argc, char **argv)
 	}
 	// #########################
 	
-	// Setup sync data
-	for(int i=0;i<TOTAL_AGENTS;i++){
-	    agentState[i] = false;
-	    recvAgentPackets[i] = 0;
-	}
-	
 	//Setup Thread pool and rece
 	// iving thread
 	// #########################
-    pi_sendth.id = 1; pi_sendth.period_us = DATA_UPDATE_USEC;
-    pi_syncth.id = 2; pi_syncth.period_us = DATA_UPDATE_USEC*MAX_RETRIES;
-    thpool_t = thpool_init(TOTAL_AGENTS); //5 threads per agent
-    pthread_create(&recv_monitor_thread, NULL, udpReceivingThread, &socket_fd); 
-    pthread_create(&sync_thread, NULL, synchronizeAgents,&pi_syncth);
-    pthread_create(&syncwd_thread, NULL, syncWatchdog,NULL);
-    thsleepms(100);
-    pthread_create(&send_info_thread, NULL, sendRobotInformationUpdate,&pi_sendth);
-    
+   pi_sendth.id = 1; pi_sendth.period_us = DATA_UPDATE_USEC;
+	thpool_t = thpool_init(TOTAL_AGENTS); //5 threads per agent ?
+	pthread_create(&recv_monitor_thread, NULL, udpReceivingThread, &socket_fd);
+   pthread_create(&send_info_thread, NULL, sendRobotInformationUpdate,&pi_sendth);
 	// #########################
 	
 	// Run functions and join threads
@@ -355,11 +301,7 @@ int main(int argc, char **argv)
    pthread_join(send_info_thread, NULL);
    pthread_cancel(recv_monitor_thread);
    pthread_join(recv_monitor_thread, NULL);
-   pthread_join(sync_thread, NULL);
-   pthread_join(syncwd_thread, NULL);
    thpool_wait(thpool_t);
-   pthread_cond_destroy(&sync_cv);
-   pthread_cond_destroy(&sendreq_cv);
 	thpool_destroy(thpool_t);
 	closeSocket(socket_fd);
    ROS_ERROR("Exited coms_node");
@@ -447,22 +389,8 @@ void* sendRobotInformationUpdate(void *data)
       }
       uint8_t *packet;
       uint32_t packet_size;
-      // send request signal here
-      if(SDEBUG)ROS_INFO("Request send packet %lu",packetid);
-      pthread_cond_signal(&sendreq_cv);
-      pthread_cond_wait(&sync_cv, &syncq_mutex);
-      // wait authorization here
       serializeROSMessage<interAgentInfo>(&message,&packet,&packet_size);
       // Send packet of size packet_size through UDP
-      if(SDEBUG)ROS_INFO("Packet sent %lu",packetid);
-      packetid++;
-      
-      begin = end;
-      clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-      float freq = 1.0/((end.tv_nsec - begin.tv_nsec) / 1000000000.0 +
-            (end.tv_sec  - begin.tv_sec));
-      if(freq<20.0 || freq>35.0) ROS_ERROR("Sync Problem %.2fHz",freq);
-      
       if (sendData(socket_fd,packet,packet_size) <= 0){
          error("Failed to send a packet.");
       } 
@@ -473,9 +401,9 @@ void* sendRobotInformationUpdate(void *data)
          pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
       }  
 
+      thsleepms(rand()%4);
       wait_period(info);
    }
-   
    return NULL;
 }
 
@@ -516,93 +444,6 @@ void* udpReceivingThread(void *socket)
    return NULL;
 }
 
-/// \brief thread that detects the network state, telling which robots
-/// \brief are online and updates send queue
-void* synchronizeAgents(void *data)
-{
-   periodic_info *info = (periodic_info *)(data);
-   make_periodic(info->period_us,info);
-   int recvpackets = 0;
-   std::vector<unsigned int> sendQ;
-   std::stringstream queue; 
-   while(ros::ok()){
-      sendQ.clear();
-      sendQ.push_back(agent_id);
-      for(int i=0;i<TOTAL_AGENTS;i++){
-        if((i+1)!=agent_id){
-            pthread_mutex_lock(&state_mutex); //Lock mutex
-            recvpackets = recvAgentPackets[i];
-            recvAgentPackets[i] = 0;
-            pthread_mutex_unlock(&state_mutex); //Unlock mutex  
-            if(recvpackets>(MIN_PACKETS)){
-                agentState[i] = true;
-                sendQ.push_back(i+1);
-            } else agentState[i] = false;
-        }
-      }
-      
-      // rearrange sending queue
-      std::sort (sendQ.begin(), sendQ.end()); 
-      pthread_mutex_lock(&syncq_mutex); //Lock mutex
-      syncTable.clear();
-      syncTable = sendQ;
-      /*std::string queue = "";
-      for(int i=0;i<syncTable.size();i++) queue += std::to_string(syncTable[i])+"->";
-      ROS_INFO("%s",queue.c_str());*/
-      
-      // assign predecessor agent id
-      if(syncTable[0]==agent_id) predecessorAgentId = syncTable[syncTable.size()-1];
-      else {
-        for(int i=1;i<syncTable.size();i++){
-            if(syncTable[i]==agent_id){
-                predecessorAgentId = syncTable[i-1];
-                break;
-            }
-        }
-      }
-
-      pthread_mutex_unlock(&syncq_mutex); //Unlock mutex  
-      
-      if(!_thrun){ break;} 
-      wait_period(info);
-   }
-
-   return NULL;
-}
-
-
-/// \brief thread that triggers new data being sent over multicast 
-void* syncWatchdog(void *data)
-{
-   static struct timespec time_to_wait = {0, 0};
-   static int retries = 0;
-   pthread_mutex_lock(&sendreq_mutex);
-   while(ros::ok()){
-      time_to_wait.tv_sec = time(NULL) + 1;
-      if(SDEBUG)ROS_INFO("Waiting request %lu",packetid);
-      pthread_cond_timedwait(&sendreq_cv, &sendreq_mutex,&time_to_wait);
-      pthread_mutex_lock(&syncq_mutex);
-  
-      if(syncTable.size()==1){ // only one in the queue
-         pthread_cond_signal(&sync_cv);   
-      } else {
-        if(SDEBUG)ROS_WARN("Waiting predecessor");
-        while(!predecessorSentData() && retries<MAX_RETRIES){
-            retries++;
-            thsleepms(5);
-        }
-        retries = 0;
-        pthread_cond_signal(&sync_cv); 
-      }
-        
-      pthread_mutex_unlock(&syncq_mutex);
-      
-      if(!_thrun){ break;} 
-   }
-   pthread_mutex_unlock(&sendreq_mutex);
-   
-   return NULL;
-}
 /// \brief function used by threadpool threads to process incoming data
 /// sent by other agents. Thread returns to pool after doing its work
 /// \param packet - data packet to be deserialized into a ROS message
@@ -621,21 +462,11 @@ void processReceivedData(void *packet)
         if(incoming_data.agent_id==agent_id) return;
         // Publish to matching topic
         if(incoming_data.agent_id>=1 && incoming_data.agent_id<=TOTAL_AGENTS){
-            if(incoming_data.agent_id==predecessorAgentId){
-                pthread_mutex_lock(&predrecv_mutex);
-                predRecvPackets++;
-                if(SDEBUG)ROS_ERROR("Predecessor packet received");
-                pthread_mutex_unlock(&predrecv_mutex);
-            }
-            pthread_mutex_lock(&state_mutex); //Lock mutex
-            recvAgentPackets[incoming_data.agent_id-1]++;
-            pthread_mutex_unlock(&state_mutex); //Unlock mutex 
-             
-            pthread_mutex_lock(&publishers_mutex); //Lock mutex
-            if(num_subscribers[incoming_data.agent_id-1]>0){
-                publishers[incoming_data.agent_id-1].publish(incoming_data);
-            }
-            pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
+        pthread_mutex_lock(&publishers_mutex); //Lock mutex
+        if(num_subscribers[incoming_data.agent_id-1]>0){
+            publishers[incoming_data.agent_id-1].publish(incoming_data);
+        }
+        pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
         }
     } else {
         //comes from basestation
@@ -674,17 +505,5 @@ bool checkGzserverConnection()
    }
    
    return true;
-}
-
-/// \brief function that controls triggering of sending signal,
-/// using number of received packets by the predecessor
-bool predecessorSentData()
-{
-    bool ret = false;
-    pthread_mutex_lock(&predrecv_mutex);
-    if(predRecvPackets>0) ret = true;
-    predRecvPackets = 0;
-    pthread_mutex_unlock(&predrecv_mutex);
-    return ret;
 }
 // #########################
