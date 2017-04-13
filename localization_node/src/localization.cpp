@@ -523,7 +523,7 @@ void Localization::fuseOrientationEstimates()
 
   odometry_verify = (current_state.robot_pose.x*current_state.robot_pose.x)+(current_state.robot_pose.y*current_state.robot_pose.y);
 
-  if(odometry_verify>processor->getFieldRadius()){
+  if(odometry_verify>processor->getFieldRadius() || USE_IMU){
     //Fuses Vision(local) with last_state.robot_pose(local)+odometry
     vision.angle = current_hardware_state.imu_value; // current_hardware_state.imu_value olds merged value between
     // imu and histograms if imu enabled, and only histograms if imu disabled

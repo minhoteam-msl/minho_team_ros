@@ -389,11 +389,12 @@ void* sendRobotInformationUpdate(void *data)
       }
       uint8_t *packet;
       uint32_t packet_size;
+      message.msg_id = 1;
       serializeROSMessage<interAgentInfo>(&message,&packet,&packet_size);
       // Send packet of size packet_size through UDP
       if (sendData(socket_fd,packet,packet_size) <= 0){
          error("Failed to send a packet.");
-      } 
+      }  
 
       for(int a = 0; a < TOTAL_AGENTS; a++){
          pthread_mutex_lock(&publishers_mutex); //Lock mutex
