@@ -82,8 +82,6 @@ void Localization::discoverWorldModel() // Main Function
    // Acquire image using function pointer
    buffer = CALL_MEMBER_FN((*processor),processor->acquireImage)(&have_image);
    // Localization code
-   is_hardware_ready = true;
-   
    /* 
       If USE_IMU, reloc is done with imu angle, otherwise, it is with 0.
       If USE_IMU,  
@@ -92,9 +90,9 @@ void Localization::discoverWorldModel() // Main Function
    if(have_image && is_hardware_ready){
    
       if(reloc){
-        if(USE_IMU) last_state.robot_pose.z = current_hardware_state.imu_value = 0; // if not using imu, reloc must be done at 0º
+        if(!USE_IMU) last_state.robot_pose.z = current_hardware_state.imu_value = 0; // if not using imu, reloc must be done at 0º
         else last_state.robot_pose.z = current_hardware_state.imu_value;
-        //ROS_INFO("Reloc Angle: %d",current_hardware_state.imu_value);
+        ROS_ERROR("Reloc Angle: %d",current_hardware_state.imu_value);
       }
       
       //loctime.start();
@@ -104,7 +102,7 @@ void Localization::discoverWorldModel() // Main Function
       calcHistOrientation();
       // Fuse odometry and vision orientation with kalmanFilter
       // If there isnt any odometry change in angle, dont fuse estimates
-      if(odometry.angle != 0)fuseOrientationEstimates();
+      fuseOrientationEstimates();
       // Maps points to real World
       processor->mapPoints(current_state.robot_pose.z);
       //std::cerr << "Tempo de deteção dos pontos:  " << loctime.elapsed() <<endl;
@@ -118,7 +116,7 @@ void Localization::discoverWorldModel() // Main Function
          //loctime.start();
          // Do local localization
          float odometryDelta = sqrt((odometry.x*odometry.x)+(odometry.y*odometry.y));
-         if(odometryDelta>0.01){
+         if(odometryDelta>0.001 || fabs(odometry.angle)>0.05){
              computeLocalLocalization();
              fuseEstimates();
          } else current_state.robot_pose = last_state.robot_pose;
@@ -552,7 +550,8 @@ void Localization::fuseOrientationEstimates()
     //P = (1-K)*P'
     // Variância da estimativa = Variância da previsão * (1 – Ganho do Kalman)
     kalman.covariance.z = (1-kalman.K.z)*kalman.predictedCovariance.z;
-  } else current_state.robot_pose.z = last_state.robot_pose.z + odometry.angle;
+ 
+} else current_state.robot_pose.z = last_state.robot_pose.z + odometry.angle;
 
 }
 
@@ -718,7 +717,7 @@ void Localization::calcHistOrientation()
     }
   }
   histEstimate = indice + startAngle;
-  //ROS_INFO("angulo: %d",histEstimate);
+//  ROS_INFO("angulo: %d",histEstimate);
   
   if(USE_IMU){
     if(current_hardware_state.imu_value < 90.0 && histEstimate > 270.0) histEstimate -= 360.0;
