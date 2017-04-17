@@ -7,6 +7,8 @@
 #include "minho_team_ros/interAgentInfo.h"
 #include "minho_team_ros/position.h"
 #include "minho_team_ros/baseStationInfo.h"
+#include "minho_team_ros/requestReloc.h"
+#include "minho_team_ros/requestResetIMU.h"
 #include "std_msgs/UInt8.h"
 #include <iostream>
 #include <string.h>
@@ -39,6 +41,8 @@ using minho_team_ros::goalKeeperInfo; //Namespace for goalKeeperInfo msg - SUBSC
 using minho_team_ros::interAgentInfo; //Namespace for interAgentInfo msg - SENDING OVER UDP/SUBSCRIBING OVER UDP
 using minho_team_ros::baseStationInfo; //Namespace for baseStationInfo msg - SENDING OVER UDP/SUBSCRIBING OVER UDP
 using std_msgs::UInt8;
+using minho_team_ros::requestReloc; // Namespace for requestReloc service
+using minho_team_ros::requestResetIMU; // Namespace for requestResetIMU service
 
 // ###### GLOBAL DATA ######
 // \brief subscriber for hardwareInfo message
@@ -47,6 +51,10 @@ ros::Subscriber hw_sub;
 ros::Subscriber robot_sub;
 // \brief subscriber for goalKeeperInfo message
 ros::Subscriber gk_sub;
+/// \brief requestResetIMU ROS Service Client
+ros::ServiceClient resetIMUService;
+/// \brief requestReloc ROS Service Client
+ros::ServiceClient requestRelocService;
 
 /// \brief variable to build the topic name for hardwareInfo message
 std::stringstream hw_topic_name;
@@ -56,6 +64,8 @@ std::stringstream robot_topic_name;
 std::stringstream gk_topic_name;
 /// \brief variable to build the node name
 std::stringstream node_name;
+/// \brief variables to build service names
+std::stringstream reloc_name, reset_name;
 
 /// \brief vector of publishers for all 6 agents of the game
 ros::Publisher publishers[TOTAL_AGENTS];
@@ -249,13 +259,18 @@ int main(int argc, char **argv)
 	   robot_topic_name << "/minho_gazebo_robot" << (int)agent_id;
 	   gk_topic_name << "/minho_gazebo_robot" << (int)agent_id;
 	   base_relay_topic << "/minho_gazebo_robot" << (int)agent_id;
+	   reloc_name << "/minho_gazebo_robot" << (int)agent_id;
+	   reset_name << "/minho_gazebo_robot" << (int)agent_id;
 	}
 	
 	hw_topic_name << "/hardwareInfo";
 	robot_topic_name << "/robotInfo";
 	gk_topic_name << "/goalKeeperInfo";
+	reloc_name << "/requestReloc";
+	reset_name << "/requestResetIMU";
+	
 	std::string relay_topic_name = "/interAgentInfo";
-   std::string relay_topic_name_bs = "/baseStationInfo";
+    std::string relay_topic_name_bs = "/baseStationInfo";
 	   
 	
 	hw_sub = coms_node.subscribe(hw_topic_name.str().c_str(),
@@ -264,6 +279,10 @@ int main(int argc, char **argv)
 	                             1,&robotInfoCallback);
 	gk_sub = coms_node.subscribe(gk_topic_name.str().c_str(),
 	                             1,&goalKeeperInfoCallback);
+    resetIMUService = coms_node.serviceClient<minho_team_ros::requestResetIMU>(reset_name.str().c_str());
+    
+    requestRelocService = coms_node.serviceClient<minho_team_ros::requestReloc>(reloc_name.str().c_str());
+    
 	message.agent_id = agent_id;   
 	// for robot agents (1 to NUM_ROBOT_AGENTS) -> 0 to NUM_ROBOT_AGENTS-1
    for(int a = 0; a < NUM_ROBOT_AGENTS; a++){
@@ -482,6 +501,19 @@ void processReceivedData(void *packet)
                 publishers[incoming_data.agent_id-1].publish(incoming_data);
             }
             pthread_mutex_unlock(&publishers_mutex); //Unlock mutex
+        
+            //check requests from base station
+            int requestsAgent = incoming_data.requests[agent_id-1];
+
+            if(requestsAgent==1){
+                ROS_ERROR("Reloc request received");
+                requestReloc srv;
+                requestRelocService.call(srv);
+            } else if(requestsAgent==2){
+                ROS_ERROR("Reset IMU request received");
+                requestResetIMU srv;
+                resetIMUService.call(srv);
+            }
         }
     }
 }
