@@ -1,5 +1,5 @@
 #include "rsupstriker.h"
-
+#define distFromBall 1.0
 /* What rSUPSTRIKER Does:
 Parking - Goes to parking spot 3
 Own Kickoff - Passes the ball to rSTRIKER
@@ -35,7 +35,7 @@ void RoleSupStriker::determineAction()
    }else if(mBsInfo.gamestate==sOWN_KICKOFF||
             mBsInfo.gamestate==sOWN_FREEKICK){ 
       // When taking a foul, sup striker has to engage and pass the ball
-      if(mRobot.has_ball)mAction = aPASSBALL;
+      if(mRobot.has_ball) mAction = aPASSBALL;
       else mAction = aENGAGEBALL;
    }else {
       // For now, do aFASTMOVE for every other game state
@@ -59,7 +59,7 @@ void RoleSupStriker::computeAction(aiInfo *ai)
          // Go to parking spot
          if(mBsInfo.posxside) ai->target_pose.x = 2.4;
          else ai->target_pose.x = -2.4;
-         ai->target_pose.y = side_line_y+0.5;
+         ai->target_pose.y = side_line_y+0.2;
          ai->target_pose.z = 180.0;
          break;
       }      
@@ -70,10 +70,10 @@ void RoleSupStriker::computeAction(aiInfo *ai)
          stab_counter = 0;
          ai->target_pose.x = 0; 
          if(!mBsInfo.posxside){
-            ai->target_pose.y = 0.5;
+            ai->target_pose.y = distFromBall;
             ai->target_pose.z = 180.0;
          } else {
-            ai->target_pose.y = -0.5;  
+            ai->target_pose.y = -distFromBall;  
             ai->target_pose.z = 0.0; 
          }   
 
@@ -94,13 +94,17 @@ void RoleSupStriker::computeAction(aiInfo *ai)
          (mRobot.robot_pose.y-mRobot.ball_position.y));
      
          if(mRobot.has_ball){
+            ROS_INFO("Have ball");
+            
             if(stab_counter<=3) { mAction = aHOLDBALL; ai->target_pose = mRobot.robot_pose; break; }
+            
             ai->target_pose.x = mRobot.robot_pose.x;
             ai->target_pose.y = mRobot.robot_pose.y;
+            ROS_INFO("HERE");
             if(mBsInfo.posxside){
-               tarx = 0.5; tary = center_circle_radius;
+               tarx = 0.0; tary = center_circle_radius;
             } else {
-               tarx = -0.5; tary = -center_circle_radius;
+               tarx = -0.0; tary = -center_circle_radius;
             }
             ai->target_kick_strength = 50;
             passed_after_engage = true;
@@ -182,8 +186,8 @@ void RoleSupStriker::computeAction(aiInfo *ai)
             ai->target_pose.x = mRobot.robot_pose.x;
             ai->target_pose.y = mRobot.robot_pose.y;
             tary = mRobot.robot_pose.y;
-            if(!mBsInfo.posxside) tarx = mRobot.robot_pose.x-1.0;
-            else tarx = mRobot.robot_pose.x+1.0; 
+            if(!mBsInfo.posxside) tarx = mRobot.robot_pose.x-distFromBall;
+            else tarx = mRobot.robot_pose.x+distFromBall; 
             ai->target_kick_strength = 50;
             passed_after_engage = true;
             kick_spot.x = mRobot.ball_position.x;

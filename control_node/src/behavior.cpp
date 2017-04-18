@@ -263,7 +263,7 @@ void Behavior::doWork()
     case aPASSBALL: {
         goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 1.0);
         control_info.linear_velocity = 0;
-        if(fabs(robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)<1.0){
+        if(fabs(robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)<5.0){
             requestKick srv;
             srv.request.kick_is_pass = true;
             srv.request.kick_strength = ai_info_copy.target_kick_strength;
@@ -275,7 +275,9 @@ void Behavior::doWork()
     case aKICKBALL: {
         goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 1.0);
         control_info.linear_velocity = 0;
-        if(fabs(robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)<1.0){
+        float heading_error = atan2(sin((robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)*DEGTORAD), cos((robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)*DEGTORAD));
+        ROS_INFO("HEADING %.2f",heading_error);
+        if(heading_error<5.0){
             requestKick srv;
             srv.request.kick_is_pass = false;
             srv.request.kick_strength = ai_info_copy.target_kick_strength;
@@ -415,6 +417,7 @@ void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, 
         y_min = ai.target_pose.y - 0.10;
         y_max = ai.target_pose.y + 0.10;
 
+ 
         if(ai.action!=aPASSBALL && ai.action!=aKICKBALL && ai.action!=aDRIBBLEBALL){
             float target_next_angle;
             if(ai.target_pose.z > 180.0) target_next_angle = ai.target_pose.z - 360.0;
@@ -430,29 +433,21 @@ void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, 
                 control_info.angular_velocity = motion->angularVelocity_PID(robot.robot_pose.z, target_next_angle, cconfig);
             }
 
-
-            /*if(mode_real){
-                if(stab_counter>5)control_info.linear_velocity = 0;
-                else {
-                    stab_counter++;
-                    control_info.linear_velocity = max_vel;
-                    control_info.movement_direction += 180;
-                    while(control_info.movement_direction>360)
-                    control_info.movement_direction -=360;
-                    while(control_info.movement_direction<0)
-                    control_info.movement_direction +=360;
-                }
-            } else control_info.linear_velocity = 0;*/
-
-        }
-        else {
+        } else {
             //control_info.linear_velocity = max_vel;
             control_info.linear_velocity = motion->linearVelocity(cconfig, path, (int)ai.action, percent_vel);
             stab_counter = 0;
         }
     }else {
-        control_info.linear_velocity = control_info.angular_velocity = 0;
-        stab_counter = 0;
+        if(ai.action==aPASSBALL || ai.action==aKICKBALL || ai.action==aDRIBBLEBALL){
+                float target_next_angle;
+                if(ai.target_pose.z > 180.0) target_next_angle = ai.target_pose.z - 360.0;
+                else target_next_angle = ai.target_pose.z;
+                control_info.angular_velocity = motion->angularVelocity_PID(robot.robot_pose.z, target_next_angle, cconfig);
+        } else {
+            control_info.linear_velocity = control_info.angular_velocity = 0;
+            stab_counter = 0;
+        }
     }
 }
 

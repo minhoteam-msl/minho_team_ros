@@ -205,8 +205,8 @@ void RoleStriker::computeAction(aiInfo *ai)
             else stab_counter = 0;
             //check if path is clear
             if(pathClearForShooting(shoot_tarx,&shoot_tary)){
-               if(stab_counter<=3) { mAction = aHOLDBALL; ai->target_pose = mRobot.robot_pose; break; }
-               stab_counter = 0;
+               /*if(stab_counter<=3) { mAction = aHOLDBALL; ai->target_pose = mRobot.robot_pose; break; }
+               stab_counter = 0;*/
 
                ai->target_pose.x = mRobot.robot_pose.x;
                ai->target_pose.y = mRobot.robot_pose.y;
