@@ -263,7 +263,9 @@ void Behavior::doWork()
     case aPASSBALL: {
         goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 1.0);
         control_info.linear_velocity = 0;
-        if(fabs(robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)<5.0){
+        float heading_error = atan2(sin((robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)*DEGTORAD), cos((robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)*DEGTORAD))*DEGTORAD;
+        ROS_INFO("HEADING %.2f",heading_error);
+        if(fabs(heading_error)<5.0){
             requestKick srv;
             srv.request.kick_is_pass = true;
             srv.request.kick_strength = ai_info_copy.target_kick_strength;
@@ -275,9 +277,9 @@ void Behavior::doWork()
     case aKICKBALL: {
         goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 1.0);
         control_info.linear_velocity = 0;
-        float heading_error = atan2(sin((robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)*DEGTORAD), cos((robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)*DEGTORAD));
+        float heading_error = atan2(sin((robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)*DEGTORAD), cos((robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)*DEGTORAD))*DEGTORAD;
         ROS_INFO("HEADING %.2f",heading_error);
-        if(heading_error<5.0){
+        if(fabs(heading_error)<5.0){
             requestKick srv;
             srv.request.kick_is_pass = false;
             srv.request.kick_strength = ai_info_copy.target_kick_strength;
