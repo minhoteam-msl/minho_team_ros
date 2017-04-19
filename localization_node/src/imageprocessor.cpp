@@ -6,7 +6,7 @@ ImageProcessor::ImageProcessor(int rob_id, bool use_camera, bool *init_success)
     // Initialize GigE Camera Driver
     if(use_camera) {
       camera=true;
-      omniCamera = new BlackflyCam(false, rob_id); //OmniVisionCamera Handler
+      omniCamera = new BlackflyCam(true, rob_id); //OmniVisionCamera Handler
       ROS_INFO("Using GigE Camera for image acquisition.");
       acquireImage = &ImageProcessor::getImage;
     } else {
@@ -226,8 +226,9 @@ void ImageProcessor::rleModInitialization()
 {
     // Create Scan Lines used by RLE Algorithm
     idxImage = Mat(IMG_SIZE,IMG_SIZE,CV_8UC1,Scalar(0));
-    linesRad = ScanLines(idxImage,UAV_RADIAL, Point(imageConf.center_x,imageConf.center_y), 120, 75, mirrorConf.scanline_length,2,1);
-    linesCir = ScanLines(idxImage,UAV_CIRCULAR,Point(imageConf.center_x,imageConf.center_y), 20, 75, mirrorConf.scanline_length,0,0);
+    linesRad = ScanLines(idxImage, UAV_RADIAL, Point(imageConf.center_x,imageConf.center_y), 140, 75, mirrorConf.scanline_length, 2, 1);
+    linesCir = ScanLines(idxImage, UAV_CIRCULAR, Point(imageConf.center_x,imageConf.center_y), 20, 75, mirrorConf.scanline_length, 0, 0);
+    ballScan = ScanLines(idxImage, UAV_RADIAL, Point(imageConf.center_x,imageConf.center_y), 80, 60, 120, 1, 1);
 }
 
 // Preprocessed current image, preparing it for RLE scan
@@ -258,6 +259,16 @@ void ImageProcessor::preProcessIndexedImage()
             idxImage.ptr()[s[i]] = getClassifier(temp.x,temp.y);
         }
     }
+
+    for (unsigned k = 0 ; k < ballScan.scanlines.size() ; k++){
+        s = ballScan.getLine(k);
+        //n_pixeis = n_pixeis + s.size();
+        for(unsigned i = 0; i < s.size(); i++)
+        {
+            temp = ballScan.getPointXYFromInteger(s[i]);
+            idxImage.ptr()[s[i]] = getClassifier(temp.x,temp.y);
+        }
+    }
     /*std::cerr << n_pixeis << endl;
     n_pixeis = 0;*/
 }
@@ -267,9 +278,9 @@ void ImageProcessor::drawInterestInfo(Mat *buffer)
    rleBallRad.drawInterestPoints(Scalar(255,0,0),buffer,UAV_ORANGE_BIT);
    rleObs.drawInterestPoints(Scalar(255,0,255),buffer,UAV_BLACK_BIT);
    rleObs_2.drawInterestPoints(Scalar(255,0,255),buffer,UAV_BLACK_BIT);
-   //rleLinesRad_2.drawInterestPoints(Scalar(255,0,255),buffer,UAV_BLACK_BIT);
    rleLinesRad.drawInterestPoints(Scalar(0,0,255),buffer,UAV_WHITE_BIT);
    rleLinesCir.drawInterestPoints(Scalar(0,255,255),buffer,UAV_WHITE_BIT);
+   rleBallShort.drawInterestPoints(Scalar(255,0,0),buffer,UAV_ORANGE_BIT);
 
 }
 
@@ -277,15 +288,14 @@ void ImageProcessor::drawScanlines(Mat *buffer)
 {
   Mat img(IMG_SIZE,IMG_SIZE, CV_8UC3, Scalar(0,0,0));
   linesRad.draw(img,Scalar(0,255,0));
-  //rleLinesRad_2.draw(Scalar(255,255,255), Scalar(0,0,0), Scalar(255,255,255), buffer);
   rleLinesRad.draw(Scalar(255,255,255), Scalar(255,255,255), Scalar(255,255,255), &img);
   linesCir.draw(img,Scalar(0,255,0));
   rleLinesCir.draw(Scalar(255,255,255), Scalar(255,255,255), Scalar(255,255,255), &img);
   rleObs.draw(Scalar(255,255,255), Scalar(255,0,255), Scalar(255,255,255), &img);
   rleObs_2.draw(Scalar(255,255,255), Scalar(255,0,255), Scalar(255,255,255), &img);
   rleBallRad.draw(Scalar(255,255,255), Scalar(0,255,255), Scalar(255,255,255), &img);
-
-  //rleLinesRad_2.draw(Scalar(255,255,255), Scalar(255,0,255), Scalar(255,255,255), buffer);
+  ballScan.draw(img, Scalar(255,255,255));
+  rleBallShort.draw(Scalar(255,255,255), Scalar(0,255,255), Scalar(255,255,255), &img);
 
   *buffer=img;
 }
@@ -340,16 +350,16 @@ void ImageProcessor::detectInterestPoints()
     // RLE Lines
     rleLinesRad = RLE(linesRad, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 4, 2, 4, 30);
     rleLinesCir = RLE(linesCir, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 4, 2, 4, 20);
-    //rleLinesRad_2 = RLE(linesRad, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 2, 1, 2, 30);
 
     // RLE Ball
     rleBallRad = RLE(linesRad, UAV_GREEN_BIT, UAV_ORANGE_BIT, UAV_GREEN_BIT, int(ballRLE.value_a), ballRLE.value_b, ballRLE.value_c, ballRLE.window);
-    //rleBallRad = RLE(linesRad, UAV_NOCOLORS_BIT, UAV_ORANGE_BIT, UAV_NOCOLORS_BIT, 0, ballRLE.value_b, 0, 40);
+    //rleBallRad = RLE(linesRad, UAV_NOCOLORS_BIT, UAV_ORANGE_BIT, UAV_NOCOLORS_BIT, int(ballRLE.value_a), ballRLE.value_b, ballRLE.value_c, ballRLE.window);
+    rleBallShort = RLE(ballScan, UAV_GREEN_BIT, UAV_ORANGE_BIT, UAV_GREEN_BIT, 1, 1, 1,20);
+
 
     // RLE Obstacles
     rleObs = RLE(linesRad, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 4, 2, 0, 30);
     rleObs_2 = RLE(linesRad, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 0, 30, 0, 30);
-    //rleLinesRad_2 = RLE(linesCir, UAV_GREEN_BIT, UAV_BLACK_BIT, UAV_GREEN_BIT, 4, 1, 4, 30);
 
     //Analyze and parse RLE's
     linePoints.clear(); obstaclePoints.clear(); ballPoints.clear();
@@ -357,17 +367,16 @@ void ImageProcessor::detectInterestPoints()
 
     // Lines RLE
     rleLinesRad.LinespushData(linePoints, idxImage, distPix, distPixVal, Point(imageConf.center_x,imageConf.center_y), mirrorConf.filter_lines);
-    //rleLinesRad_2.LinespushData(linePoints, idxImage, distPix, distPixVal, Point(imageConf.center_x,imageConf.center_y), mirrorConf.filter_lines);
     //rleLinesRad.LinespushDataC(linePoints, idxImage);
     rleLinesCir.LinespushDataC(linePoints, idxImage);
 
     // Obstacles RLE
     rleObs.pushData(obstaclePoints, idxImage);
     rleObs_2.pushData(obstaclePoints, idxImage);
-    //rleLinesRad_2.pushData(obstaclePoints, idxImage);
 
     // Ball RLE
     rleBallRad.pushData(ballPoints, idxImage);
+    rleBallShort.pushData(ballPoints, idxImage);
 
 }
 

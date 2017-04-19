@@ -156,6 +156,7 @@ private:
     Mutex mutex;
     struct timespec past,present;
     int rob_id;
+    bool changed;
     //###############################
     //###############################
 

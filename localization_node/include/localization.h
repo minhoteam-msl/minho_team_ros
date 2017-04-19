@@ -58,6 +58,8 @@ private:
    //ROS Services
    ros::ServiceServer reloc_service;
    bool reloc;
+   bool ballGlobal;
+   int reloc_counter,ball_counter;
    ros::ServiceServer ext_debug_service;
    bool generate_extended_debug;
    unsigned int service_call_counter;

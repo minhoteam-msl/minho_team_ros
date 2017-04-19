@@ -164,8 +164,9 @@ private:
    // Implementation USING RLE
    void rleModInitialization(); // Inits RLE Mode sensors and RLE's
    void preProcessIndexedImage(); // Preprocesses image, labeling it for RLE scan
-   ScanLines linesRad, linesCir; Mat idxImage;
-   RLE rleBallRad,rleLinesRad,rleObs,rleBallCir,rleLinesCir,rleLinesRad_2,rleObs_2;
+   ScanLines linesRad, linesCir,ballScan;
+   Mat idxImage;
+   RLE rleBallRad,rleBallShort,rleLinesRad,rleObs,rleBallCir,rleLinesCir,rleLinesRad_2,rleObs_2;
 
    //ConfigFiles strings
    QString field; QString agent;

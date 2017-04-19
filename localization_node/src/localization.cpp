@@ -6,6 +6,9 @@ Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success
    initVariables();
    camera = use_camera;
    fieldSide = side;
+   reloc_counter = (int)RELOC_COUNT;
+   ball_counter = 0;
+   ballGlobal = true;
    if(!use_camera) is_hardware_ready = true; // for test purposes
    else is_hardware_ready = false;
    //#### Initialize major components ####
@@ -82,19 +85,19 @@ void Localization::discoverWorldModel() // Main Function
    // Acquire image using function pointer
    buffer = CALL_MEMBER_FN((*processor),processor->acquireImage)(&have_image);
    // Localization code
-   /* 
+   /*
       If USE_IMU, reloc is done with imu angle, otherwise, it is with 0.
-      If USE_IMU,  
+      If USE_IMU,
    */
-   
+
    if(have_image && is_hardware_ready){
-   
+
       if(reloc){
         if(!USE_IMU) last_state.robot_pose.z = current_hardware_state.imu_value = 0; // if not using imu, reloc must be done at 0º
         else last_state.robot_pose.z = current_hardware_state.imu_value;
         ROS_ERROR("Reloc Angle: %d",current_hardware_state.imu_value);
       }
-      
+
       //loctime.start();
       // Detect points of interest like lines, obstacles and ball
       processor->detectInterestPoints(); //  máximo 10ms que demorou (em média)
@@ -111,8 +114,14 @@ void Localization::discoverWorldModel() // Main Function
          // Do global localization
          //loctime.start();
          reloc = computeGlobalLocalization(fieldSide);
+
+         if(reloc_counter >= 0){
+           std::cerr << reloc_counter << endl;
+           reloc = true;
+           reloc_counter--;
+         }
          //std::cerr << "Tempo localização:  " << double(loctime.elapsed())<<endl;
-      } else {  // Local localization
+       } else {  // Local localization
          //loctime.start();
          // Do local localization
          float odometryDelta = sqrt((odometry.x*odometry.x)+(odometry.y*odometry.y));
@@ -129,7 +138,7 @@ void Localization::discoverWorldModel() // Main Function
       sendWorldInfo(); // Load obstacls to current_state for further publish (only sends Blobs)
       generateDebugData(); // generate Debug Data
       memset(&odometry,0,sizeof(localizationEstimate)); // Clears odometry object to do nto use past values
-      
+
 	  robot_info_pub.publish(current_state); // Publish information
 	  last_state = current_state; // Saves current_state to next iteration
    }
@@ -427,7 +436,7 @@ bool Localization::doReloc(requestReloc::Request &req,requestReloc::Response &re
    memset(&vision,0,sizeof(localizationEstimate));
    last_state.robot_pose = current_state.robot_pose;
    last_state.robot_velocity = current_state.robot_velocity;
-
+   reloc_counter = (int)RELOC_COUNT;
    reloc = true;
    return true;
 }
@@ -550,7 +559,7 @@ void Localization::fuseOrientationEstimates()
     //P = (1-K)*P'
     // Variância da estimativa = Variância da previsão * (1 – Ganho do Kalman)
     kalman.covariance.z = (1-kalman.K.z)*kalman.predictedCovariance.z;
- 
+
 } else current_state.robot_pose.z = last_state.robot_pose.z + odometry.angle;
 
 }
@@ -626,18 +635,64 @@ void Localization::decideBallPossession()
    // if the robot possesses the ball or not
    // ########################################################################
    current_state.has_ball = current_hardware_state.ball_sensor;
-   float mindist = 1000.0; int nearBall = 0;
-   for(int i=0;i<processor->ballBlob.UMblobs.size();i++){
-      if(processor->ballBlob.UMblobs[i].dist_to_robot<=mindist){
-         mindist = processor->ballBlob.UMblobs[i].dist_to_robot;
-         nearBall = i;
-      }
-   }
-   if(!processor->ballBlob.UMblobs.size()) current_state.sees_ball = false;
-   else {
-      current_state.sees_ball = true;
-      current_state.ball_position.x = processor->ballBlob.UMblobs[nearBall].center.x + current_state.robot_pose.x;
-      current_state.ball_position.y = processor->ballBlob.UMblobs[nearBall].center.y + current_state.robot_pose.y;
+   float mindist = 1000.0, balldist = 0.00; int nearBall = 0;
+   if(ballGlobal){
+     ball_counter = 0;
+     for(int i=0;i<processor->ballBlob.UMblobs.size();i++){
+        if(processor->ballBlob.UMblobs[i].dist_to_robot<=mindist){
+           mindist = processor->ballBlob.UMblobs[i].dist_to_robot;
+           nearBall = i;
+        }
+     }
+
+     if(!processor->ballBlob.UMblobs.size()) current_state.sees_ball = false;
+     else {
+       ballGlobal = false;
+       current_state.sees_ball = true;
+       current_state.ball_position.x = processor->ballBlob.UMblobs[nearBall].center.x + current_state.robot_pose.x;
+       current_state.ball_position.y = processor->ballBlob.UMblobs[nearBall].center.y + current_state.robot_pose.y;
+     }
+   } else {
+     if(!processor->ballBlob.UMblobs.size()) {
+       if(ball_counter<COUNT_BALL){
+         current_state.ball_position = last_state.ball_position;
+         current_state.sees_ball = true;
+         ball_counter++;
+       }else {
+         ball_counter=0;
+         current_state.sees_ball=false;
+         ballGlobal = true;
+       }
+     } else {
+        Point2d aux;
+        mindist = 1000.0; balldist = 0.00; nearBall = 0;
+        bool found = false;
+        for(int i=0;i<processor->ballBlob.UMblobs.size();i++){
+          aux.x = processor->ballBlob.UMblobs[i].center.x + current_state.robot_pose.x;
+          aux.y = processor->ballBlob.UMblobs[i].center.y + current_state.robot_pose.y;
+          balldist = sqrt(pow(aux.x-last_state.ball_position.x,2)+pow(aux.y-last_state.ball_position.y,2));
+          if(balldist <= SEARCH_BALL_RADIUS && balldist<mindist){
+            mindist = balldist;
+            nearBall = i;
+            found = true;
+          }
+       }
+       if(found){
+          current_state.sees_ball = true;
+          current_state.ball_position.x = processor->ballBlob.UMblobs[nearBall].center.x + current_state.robot_pose.x;
+          current_state.ball_position.y = processor->ballBlob.UMblobs[nearBall].center.y + current_state.robot_pose.y;
+       }else{
+         if(ball_counter<COUNT_BALL){
+           current_state.ball_position = last_state.ball_position;
+           current_state.sees_ball = true;
+           ball_counter++;
+         }else {
+           ball_counter=0;
+           current_state.sees_ball=false;
+           ballGlobal = true;
+         }
+       }
+     }
    }
 }
 
@@ -696,7 +751,7 @@ void Localization::calcHistOrientation()
   int indice=0, sum = 0;
   int px = 0, py = 0, index = 0;
   int startAngle = last_state.robot_pose.z, histEstimate = 0;
-  
+
   for(int i = -(HIST_ANG/2); i <= (HIST_ANG/2); i++){
     index = i+(HIST_ANG/2);
     rotatePoints((int)i+startAngle);
@@ -718,7 +773,7 @@ void Localization::calcHistOrientation()
   }
   histEstimate = indice + startAngle;
 //  ROS_INFO("angulo: %d",histEstimate);
-  
+
   if(USE_IMU){
     if(current_hardware_state.imu_value < 90.0 && histEstimate > 270.0) histEstimate -= 360.0;
     if(current_hardware_state.imu_value > 270.0 && histEstimate < 90.0) histEstimate += 360.0;
@@ -834,7 +889,7 @@ bool Localization::computeGlobalLocalization(int side) //compute initial localiz
         }
       }
     }
-    
+
     vision.x = leastPos.x;
     vision.y = leastPos.y;
     vision.angle = current_state.robot_pose.z;

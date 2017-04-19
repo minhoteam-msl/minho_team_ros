@@ -28,6 +28,9 @@
 
 #define REFERENCE 2*2
 #define DISTANCE 4*4
+#define RELOC_COUNT 3
+#define SEARCH_BALL_RADIUS 1.0
+#define COUNT_BALL 60
 
 // LUT DEFINES
 #define LUT_SIZE 256*256*256
