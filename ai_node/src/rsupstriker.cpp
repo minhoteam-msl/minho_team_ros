@@ -1,5 +1,7 @@
 #include "rsupstriker.h"
 #define distFromBall 1.0
+#define parkingDist 0.2
+
 /* What rSUPSTRIKER Does:
 Parking - Goes to parking spot 3
 Own Kickoff - Passes the ball to rSTRIKER
@@ -25,7 +27,9 @@ void RoleSupStriker::determineAction()
 {
    if(mBsInfo.gamestate==sSTOPPED) { passed_after_engage = false; mAction = aSTOP; }
    else if(mBsInfo.gamestate==sPARKING||
-           mBsInfo.gamestate==sPRE_THEIR_KICKOFF){
+           mBsInfo.gamestate==sPRE_THEIR_KICKOFF||
+           mBsInfo.gamestate==sPRE_THEIR_FREEKICK||
+           mBsInfo.gamestate==sTHEIR_FREEKICK){
       // Slow motion for parking or precise positioning
       mAction = aAPPROACHPOSITION;
    }else if(mBsInfo.gamestate==sPRE_OWN_KICKOFF||
@@ -39,7 +43,7 @@ void RoleSupStriker::determineAction()
       else mAction = aENGAGEBALL;
    }else {
       // For now, do aFASTMOVE for every other game state
-      mAction = aFASTMOVE;
+      mAction = aAPPROACHPOSITION;
    }
 }
 
@@ -59,10 +63,14 @@ void RoleSupStriker::computeAction(aiInfo *ai)
          // Go to parking spot
          if(mBsInfo.posxside) ai->target_pose.x = 2.4;
          else ai->target_pose.x = -2.4;
-         ai->target_pose.y = side_line_y+0.2;
+         ai->target_pose.y = side_line_y+parkingDist;
          ai->target_pose.z = 180.0;
          break;
-      }      
+      }   
+      
+      //////////////////////////////////////////////////
+      //////////////////////////////////////////////////
+         
       case sPRE_OWN_KICKOFF:{
          // Go to edge of big circle, to dont collide with the ball
          // approach ball
@@ -137,6 +145,10 @@ void RoleSupStriker::computeAction(aiInfo *ai)
          
          break; 
       }
+      
+      //////////////////////////////////////////////////
+      //////////////////////////////////////////////////
+      
       case sPRE_THEIR_KICKOFF:
       case sTHEIR_KICKOFF:{
          // Go to middle half of left/right field and rotate towards ball
@@ -156,6 +168,10 @@ void RoleSupStriker::computeAction(aiInfo *ai)
          ai->target_pose.z = orientationToTarget(tarx,tary);
          break;
       }
+      
+      //////////////////////////////////////////////////
+      //////////////////////////////////////////////////
+      
       case sPRE_OWN_FREEKICK:{
          // place himself between the ball and the opposite goal, facing the other goal
          passed_after_engage = false;
@@ -218,6 +234,29 @@ void RoleSupStriker::computeAction(aiInfo *ai)
          
          break;
       }
+      
+            
+      //////////////////////////////////////////////////
+      //////////////////////////////////////////////////
+      
+      case sPRE_THEIR_FREEKICK:
+      case sTHEIR_FREEKICK:{
+         if(mRobot.sees_ball){
+            double thresh_distance = 3.0;
+            // get only enemy obstacles
+            std::vector<obstacle> enemyObstacles;
+             for(int i=0;i<mRobot.obstacles.size();i++){
+                if(mRobot.obstacles[i].isenemy)
+                    enemyObstacles.push_back(mRobot.obstacles[i]);
+             }
+            
+            // get nearest obstacle
+             
+             
+         } else {
+             
+         }      
+      } 
       default: {mAction = aSTOP; break; }
    }
 
