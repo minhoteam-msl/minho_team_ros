@@ -206,7 +206,7 @@ void Behavior::doWork()
     control_info = controlInfo();  // !!!!!
 
     /// \brief Implement behaviour based on ai info
-
+    float heading_error = 0.0;
     switch(ai_info_copy.action) {
     case aSTOP: {
         control_info.linear_velocity = control_info.angular_velocity = 0;
@@ -263,7 +263,10 @@ void Behavior::doWork()
     case aPASSBALL: {
         goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 1.0);
         control_info.linear_velocity = 0;
-        if(fabs(robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)<5.0){
+        heading_error = atan2(sin((robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)*DEGTORAD), cos((robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)*DEGTORAD))*DEGTORAD;
+        ROS_INFO("HEADING %.2f",heading_error);
+        
+        if(fabs(heading_error)<5.0){
             requestKick srv;
             srv.request.kick_is_pass = true;
             srv.request.kick_strength = ai_info_copy.target_kick_strength;
@@ -275,8 +278,21 @@ void Behavior::doWork()
     case aKICKBALL: {
         goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 1.0);
         control_info.linear_velocity = 0;
-        float heading_error = atan2(sin((robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)*DEGTORAD), cos((robot_info_copy.robot_pose.z-ai_info_copy.target_pose.z)*DEGTORAD));
-        ROS_INFO("HEADING %.2f",heading_error);
+        
+        float ha = robot_info_copy.robot_pose.z;
+        while(ha<0) ha += 360.0;
+        while(ha>360) ha -= 360.0;
+        
+        float hb = ai_info_copy.target_pose.z;
+        while(hb<0) hb += 360.0;
+        while(hb>360) hb -= 360.0;
+        
+        if(ha<90&&hb>270) hb -= 360.0;
+        if(ha>270 && hb<90) hb += 360.0;
+        
+        float heading_error = fabs(ha-hb);
+        ROS_INFO("Heading error %.2f", heading_error);
+        
         if(heading_error<5.0){
             requestKick srv;
             srv.request.kick_is_pass = false;
