@@ -69,7 +69,7 @@ typedef enum BlobType{OBS_BLOB=0, BALL_BLOB} BlobType;
 ############################################################################
 ############################################################################
 */
-#define IMG_SIZE 480
+#define IMG_SIZE 640
 
 #define IMG_RAW 0x01
 #define IMG_SEG 0x02

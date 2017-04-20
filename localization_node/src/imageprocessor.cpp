@@ -120,7 +120,7 @@ bool ImageProcessor::initWorldMapping()
     mirrorConf.max_distance = max_distance.toFloat();
     mirrorConf.step = step.toFloat();
     mirrorConf.filter_lines = filter_li.toInt();
-    mirrorConf.scanline_length = scan_size.toInt();
+    //mirrorConf.scanline_length = scan_size.toInt();
     int expected_args = (int)(mirrorConf.max_distance/mirrorConf.step);
     QStringList mappedDists = pixel_distances.split(",");
     QStringList lineLeng = line_length.split(","); // está a ler apenas,falta fazer o resto
@@ -138,6 +138,7 @@ bool ImageProcessor::initWorldMapping()
       mirrorConf.pixel_distances.push_back(mappedDists[i].toInt());
       mirrorConf.lines_length.push_back(lineLeng[i].toInt());
     }
+    mirrorConf.scanline_length = (distPix.size()-1)+5;
     file.close();
     //
 
@@ -494,7 +495,7 @@ void ImageProcessor::generateMirrorConfiguration()
    }
 
    // create mask image
-   mask = Mat(480,480,CV_8UC3,Scalar(0,0,0));
+   mask = Mat(IMG_SIZE,IMG_SIZE,CV_8UC3,Scalar(0,0,0));
    vector<Point> maskContourPoints; maskContourPoints.clear();
    for(int i=0;i<mirrorConf.mask_contour.size();i++){
       maskContourPoints.push_back(Point((int)mirrorConf.mask_contour[i].x,
