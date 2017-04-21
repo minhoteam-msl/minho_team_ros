@@ -13,6 +13,7 @@
 #define FIELDS_PATH "Fields/"
 #define LOC_CFG_PATH "Configs/loc_cfg/"
 #define CTRL_CFG_PATH "Configs/ctrl_cfg/"
+#define KIN_CFG_PATH "Configs/kin_cfg/"
 
 // FILE NAMES
 #define MIRRORFILENAME "mirror.cfg"
@@ -25,6 +26,9 @@
 #define PROPERTYFILENAME "property.cfg"
 #define WORLDFILENAME "worldconstruction.cfg"
 #define KALMANFILENAME "kalman.cfg"
+
+#define KINLUTFILENAME "kinlut.cfg"
+#define KINPARAMSFILENAME "kinparams.cfg"
 
 #define REFERENCE 2*2
 #define DISTANCE 4*4
