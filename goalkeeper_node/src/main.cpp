@@ -14,6 +14,9 @@
 #include "Utils/rttimer.h"
 #include <boost/process.hpp>
 
+#define DATA_UPDATE_HZ 40
+#define DATA_UPDATE_USEC 1000000/DATA_UPDATE_HZ
+
 using namespace ros;
 using namespace std;
 
@@ -23,6 +26,15 @@ using minho_team_ros::goalKeeperInfo; //Namespace for gk info information msg - 
 
 //kinectVision *gkvision;
 lidarLocalization *localization;
+
+/// \brief main sending thread
+pthread_t send_info_thread;
+/// \brief periodic_info struct containing info to make
+/// thread a timed function
+periodic_info pi_sendth;
+
+goalKeeperInfo keeper;
+ros::Publisher gk_info_pub;
 
 void hardwareInfoCallback(const hardwareInfo::ConstPtr& msg)
 {
@@ -73,8 +85,32 @@ bool checkHardwareAvailability()
         else ROS_ERROR("Failed to find kinect device.");
         avkin.close();
     }
+    
+    pi_sendth.id = 1; pi_sendth.period_us = DATA_UPDATE_USEC;
 
     return true;
+}
+
+/// \brief main thread to send robot information update over UDP socket
+/// \param signal - system signal for timing purposes
+void* updateLocalizationData(void *data)
+{
+   static int counter = 0;
+   periodic_info *info = (periodic_info *)(data);
+   make_periodic(info->period_us,info);
+
+   while(ros::ok()){
+      //gkvision->updateLocalizationData(localization->getPose(),localization->getVelocities(), localization->getWorldPoints());
+      Point3d pose = localization->getPose();
+	    
+	  keeper.robot_info.robot_pose.x = pose.x;
+	  keeper.robot_info.robot_pose.y = pose.y;
+	  keeper.robot_info.robot_pose.z = pose.z;
+	    
+	  gk_info_pub.publish(keeper);
+      wait_period(info);
+   }
+   return NULL;
 }
 
 int main(int argc, char **argv)
@@ -88,7 +124,7 @@ int main(int argc, char **argv)
 	ros::Subscriber hardware_info_sub = gk_node.subscribe("hardwareInfo", 1, hardwareInfoCallback);
 	//Initialize scan subscriber
 	ros::Subscriber scan_info_sub = gk_node.subscribe("scan", 1, laserScanCallback);
-	ros::Publisher gk_info_pub = gk_node.advertise<goalKeeperInfo>("goalKeeperInfo", 1);
+	gk_info_pub = gk_node.advertise<goalKeeperInfo>("goalKeeperInfo", 1);
 	ros::AsyncSpinner spinner(2);
 	
 	goalKeeperInfo data;
@@ -100,17 +136,7 @@ int main(int argc, char **argv)
 	    spinner.start();
 	} else ROS_ERROR("Failed to find hardware modules for goalkeeper node");
 	
-	while(ros::ok()) { 
-	    Point3d pose = localization->getPose();
-	    
-	    data.robot_info.robot_pose.x = pose.x;
-	    data.robot_info.robot_pose.y = pose.y;
-	    data.robot_info.robot_pose.z = pose.z;
-	    
-	    gk_info_pub.publish(data);
-	    
-	    thsleepms(30); 
-	
-	}
+	pi_sendth.id = 1; pi_sendth.period_us = DATA_UPDATE_USEC;
+    pthread_create(&send_info_thread, NULL, updateLocalizationData,&pi_sendth);
 	return 0;
 }

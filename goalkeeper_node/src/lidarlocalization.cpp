@@ -210,9 +210,7 @@ void lidarLocalization::updateLidarEstimate(vector<float> *distances)
 		
 		if(worldPoints.size()>100){
 			memset(&odometry,0,sizeof(struct localizationEstimate));
-			assertPoseToGlobalPosition();  
-			
-			ROS_INFO("%.2f %.2f %.2f",poseM.x, poseM.y, poseM.z);		
+			assertPoseToGlobalPosition();  		
 		} else{
 			pose.x +=odometry.x;
 			pose.y +=odometry.y;
@@ -224,7 +222,6 @@ void lidarLocalization::updateLidarEstimate(vector<float> *distances)
 	}
 	
 	LastLidarAng = lidar.angle;
-	doGlobalLocalization = true;
 }
 
 void lidarLocalization::fuseEstimates()
