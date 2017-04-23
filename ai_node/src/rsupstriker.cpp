@@ -25,7 +25,7 @@ void RoleSupStriker::setRosNodeHandle(ros::NodeHandle *parent, std::string topic
 
 void RoleSupStriker::determineAction()
 {
-   if(mBsInfo.gamestate==sSTOPPED) { passed_after_engage = false; mAction = aSTOP; }
+   if(mBsInfo.gamestate==sSTOPPED) { passed_after_engage = false; ball_position_locked = false; mAction = aSTOP; }
    else if(mBsInfo.gamestate==sPARKING||
            mBsInfo.gamestate==sPRE_THEIR_KICKOFF ||
            mBsInfo.gamestate==sTHEIR_KICKOFF ||
@@ -91,7 +91,7 @@ void RoleSupStriker::computeAction(aiInfo *ai)
       case sPRE_OWN_KICKOFF:{
          // Go to edge of big circle, to dont collide with the ball
          // approach ball
-         passed_after_engage = false;
+         passed_after_engage = ball_position_locked = false;
          stab_counter = 0;
          ai->target_pose.x = 0; 
          if(!mBsInfo.posxside){
@@ -190,7 +190,7 @@ void RoleSupStriker::computeAction(aiInfo *ai)
       
       case sPRE_OWN_FREEKICK:{
          // place himself between the ball and the opposite goal, facing the other goal
-         passed_after_engage = false;
+         passed_after_engage = ball_position_locked = false;
          stab_counter = 0;
          if(!mBsInfo.posxside){
             ai->target_pose.x = mRobot.ball_position.x+distFromBall;
@@ -258,25 +258,69 @@ void RoleSupStriker::computeAction(aiInfo *ai)
       
       case sPRE_THEIR_FREEKICK:
       case sTHEIR_FREEKICK:{
-         if(mRobot.sees_ball){
-            double thresh_distance = 3.0;
-            // get only enemy obstacles
+      
+         if(mRobot.sees_ball) {
+            kick_spot.x = mRobot.ball_position.x;
+            kick_spot.y = mRobot.ball_position.y;
+            ball_position_locked = true;
+         }    
+
+         if(ball_position_locked){
+            float thresh_distance = 3.0;
+            float cover_distance = 5.0;
+            float dist_to_ball = 0.0;
+            float dist_to_cover = 0.0;
             
+            // get only enemy obstacles
             // Design cover function with respect to 
             // a certain area of coverage
-            
-            
-            std::vector<obstacle> enemyObstacles;
+            float nearestDist = 0.0; int nearestObs = 0;
+            std::vector<obstacle> enemyObstacles, teamMates;
              for(int i=0;i<mRobot.obstacles.size();i++){
-                if(mRobot.obstacles[i].isenemy)
+                dist_to_ball = sqrt((mRobot.obstacles[i].x-kick_spot.x)*(mRobot.obstacles[i].x-kick_spot.x)+
+                                    (mRobot.obstacles[i].y-kick_spot.y)*(mRobot.obstacles[i].y-kick_spot.y));
+                                    
+                if(mRobot.obstacles[i].isenemy && dist_to_ball<=cover_distance && dist_to_ball>=1.5)
                     enemyObstacles.push_back(mRobot.obstacles[i]);
+                else if(!mRobot.obstacles[i].isenemy) teamMates.push_back(mRobot.obstacles[i]);
              }
             
             // get nearest obstacle
-             
+            if(!enemyObstacles.size()){
+                ai->target_pose.x = mRobot.ball_position.x; 
+                if(mRobot.ball_position.y>=0.0) ai->target_pose.y = mRobot.ball_position.y-thresh_distance;  
+                else ai->target_pose.y = mRobot.ball_position.y+thresh_distance; 
+               
+                break;
+            } else {
+                bool foundObsToCover = false;
+                int obsCount = 0;
+                while(!foundObsToCover && obsCount<enemyObstacles.size()){
+                    foundObsToCover = true;
+                    for(int i = 0;i<teamMates.size();i++){
+                        dist_to_cover = sqrt((teamMates[i].x-enemyObstacles[obsCount].x)*(teamMates[i].x-enemyObstacles[obsCount].x)+
+                                   (teamMates[i].y-enemyObstacles[obsCount].y)*(teamMates[i].y-enemyObstacles[obsCount].y));   
+                        if(dist_to_cover<=0.8) { foundObsToCover = false; break; }
+                    } 
+                    
+                    if(!foundObsToCover) obsCount++;
+                    else {
+                        // Found good position to cover the targeted obstacle
+                        ai->target_pose.x = enemyObstacles[obsCount].x; 
+                        ai->target_pose.y = enemyObstacles[obsCount].y; 
+                        break;
+                    }
+                }
+                
+                if(!foundObsToCover){
+                    ai->target_pose.x = mRobot.ball_position.x; 
+                    if(mRobot.ball_position.y>=0.0) ai->target_pose.y = mRobot.ball_position.y-thresh_distance;  
+                    else ai->target_pose.y = mRobot.ball_position.y+thresh_distance;    
+                }
+            }
              
          } else {
-             
+            mAction = aSTOP;       
          }   
          
          break;   
@@ -286,7 +330,7 @@ void RoleSupStriker::computeAction(aiInfo *ai)
       //////////////////////////////////////////////////
       
       case sPRE_OWN_GOALKICK:{
-        passed_after_engage = false;
+        passed_after_engage = ball_position_locked = false;
         float tarx = big_area_x;
         if(!mBsInfo.posxside) tarx *= -1;
       
