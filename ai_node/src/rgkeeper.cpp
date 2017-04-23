@@ -1,4 +1,5 @@
 #include "rgkeeper.h"
+#define parkingDist 0.2
 
 /* What rSUPSTRIKER Does:
 Parking - Goes to parking spot 1
@@ -29,7 +30,9 @@ void RoleGoalKeeper::determineAction()
    else if(mBsInfo.gamestate==sPARKING || mBsInfo.gamestate==sPRE_OWN_KICKOFF ||
            mBsInfo.gamestate==sOWN_KICKOFF || mBsInfo.gamestate==sPRE_THEIR_KICKOFF ||
            mBsInfo.gamestate==sTHEIR_KICKOFF || mBsInfo.gamestate==sPRE_THEIR_FREEKICK ||
-           mBsInfo.gamestate==sPRE_OWN_FREEKICK || mBsInfo.gamestate==sGAME_OWN_BALL) mAction = aAPPROACHPOSITION;
+           mBsInfo.gamestate==sPRE_OWN_FREEKICK || mBsInfo.gamestate==sGAME_OWN_BALL ||
+           mBsInfo.gamestate==sPRE_OWN_GOALKICK || mBsInfo.gamestate==sOWN_GOALKICK ||
+           mBsInfo.gamestate==sPRE_THEIR_GOALKICK  || mBsInfo.gamestate==sTHEIR_GOALKICK  ) mAction = aAPPROACHPOSITION;
    else mAction = aFASTMOVE;     
 }
 
@@ -44,23 +47,19 @@ void RoleGoalKeeper::computeAction(aiInfo *ai)
    if(mAction==aSTOP)return;
 
    switch(mBsInfo.gamestate){
+      case sPRE_OWN_PENALTY:
+      case sOWN_PENALTY:{
+         mAction = aSTOP;
+         break;
+      }
       case sPARKING:{
          // Go to parking spot
          if(mBsInfo.posxside) ai->target_pose.x = 0.8;
          else ai->target_pose.x = -0.8;
-         ai->target_pose.y = side_line_y+0.5;
+         ai->target_pose.y = side_line_y+parkingDist;
          ai->target_pose.z = 180.0;
          break;
       }      
-      case sPRE_OWN_KICKOFF:
-      case sOWN_KICKOFF:
-      case sPRE_THEIR_KICKOFF:
-      case sTHEIR_KICKOFF:
-      case sPRE_OWN_FREEKICK:
-      case sGAME_OWN_BALL:{
-         goToMiddleOfGoalie();
-         break;
-      }
       case sPRE_THEIR_FREEKICK:{
          // Harm situation, stay in the middle of the goalie 
          // but rotate towards the ball to maximize field of view
@@ -76,8 +75,11 @@ void RoleGoalKeeper::computeAction(aiInfo *ai)
          break;
       }
 
-      case sOWN_FREEKICK: // remove later
+      case sTHEIR_KICKOFF:
       case sTHEIR_FREEKICK:
+      case sTHEIR_CORNER:
+      case sTHEIR_THROWIN:
+      case sTHEIR_PENALTY:
       case sGAME_THEIR_BALL:{
          // Harm game situation, implement mixed game defense strategy
          // with spotting areas. If the ball has impact point inside
@@ -102,7 +104,7 @@ void RoleGoalKeeper::computeAction(aiInfo *ai)
          } else goToMiddleOfGoalie(); // If we dont see the ball, stay in the middle
          break;
       }
-      default: {mAction = aSTOP; break; }
+      default: { goToMiddleOfGoalie(); break; }
    }
 
    ai->action = mAction;  

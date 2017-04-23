@@ -47,7 +47,8 @@
 #include <boost/process/stream_id.hpp>
 #include <boost/process/stream_ends.hpp>
 #include <boost/process/handle.hpp>
-#include <boost/filesystem/path.hpp>
+//#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/system/system_error.hpp>
 #include <boost/throw_exception.hpp>

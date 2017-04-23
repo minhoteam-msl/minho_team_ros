@@ -213,14 +213,20 @@ void Behavior::doWork()
         control_info.dribbler_on = false;
     } break;
 
-    case aAPPROACHPOSITION: {
+    case aAPPROACHPOSITION: { // ball is an obstacle, dont touch it
+        if(robot_info_copy.sees_ball){
+            obstacle ballobs;
+            ballobs.x = robot_info_copy.ball_position.x;
+            ballobs.y = robot_info_copy.ball_position.y;
+            robot_info_copy.obstacles.push_back(ballobs);
+        }
         if(USE_PATH)
             dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
         goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 0.5);
         control_info.dribbler_on = false;
     } break;
 
-    case aFASTMOVE: {
+    case aFASTMOVE: { 
         if(USE_PATH)
             dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
         goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 1.0);
@@ -237,16 +243,23 @@ void Behavior::doWork()
     case aENGAGEBALL: {
         if(USE_PATH)
             dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
-        goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 1.0);
+        goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 0.8);
         float distToBall = sqrt(
                     (robot_info_copy.robot_pose.x-ai_info_copy.target_pose.x)*
                     (robot_info_copy.robot_pose.x-ai_info_copy.target_pose.x)
                     +((robot_info_copy.robot_pose.y-ai_info_copy.target_pose.y)*
                     (robot_info_copy.robot_pose.y-ai_info_copy.target_pose.y)));
-        if(distToBall<0.33){control_info.linear_velocity = control_info.angular_velocity = 0;}
+        if(distToBall<0.33){control_info.linear_velocity = control_info.angular_velocity = 0;} // test this in real life
         control_info.dribbler_on = true;
     } break;
 
+    case aSLOWENGAGEBALL: {
+        if(USE_PATH)
+            dijkstra_path->Test1(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
+        goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 0.3);
+        control_info.dribbler_on = true;
+    } break;
+    
     case aAPPROACHBALL: {
         if(robot_info_copy.sees_ball){
             obstacle ballobs;
@@ -261,10 +274,7 @@ void Behavior::doWork()
     } break;
 
     case aPASSBALL: {
-        goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 1.0);
-        control_info.linear_velocity = 0;
-        
-        float ha = robot_info_copy.robot_pose.z;
+         float ha = robot_info_copy.robot_pose.z;
         while(ha<0) ha += 360.0;
         while(ha>360) ha -= 360.0;
         
@@ -277,7 +287,14 @@ void Behavior::doWork()
         
         float heading_error = fabs(ha-hb);
         
-        if(heading_error<5.0){
+        if(heading_error <= 30){
+            control_config_copy.Kp_rot *= 10; // boost when rotating with the ball    
+        }
+        
+        goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 1.0);
+        control_info.linear_velocity = 0;
+        
+        if(heading_error<3.0){
             requestKick srv;
             srv.request.kick_is_pass = true;
             srv.request.kick_strength = ai_info_copy.target_kick_strength;
@@ -287,9 +304,6 @@ void Behavior::doWork()
     } break;
 
     case aKICKBALL: {
-        goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 1.0);
-        control_info.linear_velocity = 0;
-        
         float ha = robot_info_copy.robot_pose.z;
         while(ha<0) ha += 360.0;
         while(ha>360) ha -= 360.0;
@@ -303,7 +317,14 @@ void Behavior::doWork()
         
         float heading_error = fabs(ha-hb);
         
-        if(heading_error<5.0){
+        if(heading_error <= 30){
+            control_config_copy.Kp_rot *= 10; // boost when rotating with the ball    
+        }
+        
+        goToPosition2(robot_info_copy, ai_info_copy, control_config_copy, path, 1.0);
+        control_info.linear_velocity = 0;
+        
+        if(heading_error<3.0){
             requestKick srv;
             srv.request.kick_is_pass = false;
             srv.request.kick_strength = ai_info_copy.target_kick_strength;
@@ -462,6 +483,10 @@ void Behavior::goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, 
         } else {
             //control_info.linear_velocity = max_vel;
             control_info.linear_velocity = motion->linearVelocity(cconfig, path, (int)ai.action, percent_vel);
+            if(ai.action==aENGAGEBALL || ai.action==aSLOWENGAGEBALL){ // base velocity for engaging the ball
+                control_info.linear_velocity += 10;
+                if(control_info.linear_velocity>cconfig.max_linear_velocity) control_info.linear_velocity = cconfig.max_linear_velocity; 
+            }
             stab_counter = 0;
         }
     }else {

@@ -19,6 +19,8 @@ std::string Role::getActiveActionName()
       case aFASTMOVE: return std::string("aFASTMOVE");
       case aAPPROACHBALL: return std::string("aAPPROACHBALL");
       case aENGAGEBALL: return std::string("aENGAGEBALL");
+      case aSLOWENGAGEBALL: return std::string("aSLOWENGAGEBALL");
+      case aRECEIVEBALL: return std::string("aRECEIVEBALL");
       case aKICKBALL: return std::string("aKICKBALL");
       case aPASSBALL: return std::string("aPASSBALL");   
       case aDRIBBLEBALL: return std::string("aDRIBBLEBALL"); 

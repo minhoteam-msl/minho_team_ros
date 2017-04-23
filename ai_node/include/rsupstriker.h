@@ -21,6 +21,7 @@ private:
    float goal_line_x;
    float side_line_y;
    float small_area_x,small_area_y;
+   float big_area_x, big_area_y, penalty_x;
    float center_circle_radius;
    bool passed_after_engage;
    vec2d kick_spot;
