@@ -116,7 +116,7 @@ bool ImageProcessor::initWorldMapping()
     mirrorConf.max_distance = max_distance.toFloat();
     mirrorConf.step = step.toFloat();
     mirrorConf.filter_lines = filter_li.toInt();
-    //mirrorConf.scanline_length = scan_size.toInt();
+    mirrorConf.scanline_length = scan_size.toInt();
     int expected_args = (int)(mirrorConf.max_distance/mirrorConf.step);
     QStringList mappedDists = pixel_distances.split(",");
     QStringList lineLeng = line_length.split(","); // está a ler apenas,falta fazer o resto
@@ -134,7 +134,7 @@ bool ImageProcessor::initWorldMapping()
       mirrorConf.pixel_distances.push_back(mappedDists[i].toInt());
       mirrorConf.lines_length.push_back(lineLeng[i].toInt());
     }
-    mirrorConf.scanline_length = (distPix.size()-1)+5;
+    //mirrorConf.scanline_length = (distPix.size()-1)+5;
     file.close();
     //
 
