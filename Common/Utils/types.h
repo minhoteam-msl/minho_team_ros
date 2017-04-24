@@ -2,6 +2,7 @@
 #define TYPES
 
 #include <QString>
+#include <iostream>
 /*
 ######### DATA TYPES AND PATHS DEFINITIONS #########
 ############################################################################
@@ -13,6 +14,7 @@
 #define FIELDS_PATH "Fields/"
 #define LOC_CFG_PATH "Configs/loc_cfg/"
 #define CTRL_CFG_PATH "Configs/ctrl_cfg/"
+#define KIN_CFG_PATH "Configs/kin_cfg/"
 
 // FILE NAMES
 #define MIRRORFILENAME "mirror.cfg"
@@ -25,6 +27,9 @@
 #define PROPERTYFILENAME "property.cfg"
 #define WORLDFILENAME "worldconstruction.cfg"
 #define KALMANFILENAME "kalman.cfg"
+
+#define KINLUTFILENAME "kinlut.cfg"
+#define KINPARAMSFILENAME "kinparams.cfg"
 
 #define REFERENCE 2*2
 #define DISTANCE 4*4
@@ -194,13 +199,18 @@ typedef union fieldDimensions{
 /// \brief defines the type of roles available to choose
 typedef enum Roles{rSTOP=0,rGOALKEEPER,rSUP_STRIKER,rSTRIKER} Roles;
 /// \brief defines the game states known by the system
-typedef enum GameState{sSTOPPED = 0,sPARKING,sPRE_OWN_KICKOFF,
-sOWN_KICKOFF,sPRE_THEIR_KICKOFF,sTHEIR_KICKOFF,sPRE_OWN_FREEKICK,
-sOWN_FREEKICK,sPRE_THEIR_FREEKICK, sTHEIR_FREEKICK,sGAME_OWN_BALL,
+typedef enum GameState{sSTOPPED = 0,sPARKING, sPRE_DROPBALL, sDROPBALL,
+sPRE_OWN_KICKOFF,sOWN_KICKOFF,sPRE_THEIR_KICKOFF,sTHEIR_KICKOFF,
+sPRE_OWN_FREEKICK,sOWN_FREEKICK,sPRE_THEIR_FREEKICK, sTHEIR_FREEKICK,
+sPRE_OWN_GOALKICK,sOWN_GOALKICK,sPRE_THEIR_GOALKICK, sTHEIR_GOALKICK,
+sPRE_OWN_THROWIN,sOWN_THROWIN,sPRE_THEIR_THROWIN, sTHEIR_THROWIN,
+sPRE_OWN_CORNER,sOWN_CORNER,sPRE_THEIR_CORNER, sTHEIR_CORNER,
+sPRE_OWN_PENALTY,sOWN_PENALTY,sPRE_THEIR_PENALTY, sTHEIR_PENALTY,
+sGAME_OWN_BALL,
 sGAME_THEIR_BALL} GameState;
 /// \brief defines the actions wich model the robots control approach
 typedef enum Actions{aSTOP = 0, aAPPROACHPOSITION, aFASTMOVE, aAPPROACHBALL,
-aENGAGEBALL, aRECEIVEBALL, aPASSBALL, aKICKBALL, aDRIBBLEBALL, aHOLDBALL}Actions;
+aENGAGEBALL, aSLOWENGAGEBALL ,aRECEIVEBALL, aPASSBALL, aKICKBALL, aDRIBBLEBALL, aHOLDBALL}Actions;
 
 // aSTOP -> Remain stopped
 // aAPPROACHPOSITION -> Approach a determined position with precision, with slow movement,

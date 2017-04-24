@@ -1,19 +1,32 @@
-#ifndef LIDARLOCALIZATION_H
-#define LIDARLOCALIZATION_H
-
 #include "Utils/types.h"
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <iostream>
+#include <stdlib.h>
+#include <QFile>
+#include <QTextStream>
+#include "ros/ros.h"
+#include "minho_team_ros/hardwareInfo.h"
+#include "minho_team_ros/robotInfo.h"
+#include <QTime>
+
+using namespace std;
+using namespace cv;
+using minho_team_ros::hardwareInfo;
+using minho_team_ros::robotInfo;
 
 class lidarLocalization
 {
 public:
-    explicit lidarLocalization(QObject *parent = 0);
+    lidarLocalization();
     // Setup and Output
     void initField(QString file_);
-    void drawWorldModel();
     Point3d getPose();
     Point3d getVelocities();
     vector<Point2f> getWorldPoints();
-    void setWorldModelView(Mat *cop);
+
+
     void readMapConfFile(QString file_);
     struct nodo parseString(QString str);
     double getDistance(double x,double y);
@@ -21,20 +34,21 @@ public:
     double errorFunction(double error);
     void calculateGlobalOptimum();
     void calculateBestLocalPose(double radius);
+    
     // Estimators
-    void updateOdometryEstimate(float robAngle, int enc1, int enc2, int enc3);
+    void updateOdometryEstimate(const hardwareInfo::ConstPtr &msg);
     void updateLidarEstimate(vector<float> *distances);
     void fuseEstimates();
+    
     // Math
     Point world2WorldModel(Point2d pos);
     Point2d mapPointToWorld(double rx,double ry,double angle, float dist, double theta, double offset);
-    void generateDetectedPoints();
     void assertPoseToGlobalPosition();
 private:
     // Math
     void mapDetectedPoints(vector<float> *distances);
     float NormalizeAngle(float angulo);
-    void configFilePaths();
+    bool configFilePaths();
     void initKalmanFilter();
     double normalizeAngle(double angulo);
     void computeVelocities();
@@ -52,8 +66,9 @@ private:
     fieldDimensions fieldAnatomy;
     struct localizationEstimate odometry;
     struct localizationEstimate lidar;
-    struct hardware currentHardware;
-    struct hardware lastHardware;
+    hardwareInfo current_hardware_state, last_hardware_state;
+    
+    
     Point3d pose,lastPose,poseM,lastPoseM;
     double meanError;
     Point2d tipPositionRight, tipPositionLeft;
@@ -62,11 +77,8 @@ private:
     QString mainFilePath, configFolderPath;
     QString fieldPath, mapPath;
     bool readyHardware;
-    QMutex hardwareMutex;
     // Kalman Filter
     struct MTKalmanFilter kalman;
     Point3d velocities;
     
 };
-
-#endif // LIDARLOCALIZATION_H

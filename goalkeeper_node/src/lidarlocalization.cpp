@@ -1,15 +1,15 @@
 #include "lidarlocalization.h"
 
 // CONSTRUCTOR
-lidarLocalization::lidarLocalization(QObject *parent) : QObject(parent)
+lidarLocalization::lidarLocalization()
 {
-    configFilePaths();
+    if(!configFilePaths()){
+        ROS_ERROR("Failed to read world map.");
+    }
     worldPoints.clear();
     readyHardware = false;
     memset(&odometry,0,sizeof(struct localizationEstimate));
     memset(&lidar,0,sizeof(struct localizationEstimate));
-    memset(&currentHardware,0,sizeof(struct hardware));
-    memset(&lastHardware,0,sizeof(struct hardware));
     lastPose = pose = Point3d(5.1,0.0,90);
     initField(fieldPath);
     readMapConfFile(mapPath);
@@ -28,94 +28,25 @@ void lidarLocalization::initField(QString file_)
     // Create view of current Field
     QFile file(file_);
     if(!file.open(QIODevice::ReadOnly)) {
-#ifdef USING_ROS
-        ROS_ERROR("Error reading worldView.cfg.");
-#else
-        cout <<"✖ Error reading worldView.cfg.\n";
-#endif
+        ROS_ERROR("Error reading %s",file_.toStdString().c_str());
         exit(6);
     }
     QTextStream in(&file);
 
-    QString value; int counter = 0;
+    QString value; 
+    int counter = 0;
     while(!in.atEnd()){
        value = in.readLine();
        fieldAnatomy.dimensions[counter] = value.right(value.size()-value.indexOf('=')-1).toInt();
        counter++;
     }
-
-    //using 1px -> FACTORcm relation
-    int relation = fieldAnatomy.fieldDims.FACTOR*10;
-    int anchorPoint1 = 0,anchorPoint2 = 0;
-    for(int i=0;i<counter;i++) if(i!=18) fieldAnatomy.dimensions[i] /= relation;
-    field = Mat(fieldAnatomy.fieldDims.TOTAL_WIDTH,fieldAnatomy.fieldDims.TOTAL_LENGTH,CV_8UC3,Scalar(0,120,0));
-    //draw outter line
-    anchorPoint1 = (fieldAnatomy.fieldDims.TOTAL_LENGTH-fieldAnatomy.fieldDims.LENGTH)/2+fieldAnatomy.fieldDims.LINE_WIDTH/2;
-    anchorPoint2 = (fieldAnatomy.fieldDims.TOTAL_WIDTH-fieldAnatomy.fieldDims.WIDTH)/2+fieldAnatomy.fieldDims.LINE_WIDTH/2;
-    rectangle(field,Point(anchorPoint1,anchorPoint2),Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH
-            ,anchorPoint2+fieldAnatomy.fieldDims.WIDTH),Scalar(255,255,255),fieldAnatomy.fieldDims.LINE_WIDTH);
-    //draw center line and circles
-    line(field,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH/2,anchorPoint2)
-        ,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH/2,anchorPoint2+fieldAnatomy.fieldDims.WIDTH),
-        Scalar(255,255,255),fieldAnatomy.fieldDims.LINE_WIDTH);
-    circle(field,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH/2,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2),
-           fieldAnatomy.fieldDims.SPOT_CENTER+2,Scalar(255,255,255),-1);
-    circle(field,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH/2,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2),
-           fieldAnatomy.fieldDims.CENTER_RADIUS,Scalar(255,255,255),fieldAnatomy.fieldDims.LINE_WIDTH);
-    //draw left area
-    rectangle(field,Point(anchorPoint1,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2-fieldAnatomy.fieldDims.AREA_WIDTH1/2)
-            ,Point(anchorPoint1+fieldAnatomy.fieldDims.AREA_LENGTH1,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2+fieldAnatomy.fieldDims.AREA_WIDTH1/2)
-            ,Scalar(255,255,255),fieldAnatomy.fieldDims.LINE_WIDTH);
-    rectangle(field,Point(anchorPoint1,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2-fieldAnatomy.fieldDims.AREA_WIDTH2/2)
-            ,Point(anchorPoint1+fieldAnatomy.fieldDims.AREA_LENGTH2,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2+fieldAnatomy.fieldDims.AREA_WIDTH2/2)
-            ,Scalar(255,255,255),fieldAnatomy.fieldDims.LINE_WIDTH);
-    circle(field,Point(anchorPoint1+fieldAnatomy.fieldDims.DISTANCE_PENALTY,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2),
-           fieldAnatomy.fieldDims.SPOT_CENTER,Scalar(255,255,255),-1);
-    //draw right area
-    rectangle(field,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2-fieldAnatomy.fieldDims.AREA_WIDTH1/2)
-            ,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH-fieldAnatomy.fieldDims.AREA_LENGTH1,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2+fieldAnatomy.fieldDims.AREA_WIDTH1/2)
-            ,Scalar(255,255,255),fieldAnatomy.fieldDims.LINE_WIDTH);
-    rectangle(field,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2-fieldAnatomy.fieldDims.AREA_WIDTH2/2)
-            ,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH-fieldAnatomy.fieldDims.AREA_LENGTH2,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2+fieldAnatomy.fieldDims.AREA_WIDTH2/2)
-            ,Scalar(255,255,255),fieldAnatomy.fieldDims.LINE_WIDTH);
-    circle(field,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH-fieldAnatomy.fieldDims.DISTANCE_PENALTY,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2),
-           fieldAnatomy.fieldDims.SPOT_CENTER,Scalar(255,255,255),-1);
-    //draw left corners
-    ellipse(field,Point(anchorPoint1,anchorPoint2),Size(fieldAnatomy.fieldDims.RADIUS_CORNER,fieldAnatomy.fieldDims.RADIUS_CORNER),
-            0.0,0.0,90.0,Scalar(255,255,255),fieldAnatomy.fieldDims.LINE_WIDTH);
-    ellipse(field,Point(anchorPoint1,anchorPoint2+fieldAnatomy.fieldDims.WIDTH),Size(fieldAnatomy.fieldDims.RADIUS_CORNER,fieldAnatomy.fieldDims.RADIUS_CORNER),
-            0.0,270.0,360.0,Scalar(255,255,255),fieldAnatomy.fieldDims.LINE_WIDTH);
-    //draw right corners
-    ellipse(field,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH,anchorPoint2),Size(fieldAnatomy.fieldDims.RADIUS_CORNER,fieldAnatomy.fieldDims.RADIUS_CORNER),
-            0.0,90.0,180.0,Scalar(255,255,255),fieldAnatomy.fieldDims.LINE_WIDTH);
-    ellipse(field,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH,anchorPoint2+fieldAnatomy.fieldDims.WIDTH),Size(fieldAnatomy.fieldDims.RADIUS_CORNER,fieldAnatomy.fieldDims.RADIUS_CORNER),
-            0.0,180.0,270.0,Scalar(255,255,255),fieldAnatomy.fieldDims.LINE_WIDTH);
-    //draw ref box
-    rectangle(field,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH/2-50,anchorPoint2+fieldAnatomy.fieldDims.WIDTH+5),
-             Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH/2+50,anchorPoint2+fieldAnatomy.fieldDims.WIDTH+25),
-              Scalar(255,0,255),-1);
-    putText(field,"REFBOX",Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH/2-30,anchorPoint2+fieldAnatomy.fieldDims.WIDTH+20),
-            CV_FONT_HERSHEY_COMPLEX,0.5,Scalar(0,0,0),2);
-    //draw right goalie
-    rectangle(field,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2-fieldAnatomy.fieldDims.GOALIE_LENGTH/2-fieldAnatomy.fieldDims.GOALIE_POST_WIDTH/2)
-            ,Point(anchorPoint1+fieldAnatomy.fieldDims.LENGTH+fieldAnatomy.fieldDims.GOALIE_WIDTH,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2+fieldAnatomy.fieldDims.GOALIE_LENGTH/2+fieldAnatomy.fieldDims.GOALIE_POST_WIDTH/2)
-            ,Scalar(255,255,255),fieldAnatomy.fieldDims.LINE_WIDTH);
-    //draw left goalie
-    rectangle(field,Point(anchorPoint1,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2-fieldAnatomy.fieldDims.GOALIE_LENGTH/2-fieldAnatomy.fieldDims.GOALIE_POST_WIDTH/2)
-            ,Point(anchorPoint1-fieldAnatomy.fieldDims.GOALIE_WIDTH,anchorPoint2+fieldAnatomy.fieldDims.WIDTH/2+fieldAnatomy.fieldDims.GOALIE_LENGTH/2+fieldAnatomy.fieldDims.GOALIE_POST_WIDTH/2)
-            ,Scalar(255,255,255),fieldAnatomy.fieldDims.LINE_WIDTH);
-
 }
 
 void lidarLocalization::readMapConfFile(QString file_)
 {
     QFile file(file_);
     if(!file.open(QIODevice::ReadOnly)) {
-#ifdef USING_ROS
         ROS_ERROR("Error reading %s",file_.toStdString().c_str());
-#else
-        cout <<"✖ Error reading " << file_.toStdString();
-#endif
        	exit(10);
     } QTextStream in(&file);
 
@@ -146,32 +77,26 @@ void lidarLocalization::readMapConfFile(QString file_)
     file.close();
 }
 
-void lidarLocalization::configFilePaths()
+bool lidarLocalization::configFilePaths()
 {
-#ifdef CATKIN_COMPILE
-    QString home = getenv("HOME");
-    mainFilePath = home+"/"+QString(mainPath);
-    configFolderPath = home+"/"+QString(cfgFolderPath);
-#else
-    mainFilePath = mainPath;
-    configFolderPath = cfgFolderPath;
-#endif
+    QString home = QString::fromStdString(getenv("HOME"));
+    QString commonDir = home+QString(COMMON_PATH);
+    QString cfgDir = commonDir+QString(KIN_CFG_PATH);
+    QString fieldsDir = commonDir+QString(FIELDS_PATH);
+    QString mainFile = commonDir+QString(MAINFILENAME);
 
-    QFile file(mainFilePath);
+    QFile file(mainFile);
     if(!file.open(QIODevice::ReadOnly)) {
-#ifdef USING_ROS
-        ROS_ERROR("Error reading main.cfg.");
-#else
-        cout <<"✖ Error reading main.cfg.\n";
-#endif
-        exit(7);
+        return false;
     }
     QTextStream in(&file);
 
-    QString fieldID = in.readLine();// FieldName
-    fieldPath = configFolderPath+fieldID+".view";
-    mapPath = configFolderPath+fieldID+".map";
+    QString field_ = in.readLine();
+
+    fieldPath = fieldsDir+field_+".view";
+    mapPath = fieldsDir+QString("G")+field_+".map";
     file.close();
+    return true;
 }
 
 nodo lidarLocalization::parseString(QString str)
@@ -187,111 +112,79 @@ nodo lidarLocalization::parseString(QString str)
     dummy.closestDistance = right.toDouble();
     return dummy;
 }
-// **********************************
-// DRAWING FUNCTIONS
-void lidarLocalization::drawWorldModel()
-{
-    field.copyTo(worldModel);
-    Point2d pt;
-    //draw lidar points
-    for(unsigned int i= 0;i < worldPoints.size(); i++){
-        pt.x = worldPoints[i].x + pose.x;
-        pt.y = worldPoints[i].y + pose.y;
-        circle(worldModel,world2WorldModel(pt),1,Scalar(255,0,0),-1);
-    }
-    //draw robot
-    Point robot = world2WorldModel(Point2d(pose.x,pose.y));
-    ellipse(worldModel,robot,Size(fieldAnatomy.fieldDims.ROBOT_DIAMETER/2+1,fieldAnatomy.fieldDims.ROBOT_DIAMETER/2+1),
-            pose.z+90.0,45.0,315.0,Scalar(0,0,255),-1);
-}
-
-void lidarLocalization::generateDetectedPoints()
-{
-    vector<Point2f> aux; aux.clear();
-	for(unsigned int i= 0;i < worldPoints.size(); i++) aux.push_back(Point2f(worldPoints[i].x + poseM.x,worldPoints[i].y + poseM.y));
-	detectedPoints.clear();
-	detectedPoints = aux;
-}
-
-void lidarLocalization::setWorldModelView(Mat *cop)
-{
-    worldModel.copyTo(*cop);
-}
-// **********************************
 // LOCALIZATION FUNCTIONS
-void lidarLocalization::updateOdometryEstimate(float robAngle, int enc1, int enc2, int enc3)
+void lidarLocalization::updateOdometryEstimate(const hardwareInfo::ConstPtr &msg)
 {
+   // Process hardware information
    static int receivedFrames = 0;
-   currentHardware.robotAngle = robAngle;
-   currentHardware.enc1 = enc1;
-   currentHardware.enc2 = enc2;
-   currentHardware.enc3 = enc3;
-   lidar.angle = robAngle;
-   
+   current_hardware_state = *msg;
+
    if(!readyHardware){
    		receivedFrames++;
    		if(receivedFrames>10) readyHardware = true;
    		else { 
-   			pose.z = robAngle;
-   			poseM.z = robAngle;
+   			pose.z = msg->imu_value;
+   			poseM.z = msg->imu_value;
    		}
-   		lastHardware = currentHardware;	
+   		last_hardware_state = current_hardware_state;	
    }
-   //Perform Odometry Calculations here
+   
+   // Perform Odometry Calculations here
    double v1, v2, v3, v, vn, w, halfTeta;
    int deltaenc1 = 0.0, deltaenc2 = 0.0, deltaenc3 = 0.0;
 
-   if(currentHardware.enc1*lastHardware.enc1<0 && abs(currentHardware.enc1)>16384){
-       if(currentHardware.enc1<0){
-            deltaenc1 = 32768+currentHardware.enc1+32768-lastHardware.enc1;
+   // Normalize differences in encoder values due to wrap around (overflow)
+   if(current_hardware_state.encoder_1*last_hardware_state.encoder_1<0 && abs(current_hardware_state.encoder_1)>16384){
+       if(current_hardware_state.encoder_1<0){
+            deltaenc1 = 32768+current_hardware_state.encoder_1+32768-last_hardware_state.encoder_1;
        } else {
-           deltaenc1 = 32768-currentHardware.enc1+32768+lastHardware.enc1;
+           deltaenc1 = 32768-current_hardware_state.encoder_1+32768+last_hardware_state.encoder_1;
        }
-   } else deltaenc1 = enc1-lastHardware.enc1;
+   } else deltaenc1 = current_hardware_state.encoder_1-last_hardware_state.encoder_1;
 
-   if(currentHardware.enc2*lastHardware.enc2<0 && abs(currentHardware.enc2)>16384){
-       if(currentHardware.enc2<0){
-            deltaenc2 = 32768+currentHardware.enc2+32768-lastHardware.enc2;
+   if(current_hardware_state.encoder_2*last_hardware_state.encoder_2<0 && abs(current_hardware_state.encoder_2)>16384){
+       if(current_hardware_state.encoder_2<0){
+            deltaenc2 = 32768+current_hardware_state.encoder_2+32768-last_hardware_state.encoder_2;
        } else {
-           deltaenc2 = 32768-currentHardware.enc2+32768+lastHardware.enc2;
+           deltaenc2 = 32768-current_hardware_state.encoder_2+32768+last_hardware_state.encoder_2;
        }
-   } else deltaenc2 = enc2-lastHardware.enc2;
+   } else deltaenc2 = current_hardware_state.encoder_2-last_hardware_state.encoder_2;
 
-   if(currentHardware.enc3*lastHardware.enc3<0 && abs(currentHardware.enc3)>16384){
-       if(currentHardware.enc3<0){
-            deltaenc3 = 32768+currentHardware.enc3+32768-lastHardware.enc3;
+   if(current_hardware_state.encoder_3*last_hardware_state.encoder_3<0 && abs(current_hardware_state.encoder_3)>16384){
+       if(current_hardware_state.encoder_3<0){
+            deltaenc3 = 32768+current_hardware_state.encoder_3+32768-last_hardware_state.encoder_3;
        } else {
-           deltaenc3 = 32768-currentHardware.enc3+32768+lastHardware.enc3;
+           deltaenc3 = 32768-current_hardware_state.encoder_3+32768+last_hardware_state.encoder_3;
        }
-   } else deltaenc3 = enc3-lastHardware.enc3;
+   } else deltaenc3 = current_hardware_state.encoder_3-last_hardware_state.encoder_3;
 
-   v1 = (deltaenc1)*KWheels; //KWheels converts encoder ticks to m/s
-   v2 = (deltaenc2)*KWheels;
-   v3 = (deltaenc3)*KWheels;
-
-   v  = (-v1+v3)/(2*sint);
-   vn = (v1-2*v2+v3)/(2*(cost+1));
-   w  = (v1+2*cost*v2+v3)/(2*dRob*(cost+1));
-   halfTeta = NormalizeAngle(w*deltaT*0.5)-pose.z*(M_PI/180.0);
+   // KWheels converts encoder ticks to m/s
+   v1 = (deltaenc1)*KWHEELS; v2 = (deltaenc2)*KWHEELS; v3 = (deltaenc3)*KWHEELS;
+   // Compute velocity, normal velocity and angular velocity
+   v  = (-v1+v3)/(2*SINT);
+   vn = (v1-2*v2+v3)/(2*(COST+1));
+   w  = (v1+2*COST*v2+v3)/(2*DROB*(COST+1));
+   halfTeta = NormalizeAngle(w*DELTA_T_2)-msg->imu_value*DEGTORAD;
 
    // Update for Kalman Filtering
-   double deltaX = (sin(halfTeta)*v+cos(halfTeta)*vn)*deltaT;
-   double deltaY = (cos(halfTeta)*v-sin(halfTeta)*vn)*deltaT;
-   double deltaTheta = NormalizeAngle(w*deltaT)*(180.0/M_PI);
+   double deltaX = (sin(halfTeta)*v+cos(halfTeta)*vn)*DELTA_T;
+   double deltaY = (cos(halfTeta)*v-sin(halfTeta)*vn)*DELTA_T;
+   double deltaTheta = NormalizeAngle(w*DELTA_T)*(180.0/M_PI);
 
    odometry.y += deltaY; odometry.x += deltaX; odometry.angle -= deltaTheta;
-   odometry.TimeStamp = QTime::currentTime();
 
    // Mean Time Update for interpolation
+   lidar.angle = msg->imu_value;
    poseM.x += deltaX; poseM.y += deltaY; poseM.z -= deltaTheta;
-   lastHardware = currentHardware;
-  
+   
+   last_hardware_state = current_hardware_state;
 }
 
 void lidarLocalization::updateLidarEstimate(vector<float> *distances)
 {
 	static float LastLidarAng = 0;
 	static bool doGlobalLocalization = true;
+
 	if(readyHardware){
 		//map detected points to world position (0,0,angle)
 		mapDetectedPoints(distances);
@@ -302,7 +195,6 @@ void lidarLocalization::updateLidarEstimate(vector<float> *distances)
 		} else {
 			//Local Localization
 			if(worldPoints.size()>100){//if was less than 100 point from the lidar, doen't do the kalman filter
-    			//ROS_INFO("",);
 				if(int(lidar.angle)==297){
 					if(int(lidar.angle)==int(LastLidarAng)){
 						calculateBestLocalPose(0.25);
@@ -315,22 +207,21 @@ void lidarLocalization::updateLidarEstimate(vector<float> *distances)
 				}	
 			}
 		}
+		
 		if(worldPoints.size()>100){
 			memset(&odometry,0,sizeof(struct localizationEstimate));
 			assertPoseToGlobalPosition();  		
-		}
-		else{
+		} else{
 			pose.x +=odometry.x;
 			pose.y +=odometry.y;
 			pose.z +=odometry.angle;
 			lastPose = pose;
 			memset(&odometry,0,sizeof(struct localizationEstimate));	
 		}
-	    	generateDetectedPoints();
 	    	computeVelocities();
 	}
+	
 	LastLidarAng = lidar.angle;
-	//ROS_INFO("%.2f %.2f %.2f", pose.x, pose.y, pose.z);
 }
 
 void lidarLocalization::fuseEstimates()
@@ -369,7 +260,6 @@ void lidarLocalization::fuseEstimates()
     kalman.covariance.y = (1-kalman.K.y)*kalman.predictedCovariance.y;
     kalman.covariance.z = (1-kalman.K.z)*kalman.predictedCovariance.z;
 	lastPose = pose;
-printf("Olá\n");
 
 }
     
@@ -495,20 +385,20 @@ void lidarLocalization::mapDetectedPoints(vector<float> *distances)
     //filter and map points
 	float mylittlepos = ((normalizeAngle(pose.z)-90));//diversion from the front of the robot (goal in the back)
 	if(mylittlepos>180){ 
-	mylittlepos -=  360;}
+	    mylittlepos -=  360;
+	}
+	
 	if (mylittlepos<0){
-	mylittlepos = abs(mylittlepos);
-	mylittlepos = mylittlepos/0.36;
-	 cutleftangle = 125 + mylittlepos;
-	 cutrightangle = 125 - mylittlepos;
-}
-
-else{
-	mylittlepos /=0.36;
-	 cutleftangle = 125 - mylittlepos; 
-	cutrightangle = 125 + mylittlepos;
-}//125 corresponds to 45º in the lidar, since the lidar has 270º of view, 
-//if 45º is subtracted to each side, the end is 180º
+	    mylittlepos = abs(mylittlepos);
+	    mylittlepos = mylittlepos/0.36;
+	     cutleftangle = 125 + mylittlepos;
+	     cutrightangle = 125 - mylittlepos;
+    }else{
+	    mylittlepos /=0.36;
+	     cutleftangle = 125 - mylittlepos; 
+	    cutrightangle = 125 + mylittlepos;
+    }//125 corresponds to 45º in the lidar, since the lidar has 270º of view, 
+    //if 45º is subtracted to each side, the end is 180º
 
 
 	if(cutleftangle<97){//97 is equivalent to 10 degrees in the left side of the robot  and is the maximum that can be read without the interferency of the robot structure
@@ -528,7 +418,7 @@ else{
         }
     }
 
-	printf("**%f **%f **%f  **%f Es %f Dr %f\n", cutleftangle,cutrightangle,mylittlepos,normalizeAngle(pose.z), cutleftangle*0.36, cutrightangle*0.36);
+	/*printf("**%f **%f **%f  **%f Es %f Dr %f\n", cutleftangle,cutrightangle,mylittlepos,normalizeAngle(pose.z), cutleftangle*0.36, cutrightangle*0.36);*/
 }
 }
 

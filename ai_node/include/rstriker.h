@@ -20,6 +20,7 @@ private:
    float side_line_y;
    float small_area_x,small_area_y;
    float big_area_x, big_area_y;
+   float penalty_x;
    float center_circle_radius;
    bool kicked_after_recv, ball_already_passed;
    vec2d kick_spot;

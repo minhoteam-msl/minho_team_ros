@@ -3,6 +3,7 @@
 //Application includes
 #include "minho_team_ros/hardwareInfo.h"
 #include "minho_team_ros/robotInfo.h"
+#include "minho_team_ros/aiInfo.h"
 #include "minho_team_ros/goalKeeperInfo.h"
 #include "minho_team_ros/interAgentInfo.h"
 #include "minho_team_ros/position.h"
@@ -37,6 +38,7 @@ typedef struct udp_packet{
 using namespace ros;
 using minho_team_ros::hardwareInfo; //Namespace for hardwareInfo msg - SUBSCRIBING
 using minho_team_ros::robotInfo; //Namespace for robotInfo msg - SUBSCRIBING
+using minho_team_ros::aiInfo; //Namespace for aiInfo msg - SUBSCRIBING
 using minho_team_ros::goalKeeperInfo; //Namespace for goalKeeperInfo msg - SUBSCRIBING
 using minho_team_ros::interAgentInfo; //Namespace for interAgentInfo msg - SENDING OVER UDP/SUBSCRIBING OVER UDP
 using minho_team_ros::baseStationInfo; //Namespace for baseStationInfo msg - SENDING OVER UDP/SUBSCRIBING OVER UDP
@@ -47,6 +49,8 @@ using minho_team_ros::requestResetIMU; // Namespace for requestResetIMU service
 // ###### GLOBAL DATA ######
 // \brief subscriber for hardwareInfo message
 ros::Subscriber hw_sub;
+// \brief subscriber for aiInfo message
+ros::Subscriber ai_sub;
 // \brief subscriber for robotInfo message
 ros::Subscriber robot_sub;
 // \brief subscriber for goalKeeperInfo message
@@ -58,6 +62,8 @@ ros::ServiceClient requestRelocService;
 
 /// \brief variable to build the topic name for hardwareInfo message
 std::stringstream hw_topic_name;
+/// \brief variable to build the topic name for aiInfo message
+std::stringstream ai_topic_name;
 /// \brief variable to build the topic name for robotInfo message
 std::stringstream robot_topic_name;
 /// \brief variable to build the topic name for goalKeeperInfo message
@@ -130,6 +136,10 @@ std::vector<std::string> pgrep_args;
 /// \brief callback function of hardwareInfo messages/topic of ROS
 /// \param msg - message containing received data of hardwareInfo topic
 void hardwareInfoCallback(const hardwareInfo::ConstPtr &msg);
+
+/// \brief callback function of hardwareInfo messages/topic of ROS
+/// \param msg - message containing received data of hardwareInfo topic
+void aiInfoCallback(const aiInfo::ConstPtr &msg);
 
 /// \brief callback function of robotInfo messages/topic of ROS
 /// \param msg - message containing received data of robotInfo topic
@@ -256,6 +266,7 @@ int main(int argc, char **argv)
 	message.msg_id = 1;
 	if(!mode_real){
 	   hw_topic_name << "/minho_gazebo_robot" << (int)agent_id;
+	   ai_topic_name << "/minho_gazebo_robot" << (int)agent_id;
 	   robot_topic_name << "/minho_gazebo_robot" << (int)agent_id;
 	   gk_topic_name << "/minho_gazebo_robot" << (int)agent_id;
 	   base_relay_topic << "/minho_gazebo_robot" << (int)agent_id;
@@ -264,6 +275,7 @@ int main(int argc, char **argv)
 	}
 	
 	hw_topic_name << "/hardwareInfo";
+	ai_topic_name << "/aiInfo";
 	robot_topic_name << "/robotInfo";
 	gk_topic_name << "/goalKeeperInfo";
 	reloc_name << "/requestReloc";
@@ -275,6 +287,8 @@ int main(int argc, char **argv)
 	
 	hw_sub = coms_node.subscribe(hw_topic_name.str().c_str(),
 	                             1,&hardwareInfoCallback);
+    ai_sub = coms_node.subscribe(ai_topic_name.str().c_str(),
+	                             1,&aiInfoCallback);
 	robot_sub = coms_node.subscribe(robot_topic_name.str().c_str(),
 	                             1,&robotInfoCallback);
 	gk_sub = coms_node.subscribe(gk_topic_name.str().c_str(),
@@ -334,6 +348,13 @@ void hardwareInfoCallback(const hardwareInfo::ConstPtr &msg)
 {
    pthread_mutex_lock (&message_mutex); //Lock mutex
    message.hardware_info = (*msg);
+   pthread_mutex_unlock (&message_mutex); //Unlock mutex
+}
+
+void aiInfoCallback(const aiInfo::ConstPtr &msg)
+{
+   pthread_mutex_lock (&message_mutex); //Lock mutex
+   message.ai_info = (*msg);
    pthread_mutex_unlock (&message_mutex); //Unlock mutex
 }
 
@@ -403,7 +424,7 @@ void* sendRobotInformationUpdate(void *data)
 
    while(ros::ok()){
       if(counter<30) counter++; else { 
-         //if(!checkGzserverConnection()) break; 
+         if(!checkGzserverConnection()) break; 
          counter = 0; 
       }
       uint8_t *packet;
