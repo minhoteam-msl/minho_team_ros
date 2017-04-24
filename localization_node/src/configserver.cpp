@@ -134,7 +134,7 @@ void ConfigServer::postRequestedImage()
 
 void ConfigServer::init_mock_image()
 {
-   mock_image = cv::Mat(480,480,CV_8UC3,cv::Scalar(100,100,100));
+   mock_image = cv::Mat(IMG_SIZE,IMG_SIZE,CV_8UC3,cv::Scalar(100,100,100));
    cv::putText(mock_image,"NO IMAGE",Point(10,240),FONT_HERSHEY_SIMPLEX,3.0,cv::Scalar(0,255,0),4);
    image_ = cv_bridge::CvImage(std_msgs::Header(), "bgr8", mock_image).toImageMsg();
 }
