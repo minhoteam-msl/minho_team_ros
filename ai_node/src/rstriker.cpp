@@ -500,6 +500,7 @@ void RoleStriker::computeAction(aiInfo *ai)
       //////////////////////////////////////////////////
       
       case sPRE_OWN_PENALTY:{
+        kicked_after_recv = false;
         // Go to middle half of left/right field and rotate towards ball
          if(mBsInfo.posxside){
             ai->target_pose.x = -penalty_x+distFromBall;
@@ -520,6 +521,7 @@ void RoleStriker::computeAction(aiInfo *ai)
       }
       
       case sOWN_PENALTY:{
+        static int kickCount = 0;
         float  tarx = 0.0, tary = 0.0;
          if(mRobot.has_ball) stab_counter++;
          else stab_counter = 0;
@@ -529,6 +531,7 @@ void RoleStriker::computeAction(aiInfo *ai)
          +(mRobot.robot_pose.y-mRobot.ball_position.y)*
          (mRobot.robot_pose.y-mRobot.ball_position.y));
      
+         
          if(mRobot.has_ball){
             float shoot_tarx = goal_line_x;
             float shoot_tary = 0.0;
@@ -548,10 +551,13 @@ void RoleStriker::computeAction(aiInfo *ai)
                ai->target_pose.z = orientationToTarget(shoot_tarx,shoot_tary);
                ai->target_kick_strength = getKickStrength(shoot_tarx,
                shoot_tary);
+               kicked_after_recv = true;
             }else {
                mAction = aHOLDBALL;  
             }
             
+         } else if(kicked_after_recv && !mRobot.has_ball){
+            mAction = aSTOP;
          } else {
             stab_counter = 0;
             mAction = aSLOWENGAGEBALL;

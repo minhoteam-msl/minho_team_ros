@@ -424,7 +424,7 @@ void* sendRobotInformationUpdate(void *data)
 
    while(ros::ok()){
       if(counter<30) counter++; else { 
-         //if(!checkGzserverConnection()) break; 
+         if(!checkGzserverConnection()) break; 
          counter = 0; 
       }
       uint8_t *packet;

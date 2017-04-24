@@ -23,6 +23,11 @@ void RoleSupStriker::setRosNodeHandle(ros::NodeHandle *parent, std::string topic
 
 }
 
+float sgn(float num){
+    if(num<0) return -1.0;
+    else return 1.0;
+}
+
 void RoleSupStriker::determineAction()
 {
    if(mBsInfo.gamestate==sSTOPPED) { passed_after_engage = false; ball_position_locked = false; mAction = aSTOP; }
@@ -267,7 +272,7 @@ void RoleSupStriker::computeAction(aiInfo *ai)
 
          if(ball_position_locked){
             float thresh_distance = 3.0;
-            float cover_distance = 5.0;
+            float cover_distance = 6.0;
             float dist_to_ball = 0.0;
             float dist_to_cover = 0.0;
             
@@ -306,16 +311,46 @@ void RoleSupStriker::computeAction(aiInfo *ai)
                     if(!foundObsToCover) obsCount++;
                     else {
                         // Found good position to cover the targeted obstacle
-                        ai->target_pose.x = enemyObstacles[obsCount].x; 
-                        ai->target_pose.y = enemyObstacles[obsCount].y; 
+                        dist_to_ball = sqrt((enemyObstacles[obsCount].x-kick_spot.x)*(enemyObstacles[obsCount].x-kick_spot.x)+
+                                            (enemyObstacles[obsCount].y-kick_spot.y)*(enemyObstacles[obsCount].y-kick_spot.y));
+                        float limR = 3.75;
+                        if(dist_to_ball>=limR){ // put himself between the enemy and the ball
+                            float path_direction = atan2(kick_spot.y-enemyObstacles[obsCount].y,
+                                                         kick_spot.x-enemyObstacles[obsCount].x);   
+                            ai->target_pose.x = enemyObstacles[obsCount].x+0.6*cos(path_direction);
+                            ai->target_pose.y = enemyObstacles[obsCount].y+0.6*sin(path_direction);
+                            ai->target_pose.z = orientationToTarget(kick_spot.x,kick_spot.y);    
+                        } else { // put himself between the goalie and the ball
+                            float tarx = goal_line_x, tary = 0.0;
+                            if(!mBsInfo.posxside) tarx*=-1;
+                            float dx = tarx-enemyObstacles[obsCount].x;
+                            float dy = 0.0-enemyObstacles[obsCount].y;
+                            float dr = sqrt(dx*dx+dy*dy);
+                            float D = -tarx*enemyObstacles[obsCount].y;
+                            
+                            float delta = ((limR*limR)*(dr*dr))-(D*D);
+                            if(delta>=0){
+                                ai->target_pose.x = ((D*dy)+sgn(dy)*dx*sqrt((limR*limR)*(dr*dr)-(D*D)))/(dr*dr);
+                                ai->target_pose.y = ((-D*dx)+fabs(dy)*sqrt((limR*limR)*(dr*dr)-(D*D)))/(dr*dr);
+                                ai->target_pose.z = orientationToTarget(enemyObstacles[obsCount].x,enemyObstacles[obsCount].y);
+                            } else {
+                                float deltax = 0.5;
+                                if(!mBsInfo.posxside) deltax *= -1;
+                                ai->target_pose.y = enemyObstacles[obsCount].y;
+                                ai->target_pose.x = enemyObstacles[obsCount].x+deltax;
+                                ai->target_pose.z = orientationToTarget(enemyObstacles[obsCount].x,enemyObstacles[obsCount].y);
+                            }
+                        }
+                       
                         break;
                     }
                 }
                 
                 if(!foundObsToCover){
-                    ai->target_pose.x = mRobot.ball_position.x; 
-                    if(mRobot.ball_position.y>=0.0) ai->target_pose.y = mRobot.ball_position.y-thresh_distance;  
-                    else ai->target_pose.y = mRobot.ball_position.y+thresh_distance;    
+                    ai->target_pose.x = kick_spot.x; 
+                    if(mRobot.ball_position.y>=0.0) ai->target_pose.y = kick_spot.y-thresh_distance;  
+                    else ai->target_pose.y = kick_spot.y+thresh_distance;   
+                    ai->target_pose.z = orientationToTarget(kick_spot.x,kick_spot.y);  
                 }
             }
              
