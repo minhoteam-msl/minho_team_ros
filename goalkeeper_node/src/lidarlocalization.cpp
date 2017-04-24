@@ -220,7 +220,7 @@ void lidarLocalization::updateOdometryEstimate(const hardwareInfo::ConstPtr &msg
 void lidarLocalization::updateLidarEstimate(vector<float> *distances)
 {
 	static float LastLidarAng = 0;
-	
+	//ROS_INFO("%d",(int)bsInfo.posxside);
 	// remove this line after testing
 	
 	if(readyHardware){

@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 	ros::Subscriber hardware_info_sub = gk_node.subscribe("hardwareInfo", 1, hardwareInfoCallback);
 	//Initialize scan subscriber
 	ros::Subscriber scan_info_sub = gk_node.subscribe("scan", 1, laserScanCallback);
-	ros::Subscriber bs_info_sub = gk_node.subscribe("baseStationInfo", 1, baseStationCallback);
+	ros::Subscriber bs_info_sub = gk_node.subscribe("/basestation/baseStationInfo", 1, baseStationCallback);
 	gk_info_pub = gk_node.advertise<goalKeeperInfo>("goalKeeperInfo", 1);
 	ros::ServiceServer reloc_service = gk_node.advertiseService("requestReloc",
                                     relocCallback);
