@@ -10,6 +10,8 @@
 #include "minho_team_ros/hardwareInfo.h"
 #include "sensor_msgs/LaserScan.h"
 #include "minho_team_ros/goalKeeperInfo.h"
+#include "minho_team_ros/baseStationInfo.h"
+#include "minho_team_ros/interestPoint.h"
 #include "lidarlocalization.h"
 #include "Utils/rttimer.h"
 #include <boost/process.hpp>
@@ -22,7 +24,9 @@ using namespace std;
 
 using minho_team_ros::hardwareInfo; //Namespace for hardware information msg - SUBSCRIBING
 using sensor_msgs::LaserScan; //Namespace for laserScan information msg - SUBSCRIBING
+using minho_team_ros::baseStationInfo; //Namespace for laserScan information msg - SUBSCRIBING
 using minho_team_ros::goalKeeperInfo; //Namespace for gk info information msg - PUBLISHING
+using minho_team_ros::interestPoint; //Namespace for gk info information msg - PUBLISHING
 
 //kinectVision *gkvision;
 lidarLocalization *localization;
@@ -45,6 +49,11 @@ void laserScanCallback(const LaserScan::ConstPtr& msg)
 {
 	vector<float> ranges(msg->ranges);
 	localization->updateLidarEstimate(&ranges);
+}
+
+void baseStationCallback(const baseStationInfo::ConstPtr& msg)
+{
+	localization->updateBaseStationInfo(msg);
 }
 
 bool checkHardwareAvailability()
@@ -107,6 +116,16 @@ void* updateLocalizationData(void *data)
 	  keeper.robot_info.robot_pose.y = pose.y;
 	  keeper.robot_info.robot_pose.z = pose.z;
 	    
+	  std::vector<Point2f> lidarPoints = localization->getWorldPoints();
+	  interestPoint pt;
+	  
+	  keeper.robot_info.interest_points.clear();
+	  for(int i=0;i<lidarPoints.size();i++){
+	    pt.pos.x = lidarPoints[i].x;
+	    pt.pos.y = lidarPoints[i].y;
+	    keeper.robot_info.interest_points.push_back(pt);
+	  }
+	  
 	  gk_info_pub.publish(keeper);
       wait_period(info);
    }
@@ -121,14 +140,18 @@ int main(int argc, char **argv)
 	ros::NodeHandle gk_node;
 	ROS_WARN("Subscribing to hardwareInfo and scan topics for goalkeeper node");
 	//Initialize hardwareInfo subscriber
+	
 	ros::Subscriber hardware_info_sub = gk_node.subscribe("hardwareInfo", 1, hardwareInfoCallback);
 	//Initialize scan subscriber
 	ros::Subscriber scan_info_sub = gk_node.subscribe("scan", 1, laserScanCallback);
+	ros::Subscriber bs_info_sub = gk_node.subscribe("baseStationInfo", 1, baseStationCallback);
 	gk_info_pub = gk_node.advertise<goalKeeperInfo>("goalKeeperInfo", 1);
-	ros::AsyncSpinner spinner(2);
 	
-	goalKeeperInfo data;
+	
+	
+	ros::AsyncSpinner spinner(2);
 
+	ROS_WARN("Checking hardware modules ...");
 	if(checkHardwareAvailability()){
         //gkvision = new kinectVision(&gk_node);
         localization = new lidarLocalization();
@@ -137,6 +160,7 @@ int main(int argc, char **argv)
 	} else ROS_ERROR("Failed to find hardware modules for goalkeeper node");
 	
 	pi_sendth.id = 1; pi_sendth.period_us = DATA_UPDATE_USEC;
-    pthread_create(&send_info_thread, NULL, updateLocalizationData,&pi_sendth);
+    	pthread_create(&send_info_thread, NULL, updateLocalizationData,&pi_sendth);
+	pthread_join(send_info_thread,NULL);
 	return 0;
 }

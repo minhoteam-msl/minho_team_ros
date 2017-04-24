@@ -6,5 +6,5 @@ CXX_FLAGS =
 
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/pedro/SISL-master/include 
+CXX_INCLUDES = -I/home/bruno/catkin_ws/src/minho_team_ros/utils/SISL-master/include 
 
