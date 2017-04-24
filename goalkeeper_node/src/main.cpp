@@ -12,6 +12,7 @@
 #include "minho_team_ros/goalKeeperInfo.h"
 #include "minho_team_ros/baseStationInfo.h"
 #include "minho_team_ros/interestPoint.h"
+#include "minho_team_ros/requestReloc.h"
 #include "lidarlocalization.h"
 #include "Utils/rttimer.h"
 #include <boost/process.hpp>
@@ -27,6 +28,7 @@ using sensor_msgs::LaserScan; //Namespace for laserScan information msg - SUBSCR
 using minho_team_ros::baseStationInfo; //Namespace for laserScan information msg - SUBSCRIBING
 using minho_team_ros::goalKeeperInfo; //Namespace for gk info information msg - PUBLISHING
 using minho_team_ros::interestPoint; //Namespace for gk info information msg - PUBLISHING
+using minho_team_ros::requestReloc;
 
 //kinectVision *gkvision;
 lidarLocalization *localization;
@@ -56,6 +58,12 @@ void baseStationCallback(const baseStationInfo::ConstPtr& msg)
 	localization->updateBaseStationInfo(msg);
 }
 
+bool relocCallback(requestReloc::Request &req,requestReloc::Response &res)
+{
+    localization->doReloc();
+    ROS_INFO("Reloc request received!");
+    return true;
+}
 bool checkHardwareAvailability()
 {
     // detect hokuyo : ls /dev/* | grep hokuyo | wc -l
@@ -146,7 +154,8 @@ int main(int argc, char **argv)
 	ros::Subscriber scan_info_sub = gk_node.subscribe("scan", 1, laserScanCallback);
 	ros::Subscriber bs_info_sub = gk_node.subscribe("baseStationInfo", 1, baseStationCallback);
 	gk_info_pub = gk_node.advertise<goalKeeperInfo>("goalKeeperInfo", 1);
-	
+	ros::ServiceServer reloc_service = gk_node.advertiseService("requestReloc",
+                                    relocCallback);
 	
 	
 	ros::AsyncSpinner spinner(2);

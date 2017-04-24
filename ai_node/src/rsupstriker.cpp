@@ -272,7 +272,7 @@ void RoleSupStriker::computeAction(aiInfo *ai)
 
          if(ball_position_locked){
             float thresh_distance = 3.0;
-            float cover_distance = 6.0;
+            float cover_distance = 7.0;
             float dist_to_ball = 0.0;
             float dist_to_cover = 0.0;
             
@@ -319,7 +319,8 @@ void RoleSupStriker::computeAction(aiInfo *ai)
                                                          kick_spot.x-enemyObstacles[obsCount].x);   
                             ai->target_pose.x = enemyObstacles[obsCount].x+0.6*cos(path_direction);
                             ai->target_pose.y = enemyObstacles[obsCount].y+0.6*sin(path_direction);
-                            ai->target_pose.z = orientationToTarget(kick_spot.x,kick_spot.y);    
+                            ai->target_pose.z = orientationToTarget(kick_spot.x,kick_spot.y); 
+                            ROS_INFO("Front coverage");   
                         } else { // put himself between the goalie and the ball
                             float tarx = goal_line_x, tary = 0.0;
                             if(!mBsInfo.posxside) tarx*=-1;
@@ -341,7 +342,8 @@ void RoleSupStriker::computeAction(aiInfo *ai)
                                 ai->target_pose.z = orientationToTarget(enemyObstacles[obsCount].x,enemyObstacles[obsCount].y);
                             }
                         }
-                       
+                        
+                        ROS_INFO("Near coverage"); 
                         break;
                     }
                 }
@@ -351,6 +353,8 @@ void RoleSupStriker::computeAction(aiInfo *ai)
                     if(mRobot.ball_position.y>=0.0) ai->target_pose.y = kick_spot.y-thresh_distance;  
                     else ai->target_pose.y = kick_spot.y+thresh_distance;   
                     ai->target_pose.z = orientationToTarget(kick_spot.x,kick_spot.y);  
+                    
+                    ROS_INFO("Side coverage"); 
                 }
             }
              

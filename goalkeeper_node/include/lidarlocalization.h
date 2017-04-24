@@ -42,6 +42,7 @@ public:
     void updateLidarEstimate(vector<float> *distances);
     void updateBaseStationInfo(const baseStationInfo::ConstPtr &msg);
     void fuseEstimates();
+    void doReloc();
     
     // Math
     Point world2WorldModel(Point2d pos);
@@ -84,5 +85,6 @@ private:
     struct MTKalmanFilter kalman;
     baseStationInfo bsInfo;
     Point3d velocities;
+    bool doGlobalLocalization;
     
 };

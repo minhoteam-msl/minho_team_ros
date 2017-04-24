@@ -2,8 +2,6 @@
 
 // CONSTRUCTOR
 
-bool doGlobalLocalization = true;
-
 lidarLocalization::lidarLocalization()
 {
     if(!configFilePaths()){
@@ -18,6 +16,7 @@ lidarLocalization::lidarLocalization()
     initField(fieldPath);
     readMapConfFile(mapPath);
     initKalmanFilter();
+    doGlobalLocalization = true;
     
     // Mudar para ficheiro
     lastPoseM = velocities = Point3d(0,0,0);
@@ -123,6 +122,10 @@ bool lidarLocalization::configFilePaths()
     return true;
 }
 
+void lidarLocalization::doReloc()
+{
+    doGlobalLocalization = true;
+}
 nodo lidarLocalization::parseString(QString str)
 {
     struct nodo dummy;
@@ -218,8 +221,7 @@ void lidarLocalization::updateLidarEstimate(vector<float> *distances)
 {
 	static float LastLidarAng = 0;
 	
-	// remove this line after testing 
-	readyHardware = true;
+	// remove this line after testing
 	
 	if(readyHardware){
 		//map detected points to world position (0,0,angle)
@@ -258,7 +260,6 @@ void lidarLocalization::updateLidarEstimate(vector<float> *distances)
 	}
 	
 	LastLidarAng = lidar.angle;
-	doGlobalLocalization = true;
 }
 
 void lidarLocalization::fuseEstimates()
@@ -327,7 +328,7 @@ void lidarLocalization::calculateGlobalOptimum()
     pose.y = lidar.y;
     pose.z = lidar.angle;
     
-    ROS_INFO("GLOBAL %.2f %.2f %.2f",lidar.x,lidar.y,lidar.angle);
+    //ROS_INFO("GLOBAL %.2f %.2f %.2f",lidar.x,lidar.y,lidar.angle);
     lastPose = pose;
 }
 
