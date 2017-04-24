@@ -70,11 +70,7 @@ ImageProcessor::ImageProcessor(int rob_id, bool use_camera, bool *init_success)
 void ImageProcessor::variablesInitialization()
 {
     robotHeight = 0.74;
-    double morph_size = 1.5;
-    element = getStructuringElement(2, Size( 2*morph_size + 1, 2*morph_size+1 ), Point( morph_size, morph_size ) );
     buffer = new Mat(IMG_SIZE,IMG_SIZE,CV_8UC3,Scalar(0,0,0));
-    sizeRelThreshold = 0.65;
-    piThreshold = 0.6;
 }
 
 // World mapping configuration initialization, returns true if successfully initialized
@@ -138,6 +134,7 @@ bool ImageProcessor::initWorldMapping()
       mirrorConf.pixel_distances.push_back(mappedDists[i].toInt());
       mirrorConf.lines_length.push_back(lineLeng[i].toInt());
     }
+    //mirrorConf.scanline_length = (distPix.size()-1)+5;
     file.close();
     //
 
@@ -354,7 +351,7 @@ void ImageProcessor::detectInterestPoints()
     // RLE Ball
     rleBallRad = RLE(linesRad, UAV_GREEN_BIT, UAV_ORANGE_BIT, UAV_GREEN_BIT, int(ballRLE.value_a), ballRLE.value_b, ballRLE.value_c, ballRLE.window);
     //rleBallRad = RLE(linesRad, UAV_NOCOLORS_BIT, UAV_ORANGE_BIT, UAV_NOCOLORS_BIT, int(ballRLE.value_a), ballRLE.value_b, ballRLE.value_c, ballRLE.window);
-    rleBallShort = RLE(ballScan, UAV_GREEN_BIT, UAV_ORANGE_BIT, UAV_GREEN_BIT, 1, 1, 1,20);
+    rleBallShort = RLE(ballScan, UAV_NOCOLORS_BIT, UAV_ORANGE_BIT, UAV_NOCOLORS_BIT, 1, 1, 1,20);
 
 
     // RLE Obstacles
@@ -494,7 +491,7 @@ void ImageProcessor::generateMirrorConfiguration()
    }
 
    // create mask image
-   mask = Mat(480,480,CV_8UC3,Scalar(0,0,0));
+   mask = Mat(IMG_SIZE,IMG_SIZE,CV_8UC3,Scalar(0,0,0));
    vector<Point> maskContourPoints; maskContourPoints.clear();
    for(int i=0;i<mirrorConf.mask_contour.size();i++){
       maskContourPoints.push_back(Point((int)mirrorConf.mask_contour[i].x,
@@ -1223,7 +1220,7 @@ Point2d ImageProcessor::getPropError(int prop_in_use)
 void ImageProcessor::setCalibrationTargets(cameraProperty::ConstPtr msg)
 {
   if(msg->blue==true){
-    omniCamera->setSatTarget(msg->val_a);
+    omniCamera->setSatTarget(msg->value_a);
   }
   else {
     omniCamera->setLumiTarget(msg->val_a);
