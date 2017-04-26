@@ -9,12 +9,14 @@
 #include "ros/ros.h"
 #include "minho_team_ros/hardwareInfo.h"
 #include "minho_team_ros/robotInfo.h"
+#include "minho_team_ros/baseStationInfo.h"
 #include <QTime>
 
 using namespace std;
 using namespace cv;
 using minho_team_ros::hardwareInfo;
 using minho_team_ros::robotInfo;
+using minho_team_ros::baseStationInfo; //Namespace for gk info information msg - PUBLISHING
 
 class lidarLocalization
 {
@@ -38,7 +40,9 @@ public:
     // Estimators
     void updateOdometryEstimate(const hardwareInfo::ConstPtr &msg);
     void updateLidarEstimate(vector<float> *distances);
+    void updateBaseStationInfo(const baseStationInfo::ConstPtr &msg);
     void fuseEstimates();
+    void doReloc();
     
     // Math
     Point world2WorldModel(Point2d pos);
@@ -79,6 +83,8 @@ private:
     bool readyHardware;
     // Kalman Filter
     struct MTKalmanFilter kalman;
+    baseStationInfo bsInfo;
     Point3d velocities;
+    bool doGlobalLocalization;
     
 };

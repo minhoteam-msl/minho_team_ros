@@ -1,6 +1,7 @@
 #include "lidarlocalization.h"
 
 // CONSTRUCTOR
+
 lidarLocalization::lidarLocalization()
 {
     if(!configFilePaths()){
@@ -8,17 +9,16 @@ lidarLocalization::lidarLocalization()
     }
     worldPoints.clear();
     readyHardware = false;
+    
     memset(&odometry,0,sizeof(struct localizationEstimate));
     memset(&lidar,0,sizeof(struct localizationEstimate));
-    lastPose = pose = Point3d(5.1,0.0,90);
+    
     initField(fieldPath);
     readMapConfFile(mapPath);
     initKalmanFilter();
+    doGlobalLocalization = true;
     
     // Mudar para ficheiro
-    halfIsRight = true;
-    tipPositionRight = Point2d(3.55,-2.2);
-    tipPositionLeft = Point2d(-3.55,+2.2);
     lastPoseM = velocities = Point3d(0,0,0);
 }
 // **********************************
@@ -40,6 +40,28 @@ void lidarLocalization::initField(QString file_)
        fieldAnatomy.dimensions[counter] = value.right(value.size()-value.indexOf('=')-1).toInt();
        counter++;
     }
+    
+    bsInfo.posxside = false; // start in the right
+    float initial_angle = 15.0;
+    lastPose = pose = Point3d((float)fieldAnatomy.fieldDims.LENGTH/2000.0,0.0,initial_angle);
+    lidar.angle = initial_angle;
+    tipPositionRight = Point2d((float)fieldAnatomy.fieldDims.LENGTH/2000.0-(float)fieldAnatomy.fieldDims.AREA_LENGTH2/1000.0,
+                       -(float)fieldAnatomy.fieldDims.AREA_WIDTH2/2000.0);
+    tipPositionLeft = Point2d(-tipPositionRight.x,-tipPositionRight.y);
+    
+    ROS_INFO("Tips %.2f %.2f %.2f %.2f",tipPositionRight.x,tipPositionRight.y,tipPositionLeft.x,tipPositionLeft.y);
+}
+
+void lidarLocalization::assertPoseToGlobalPosition()
+{
+	poseM = pose;
+	if(bsInfo.posxside){
+		poseM.x = tipPositionRight.x + pose.x;
+		poseM.y = tipPositionRight.y + pose.y;
+	} else {
+		poseM.x = tipPositionLeft.x - pose.x;
+		poseM.y = tipPositionLeft.y - pose.y;
+	}
 }
 
 void lidarLocalization::readMapConfFile(QString file_)
@@ -95,10 +117,15 @@ bool lidarLocalization::configFilePaths()
 
     fieldPath = fieldsDir+field_+".view";
     mapPath = fieldsDir+QString("G")+field_+".map";
+    
     file.close();
     return true;
 }
 
+void lidarLocalization::doReloc()
+{
+    doGlobalLocalization = true;
+}
 nodo lidarLocalization::parseString(QString str)
 {
     struct nodo dummy;
@@ -112,6 +139,16 @@ nodo lidarLocalization::parseString(QString str)
     dummy.closestDistance = right.toDouble();
     return dummy;
 }
+
+void lidarLocalization::updateBaseStationInfo(const baseStationInfo::ConstPtr &msg)
+{
+   if(msg->posxside != bsInfo.posxside){
+      doGlobalLocalization = true; 
+   }
+   
+   bsInfo = (*msg);
+}
+
 // LOCALIZATION FUNCTIONS
 void lidarLocalization::updateOdometryEstimate(const hardwareInfo::ConstPtr &msg)
 {
@@ -183,8 +220,9 @@ void lidarLocalization::updateOdometryEstimate(const hardwareInfo::ConstPtr &msg
 void lidarLocalization::updateLidarEstimate(vector<float> *distances)
 {
 	static float LastLidarAng = 0;
-	static bool doGlobalLocalization = true;
-
+	//ROS_INFO("%d",(int)bsInfo.posxside);
+	// remove this line after testing
+	
 	if(readyHardware){
 		//map detected points to world position (0,0,angle)
 		mapDetectedPoints(distances);
@@ -289,6 +327,8 @@ void lidarLocalization::calculateGlobalOptimum()
     pose.x = lidar.x;
     pose.y = lidar.y;
     pose.z = lidar.angle;
+    
+    //ROS_INFO("GLOBAL %.2f %.2f %.2f",lidar.x,lidar.y,lidar.angle);
     lastPose = pose;
 }
 
@@ -341,6 +381,10 @@ Point3d lidarLocalization::getVelocities()
     
 vector<Point2f> lidarLocalization::getWorldPoints()
 {
+   detectedPoints.clear();
+   for(int i=0;i<worldPoints.size();i++){
+      detectedPoints.push_back(Point2f(worldPoints[i].x+poseM.x,worldPoints[i].y+poseM.y));
+   }
 	return detectedPoints; 
 }
 // **********************************
@@ -382,11 +426,30 @@ void lidarLocalization::mapDetectedPoints(vector<float> *distances)
     double theta = -M_PI-(M_PI/4.0);
     double res = 0.36*(M_PI/180.0);
     float cutleftangle=0,cutrightangle=0;
+    float robAngle = poseM.z;
+    
+    if(!bsInfo.posxside){
+      robAngle -= 180.0;
+    }
+    
+    float mylittlepos = ((normalizeAngle(robAngle)-90));
+    
     //filter and map points
-	float mylittlepos = ((normalizeAngle(pose.z)-90));//diversion from the front of the robot (goal in the back)
-	if(mylittlepos>180){ 
+    if(mylittlepos>180){ 
 	    mylittlepos -=  360;
-	}
+	 }
+	
+/*    if(!bsInfo.posxside){
+	   if(mylittlepos >0){
+	   mylittlepos= 180- mylittlepos;
+	   }
+	   if(mylittlepos<0){
+	   mylittlepos= -180 - mylittlepos;
+	   }
+	   
+	 }    
+	 
+	*/
 	
 	if (mylittlepos<0){
 	    mylittlepos = abs(mylittlepos);
@@ -414,7 +477,7 @@ void lidarLocalization::mapDetectedPoints(vector<float> *distances)
 
     for(unsigned int i = cutleftangle; i<distances->size()-cutrightangle;i++){
         if(distances->at(i)<=maxDistance && distances->at(i)>=0.25){//inside the 0.25cm radius from the lidar, all points are ignored
-            worldPoints.push_back(mapPointToWorld(0,0,poseM.z,distances->at(i),theta+i*res,offset));
+            worldPoints.push_back(mapPointToWorld(0,0,robAngle,distances->at(i),theta+i*res,offset));
         }
     }
 
@@ -429,18 +492,6 @@ float lidarLocalization::NormalizeAngle(float angulo)
     while (angulo < -M_PI) angulo += M_PI;
     angle = angulo;
     return angle;
-}
-
-void lidarLocalization::assertPoseToGlobalPosition()
-{
-	poseM = pose;
-	if(halfIsRight){
-		poseM.x = tipPositionRight.x + pose.x;
-		poseM.y = tipPositionRight.y + pose.y;
-	} else {
-		poseM.x = tipPositionRight.x - pose.x;
-		poseM.y = tipPositionRight.y + pose.y;
-	}
 }
 
 // Initialization of the Kalman Filter
