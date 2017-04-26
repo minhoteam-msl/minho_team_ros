@@ -345,7 +345,7 @@ void ImageProcessor::detectInterestPoints()
     // Run Different RLE's
 
     // RLE Lines
-    rleLinesRad = RLE(linesRad, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 4, 2, 4, 30);
+    rleLinesRad = RLE(linesRad, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 4, 2, 4, 10);
     rleLinesCir = RLE(linesCir, UAV_GREEN_BIT, UAV_WHITE_BIT, UAV_GREEN_BIT, 4, 2, 4, 20);
 
     // RLE Ball
