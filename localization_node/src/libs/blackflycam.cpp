@@ -649,29 +649,32 @@ bool BlackflyCam::cameraCalibrate()
             setProps(GAI);
         }
     }
-    calcSatHistogram();
-    msv = calcMean();
-    msvError=satTarget-msv;
 
-    if(msvError>minError_Sat || msvError<(-minError_Sat))
-    {
-      changed=true;
-      sat=SatPID->calc_pid(sat,msvError);
-      setSaturation(sat);
-      setProps(SAT);
-    }
+    if(!changed){
+      calcSatHistogram();
+      msv = calcMean();
+      msvError=satTarget-msv;
 
-    Scalar rgbMean=averageRGB();
-    if((rgbMean[0]>minError_RGB || rgbMean[1]>minError_RGB || rgbMean[2]>minError_RGB) && brig<=(getBrigtnessMax()/2))
-    {
-      //std::cerr << "Entra sempre na calibração do brightness" << endl;
-      changed = true;
-      float rgbError = 0;
-      for(int i = 0; i < 3; i++)rgbError += rgbMean[i];
-      brig = BrigPID->calc_pid(brig,rgbError/3);
-      if(brig>(getBrigtnessMax()/2))brig = (getBrigtnessMax()/2);
-      setBrigtness(brig);
-      setProps(BRI);
+      if(msvError>minError_Sat || msvError<(-minError_Sat))
+      {
+        changed=true;
+        sat=SatPID->calc_pid(sat,msvError);
+        setSaturation(sat);
+        setProps(SAT);
+      }
+
+      Scalar rgbMean=averageRGB();
+      if((rgbMean[0]>minError_RGB || rgbMean[1]>minError_RGB || rgbMean[2]>minError_RGB) && brig<=(getBrigtnessMax()/2))
+      {
+        //std::cerr << "Entra sempre na calibração do brightness" << endl;
+        changed = true;
+        float rgbError = 0;
+        for(int i = 0; i < 3; i++)rgbError += rgbMean[i];
+        brig = BrigPID->calc_pid(brig,rgbError/3);
+        if(brig>(getBrigtnessMax()-getBrigtnessMax()/4))brig = (getBrigtnessMax()/2);
+        setBrigtness(brig);
+        setProps(BRI);
+      }
     }
   return changed;
 }

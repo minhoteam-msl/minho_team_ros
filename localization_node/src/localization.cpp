@@ -1,11 +1,10 @@
 #include "localization.h"
 #define USE_IMU 1
 
-Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success, bool use_camera,int side, QObject *parent) : QObject(parent)
+Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success, bool use_camera, QObject *parent) : QObject(parent)
 {
    initVariables();
    camera = use_camera;
-   fieldSide = side;
    reloc_counter = (int)RELOC_COUNT;
    ball_counter = 0;
    ballGlobal = true;
@@ -63,6 +62,11 @@ Localization::Localization(int rob_id, ros::NodeHandle *par , bool *init_success
    ext_debug_service = par->advertiseService("requestExtendedDebug",
                                     &Localization::setExtDebug,
                                     this);
+
+    bs_info_sub = par->subscribe("/basestation/baseStationInfo",
+                                         1,
+                                         &Localization::baseStationCallBack,
+                                         this);
    //#############################
 
    reloc = true;
@@ -113,10 +117,10 @@ void Localization::discoverWorldModel() // Main Function
       if(reloc){
          // Do global localization
          //loctime.start();
-         reloc = computeGlobalLocalization(fieldSide);
+         reloc = computeGlobalLocalization();
 
          if(reloc_counter >= 0){
-           std::cerr << reloc_counter << endl;
+           //std::cerr << reloc_counter << endl;
            reloc = true;
            reloc_counter--;
          }
@@ -530,9 +534,9 @@ float Localization::normalizeAngleDeg(float angle)
 void Localization::fuseOrientationEstimates()
 {
 
-  odometry_verify = (current_state.robot_pose.x*current_state.robot_pose.x)+(current_state.robot_pose.y*current_state.robot_pose.y);
+  //odometry_verify = (current_state.robot_pose.x*current_state.robot_pose.x)+(current_state.robot_pose.y*current_state.robot_pose.y);
 
-  if(odometry_verify>processor->getFieldRadius() || USE_IMU){
+  //if(odometry_verify>processor->getFieldRadius() || USE_IMU){
     //Fuses Vision(local) with last_state.robot_pose(local)+odometry
     vision.angle = current_hardware_state.imu_value; // current_hardware_state.imu_value olds merged value between
     // imu and histograms if imu enabled, and only histograms if imu disabled
@@ -560,7 +564,7 @@ void Localization::fuseOrientationEstimates()
     // Variância da estimativa = Variância da previsão * (1 – Ganho do Kalman)
     kalman.covariance.z = (1-kalman.K.z)*kalman.predictedCovariance.z;
 
-} else current_state.robot_pose.z = last_state.robot_pose.z + odometry.angle;
+//} else current_state.robot_pose.z = last_state.robot_pose.z + odometry.angle;
 
 }
 
@@ -802,7 +806,7 @@ void Localization::rotatePoints(int angle)
   }
 }
 
-bool Localization::computeGlobalLocalization(int side) //compute initial localization globally
+bool Localization::computeGlobalLocalization() //compute initial localization globally
 {
    //First, get the detected line points and map them using the whole field positions.
    //Then, compute the error for every position and find the least error position
@@ -815,7 +819,7 @@ bool Localization::computeGlobalLocalization(int side) //compute initial localiz
    unsigned int i, j;
 
    // Tamanho da matriz
-   if(side == 0){
+   if(bsInfo.posxside){
      i = float(currentField.FIELD_LENGTH/currentField.SCALE)+1;
      i = i/2;
      j = float(currentField.FIELD_WIDTH/currentField.SCALE)+1;
@@ -969,4 +973,10 @@ int Localization::getFieldIndexY(float value)
 {
    int tempX = float((value+currentField.HALF_FIELD_WIDTH)/currentField.SCALE);
    return tempX;
+}
+
+void Localization::baseStationCallBack(const baseStationInfo::ConstPtr &msg)
+{
+  bsInfo = *msg;
+
 }

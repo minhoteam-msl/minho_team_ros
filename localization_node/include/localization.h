@@ -10,6 +10,7 @@
 #include "minho_team_ros/interestPoint.h"
 #include "minho_team_ros/requestExtendedDebug.h"
 #include "minho_team_ros/obstacle.h"
+#include "minho_team_ros/baseStationInfo.h"
 
 using namespace ros;
 using namespace cv;
@@ -19,16 +20,15 @@ using minho_team_ros::requestReloc;
 using minho_team_ros::interestPoint;
 using minho_team_ros::requestExtendedDebug;
 using minho_team_ros::obstacle;
+using minho_team_ros::baseStationInfo;
 
 class Localization : public QObject
 {
    Q_OBJECT
 public:
-   explicit Localization(int rob_id, ros::NodeHandle *par, bool *init_success, bool use_camera, int side, QObject *parent = 0); // Constructor
+   explicit Localization(int rob_id, ros::NodeHandle *par, bool *init_success, bool use_camera, QObject *parent = 0); // Constructor
    ~Localization();
 private:
-
-   int fieldSide;
 
    //Major components
    ImageProcessor *processor;
@@ -57,6 +57,7 @@ private:
 
    //ROS Services
    ros::ServiceServer reloc_service;
+   ros::Subscriber bs_info_sub;
    bool reloc;
    bool ballGlobal;
    int reloc_counter,ball_counter;
@@ -70,6 +71,7 @@ private:
 
    vector<Point2d> rotatedLinePoints;
 
+   baseStationInfo bsInfo;
 
 private slots:
    void initVariables();
@@ -90,6 +92,7 @@ private slots:
    bool setExtDebug(requestExtendedDebug::Request &req,requestExtendedDebug::Response &res);
    int getFieldIndexX(float value);
    int getFieldIndexY(float value);
+   void baseStationCallBack(const baseStationInfo::ConstPtr &msg);
 public slots:
    void hardwareCallback(const hardwareInfo::ConstPtr &msg);
    void discoverWorldModel(); // Main Funcition
@@ -99,7 +102,7 @@ public slots:
    void decideBallPossession(); // decides wether the robot has or not the ball
    void sendWorldInfo();
    void generateDebugData(); // if requested, puts extended debug data on robotInfo
-   bool computeGlobalLocalization(int side); //compute initial localization globally
+   bool computeGlobalLocalization(); //compute initial localization globally
    void computeLocalLocalization(); //compute next localization locally
    // Math Utilities
    float normalizeAngleRad(float angle);
