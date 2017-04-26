@@ -1,5 +1,5 @@
 #include "lidarlocalization.h"
-
+#define TEST_NO_HW
 // CONSTRUCTOR
 
 lidarLocalization::lidarLocalization()
@@ -42,7 +42,12 @@ void lidarLocalization::initField(QString file_)
     }
     
     bsInfo.posxside = false; // start in the right
+#ifndef TEST_NO_HW
     float initial_angle = 15.0;
+#else
+    float initial_angle = 270.0;
+#endif
+
     lastPose = pose = Point3d((float)fieldAnatomy.fieldDims.LENGTH/2000.0,0.0,initial_angle);
     lidar.angle = initial_angle;
     tipPositionRight = Point2d((float)fieldAnatomy.fieldDims.LENGTH/2000.0-(float)fieldAnatomy.fieldDims.AREA_LENGTH2/1000.0,
@@ -77,7 +82,7 @@ void lidarLocalization::readMapConfFile(QString file_)
     vector<struct nodo> temp; temp.clear();
     struct nodo dummy;
     QString res = in.readLine();
-    outputResolution = res.toInt();
+    outputResolution = 50;
     outputResolution_m = outputResolution/1000.0;
     ceilaux = outputResolution_m/2;
     while(!in.atEnd()){
@@ -260,6 +265,10 @@ void lidarLocalization::updateLidarEstimate(vector<float> *distances)
 	}
 	
 	LastLidarAng = lidar.angle;
+
+#ifdef TEST_NO_HW
+    doGlobalLocalization = true;
+#endif
 }
 
 void lidarLocalization::fuseEstimates()

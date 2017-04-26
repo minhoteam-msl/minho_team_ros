@@ -6,7 +6,7 @@
 
 //ROS includes
 #include "std_msgs/String.h"
-//#include "kinectvision.h"
+#include "kinectvision.h"
 #include "minho_team_ros/hardwareInfo.h"
 #include "sensor_msgs/LaserScan.h"
 #include "minho_team_ros/goalKeeperInfo.h"
@@ -30,8 +30,8 @@ using minho_team_ros::goalKeeperInfo; //Namespace for gk info information msg - 
 using minho_team_ros::interestPoint; //Namespace for gk info information msg - PUBLISHING
 using minho_team_ros::requestReloc;
 
-//kinectVision *gkvision;
-lidarLocalization *localization;
+kinectVision *gkvision = NULL;
+lidarLocalization *localization = NULL;
 
 /// \brief main sending thread
 pthread_t send_info_thread;
@@ -44,23 +44,23 @@ ros::Publisher gk_info_pub;
 
 void hardwareInfoCallback(const hardwareInfo::ConstPtr& msg)
 {
-	localization->updateOdometryEstimate(msg);
+	if(localization)localization->updateOdometryEstimate(msg);
 }
 
 void laserScanCallback(const LaserScan::ConstPtr& msg)
 {
 	vector<float> ranges(msg->ranges);
-	localization->updateLidarEstimate(&ranges);
+	if(localization)localization->updateLidarEstimate(&ranges);
 }
 
 void baseStationCallback(const baseStationInfo::ConstPtr& msg)
 {
-	localization->updateBaseStationInfo(msg);
+	if(localization)localization->updateBaseStationInfo(msg);
 }
 
 bool relocCallback(requestReloc::Request &req,requestReloc::Response &res)
 {
-    localization->doReloc();
+    if(localization)localization->doReloc();
     ROS_INFO("Reloc request received!");
     return true;
 }
@@ -117,24 +117,7 @@ void* updateLocalizationData(void *data)
    make_periodic(info->period_us,info);
 
    while(ros::ok()){
-      //gkvision->updateLocalizationData(localization->getPose(),localization->getVelocities(), localization->getWorldPoints());
-      Point3d pose = localization->getPose();
-	    
-	  keeper.robot_info.robot_pose.x = pose.x;
-	  keeper.robot_info.robot_pose.y = pose.y;
-	  keeper.robot_info.robot_pose.z = pose.z;
-	    
-	  std::vector<Point2f> lidarPoints = localization->getWorldPoints();
-	  interestPoint pt;
-	  
-	  keeper.robot_info.interest_points.clear();
-	  for(int i=0;i<lidarPoints.size();i++){
-	    pt.pos.x = lidarPoints[i].x;
-	    pt.pos.y = lidarPoints[i].y;
-	    keeper.robot_info.interest_points.push_back(pt);
-	  }
-	  
-	  gk_info_pub.publish(keeper);
+      if(gkvision)gkvision->updateLocalizationData(localization->getPose(),localization->getVelocities());
       wait_period(info);
    }
    return NULL;
@@ -156,8 +139,7 @@ int main(int argc, char **argv)
 	gk_info_pub = gk_node.advertise<goalKeeperInfo>("goalKeeperInfo", 1);
 	ros::ServiceServer reloc_service = gk_node.advertiseService("requestReloc",
                                     relocCallback);
-	
-	
+
 	ros::AsyncSpinner spinner(2);
 
 	ROS_WARN("Checking hardware modules ...");
@@ -169,7 +151,8 @@ int main(int argc, char **argv)
 	} else ROS_ERROR("Failed to find hardware modules for goalkeeper node");
 	
 	pi_sendth.id = 1; pi_sendth.period_us = DATA_UPDATE_USEC;
-    	pthread_create(&send_info_thread, NULL, updateLocalizationData,&pi_sendth);
+    pthread_create(&send_info_thread, NULL, updateLocalizationData,&pi_sendth);
 	pthread_join(send_info_thread,NULL);
+	
 	return 0;
 }

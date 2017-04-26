@@ -1,20 +1,33 @@
 #include "kinectvision.h"
 
-//if(temp.h==0) temp.h = 180;
+/// \brief a mutex to avoid multi-thread access to message
+pthread_mutex_t locmsg_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-bool goodCandidateFound = false; // variable that tell us when we found the ball
-int save_mind=0;   // variable that tell us the point where the ball is
-int finalcounter=0;   // count how many time passed since we lose da ball  ( from 11 frames to 20 frames) 
-   
 kinectVision::kinectVision(ros::NodeHandle *par)
 {
     parent = par;
-	configFilePaths();
-	initVariables();
-	localization = new lidarLocalization();
-	if(!readParameters() || !localization->readParameters()) exit(0);
-    generateLookUpTable(false);
-	_index = 0;
+    save_mind = finalcounter = 0;
+    goodCandidateFound = false;
+    configFilePaths();
+    initVariables();
+    if(!readParameters()) exit(0);
+    generateLookUpTable();
+    _index = 0;
+}
+
+void kinectVision::updateLocalizationData(Point3f pose, Point3f vels)
+{
+    pthread_mutex_lock (&locmsg_mutex); //Lock mutex
+    
+    current_state.robot_info.robot_pose.x = pose.x;
+    current_state.robot_info.robot_pose.y = pose.y;
+    current_state.robot_info.robot_pose.z = pose.z;
+    
+    current_state.robot_info.robot_velocity.x = vels.x;
+    current_state.robot_info.robot_velocity.y = vels.y;
+    current_state.robot_info.robot_velocity.z = vels.z;
+    
+    pthread_mutex_unlock (&locmsg_mutex); //Unlock mutex        
 }
 
 double kinectVision::calculate_margin(int RunningMargin)
@@ -75,8 +88,9 @@ double kinectVision::checkLimits( int mode , double RunningMargin){  // function
 
 }
 
-
-double kinectVision::updateLimits (int mode=1, int minId=0){//sabendo que a bola tem tamanho real x então podemos utilizar isso para definir quantas vezes maior será o pedaço a seguir, por exemplo:
+double kinectVision::updateLimits (int mode=1, int minId=0)
+{
+//sabendo que a bola tem tamanho real x então podemos utilizar isso para definir quantas vezes maior será o pedaço a seguir, por exemplo:
 //a bola mede m metros e p pixeis, a uma velocidade v ela anda k*x metros em 30 milisegundos, logo anda k*p pixeis da camara,
 //logo para seguir a bola a margem deverá ser de 1,5*k*p pixeis, sendo que k*x neste caso representa a v maxima que a bola poderá atingir (deve incluir uma pequena margem)
 
@@ -127,11 +141,6 @@ RunningMargin - margem em pixeis calculada para uma velocidade x a multiplicar p
 
 }
 
-void kinectVision::setRobotPose(Point3d pose)
-{
-	robotPose = pose;
-}
-
 Point2d kinectVision::mapPointToWorld(double rx, double ry, double angle, float dist, double theta, double offset)
 {
     // theta must be in radians
@@ -144,37 +153,6 @@ Point2d kinectVision::mapPointToWorld(double rx, double ry, double angle, float 
     return Point2d(rx-cos(ang)*pointRelX-sin(ang)*pointRelY+(offset*sin((angOffset))),
                    ry-sin(ang)*pointRelX+cos(ang)*pointRelY-(offset*cos((angOffset))));
 }
-
-void kinectVision::detectGameBall()
-{
-	static int fpsmeasure = 0,fpscounter = 0;
-	QTime measure;
-	retrieveTimer->stop();
-	measure.start();
-	int timing = 0;
-	if(getImages(depthImage,rgbImage)){
-		// Process Image
-		filterByColor(true);
-		filterByAnatomy(true);
-		chooseBestCandidate(true);
-		
-		//Display Information
-		fpsmeasure+= fpsReader.elapsed();
-		fpscounter++;
-		if(fpscounter==200) {
-			ROS_INFO("Average FPS : %.1fFPS",(1000.0*fpscounter)/fpsmeasure);
-			fpsmeasure=fpscounter=0;
-		}
-		fpsReader.start();
-		timing = definedRatems-measure.elapsed();
-        if(timing<=0) timing = 1;
-        retrieveTimer->start(timing);
-	} else {
-		//ROS_INFO("Failure Getting Images");
-		retrieveTimer->start(5);
-	}
-}
-
 
 void kinectVision::filterByColor(bool show)
 {
@@ -473,9 +451,7 @@ void kinectVision::initVariables()
 	
 	Mat rgbImage(Size(640,480),CV_8UC3,Scalar(0));
 	nRows = 480; nCols = 640;
-	
-	definedRatems = 33;
-    
+
     convHorizontal = (57/2.0)/320.0; 
     convVertical = (43/2.0)/240.0;
     
@@ -503,7 +479,7 @@ bool kinectVision::readParameters()
     heightFromGround = 0.7;
     QFile file(paramFile);
     if(!file.open(QIODevice::ReadOnly)) {
-        ROS_ERROR("Error reading %s",KINPARAMFILENAME);
+        ROS_ERROR("Error reading %s",KINPARAMSFILENAME);
         return false;
     } QTextStream in(&file);
 	
@@ -641,14 +617,41 @@ void kinectVision::predictBallPosition()
     }
 }
 
-
-// Localization stuff
-void kinectVision::updateLidar(vector<float> *distances)
+hsv kinectVision::rgbtohsv(rgb in)
 {
-	localization->updateLidarEstimate(distances);
-}
+    hsv temp;
+    int min = 0, max = 0, delta = 0;
+    if(in.r<in.g)min=in.r; else min=in.g;
+    if(in.b<min)min=in.b;
 
-void kinectVision::updateOdometry(float angle,int enc1,int enc2,int enc3)
-{
-	localization->updateOdometryEstimate(angle,enc1,enc2,enc3);
+    if(in.r>in.g)max=in.r; else max=in.g;
+    if(in.b>max)max=in.b;
+
+    temp.v = max;                // v, 0..255
+    delta = max - min;                      // 0..255, < v
+
+    if(max != 0)
+        temp.s = (int)(delta)*255/max;        // s, 0..255
+    else {
+        // r = g = b = 0        // s = 0, v is undefined
+        temp.s = 0;
+        temp.h = 0;
+        return temp;
+    }
+    if(delta==0) temp.h = 0;
+    else {
+        if( in.r == max )
+            temp.h = (in.g - in.b)*30/delta;        // between yellow & magenta
+        else if( in.g == max )
+            temp.h = 60 + (in.b - in.r)*30/delta;    // between cyan & yellow
+        else
+            temp.h = 120 + (in.r - in.g)*30/delta;    // between magenta & cyan
+
+        while( temp.h < 0 ) temp.h += 180;
+    }
+
+    if(temp.h>160){
+        temp.h = (int)(-0.11111*temp.h)+20;
+    }
+    return temp;
 }
