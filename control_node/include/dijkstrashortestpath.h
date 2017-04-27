@@ -83,13 +83,11 @@ public:
     vector<position> get_SmoothPath_with_ObstaclesCircle_Visualizer();
     vector<position> get_Path_Visualizer();
     vector<position> get_PathInterpolation_Visualizer();
-
-    void Test1(robotInfo robot, Point target_point, vector<Point>& path);
-
+    void motionPlanning_pathPlanning(robotInfo robot, Point target_point, vector<Point>& path);
     void clearDijkstraPath();
 
 private:
-    void calculate_Radius_of_Obstacles(robotInfo robot, Point target_point, bool& source_in_radius, bool& target_in_radius);
+    void calculate_Radius_of_Obstacles(robotInfo robot, Point target_point, bool& source_in_radius, bool& target_in_radius, int path_not_found);
     void insert_ObstaclesCircle_Visualizer(float obst_circle);
     bool directPath_without_Obstacles(Point source_point, Point target_point, vector<Point>& direct_path);
     void insert_VoronoiSegments_at_Arrangement();
@@ -102,16 +100,19 @@ private:
     void construct_Arrangement();
     bool calculate_DijkstraPath(Point source_point, Point target_point, vector<Point>& dijkstra_path);
     void insert_DijkstraPath_Visualizer(position pos);
+    void subSource_subTarget(vector<Point>& path_points, bool source_in_radius, bool target_in_radius, bool& decrease_radius);
     void dijkstraPath_with_ObstaclesCircle(const vector<Point>& path_points, vector<double>& dijkstra_path_obst_circle);
     void insert_DijkstraPath_with_ObstaclesCircle_Visualizer(position pos);
     void smoothPath(vector<double>& path_points, vector<Point>& curve_points);
     void insert_SmoothPath_Visualizer(position pos);
     void smoothPath_with_ObstaclesCircle(vector<Point>& curve_points);
     void insert_SmoothPath_with_ObstaclesCircle_Visualizer(position pos);
-    void shortest_SmoothPath_with_ObstaclesCircle(const vector<Point>& curve_points, vector<Point>& shortest_path);
+    void shortest_SmoothPath_with_ObstaclesCircle(const vector<Point>& curve_points, vector<Point>& shortest_path,
+                                                  bool source_in_radius, bool target_in_radius, Point source_point, Point target_point);
     void insert_Path_Visualizer(position pos);
     void pathInterpolation(const vector<Point>& path_points, vector<Point>& curve_points);
     void insert_PathInterpolation_Visualizer(position pos);
+    bool moved_Source_or_Target(Point source_point, Point target_point);
 
     Fundamental *fundamental;
     Voronoi *voronoi;

@@ -173,8 +173,3 @@ int Motion::movementDirection(int robot_angle, int reference_angle)
 
     return movement_direction;
 }
-
-
-
-//tanh((x-10)*(1/2))*tanh((-x-0)*(1/2))*80
-

@@ -38,7 +38,8 @@ void Voronoi::insert_Obstacles_VoronoiDiagram(robotInfo robot)
 {
     for(unsigned int i=0; i<robot.obstacles.size(); i++)
     {
-        obstacles.push_back(Site(robot.obstacles.at(i).x,robot.obstacles.at(i).y));
+        if(fundamental->isInsideField(Point(robot.obstacles.at(i).x,robot.obstacles.at(i).y), 0.0))
+            obstacles.push_back(Site(robot.obstacles.at(i).x,robot.obstacles.at(i).y));
     }
 
     obstacles.insert(obstacles.end(),artificial_obstacles.begin(),artificial_obstacles.end());
@@ -158,60 +159,3 @@ void Voronoi::clearVoronoi()
     obstacles.clear();
     voronoi_segments_visualizer.clear();
 }
-
-
-
-/*
-void Voronoi::insertArtificialObstacles()
-{
-    voronoi.insert(artificial_obstacles.begin(),artificial_obstacles.end());
-}*/
-
-
-/*Site Voronoi::getFace1(Point point)
-{
-    Locate_Result locate_res = voronoi.locate(point);
-
-    cout<<"loc: "<<locate_res.which()<<endl;
-
-    if(Face_Handle *face_handle = boost::get<Face_Handle>(&locate_res)) {
-
-        cout<<"ola"<<endl;
-        return Site((*face_handle)->dual()->point());
-    }
-    else{
-         cout<<"null"<<endl;
-        return Site(NULL,NULL);
-
-}
-}*/
-
-/*
-//
-void Voronoi::site_Obstacles_Circle(Point circle_center, float radius)  // !!!n
-{
-    vector<Site> obst;
-
-    float perimeter = 2.0 * M_PI * radius * 2.5;
-
-    int points_num = perimeter/fundamental->getRobotDiameter();
-
-    float angle_step = (2.0 * M_PI)/points_num;
-
-    for(int i=0; i<points_num; i++) {
-
-        float angle = angle_step * i;
-        float x = circle_center.x() + radius * 2.5 * cos(angle); //!!!
-        float y = circle_center.y() + radius * 2.5 * sin(angle); //!!!
-
-        obst.push_back(Site(x,y));
-    }
-
-    obstacles.insert(obstacles.end(), obst.begin(), obst.end());
-}
-*/
-
-
-
-
-
