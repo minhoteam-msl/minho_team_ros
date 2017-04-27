@@ -463,7 +463,7 @@ bool BlackflyCam::initProps(int robot_id)
     //Ensure the property is on.
     props[WB].onOff = true;
     //Ensure auto-adjust mode is off.
-    props[WB].autoManualMode = true;
+    props[WB].autoManualMode = false;
     //props[WB].valueA = propConf.at(6).toDouble(); // red
     props[WB].valueB = propConf.at(7).toDouble(); // blue
     camera->SetProperty(&props[WB]);
