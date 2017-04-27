@@ -10,7 +10,6 @@
 #include "minho_team_ros/hardwareInfo.h"
 #include "minho_team_ros/robotInfo.h"
 #include "minho_team_ros/baseStationInfo.h"
-#include <QTime>
 
 using namespace std;
 using namespace cv;

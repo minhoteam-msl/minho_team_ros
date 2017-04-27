@@ -368,7 +368,7 @@ else()
 	add_executable(goalkeeper_node ${GK_DIR}/src/main.cpp ${GK_DIR}/src/lidarlocalization.cpp ${GK_DIR}/src/kinectvision.cpp)
 	set_target_properties(goalkeeper_node PROPERTIES COMPILE_FLAGS "-fPIC")
 	target_compile_features(goalkeeper_node PRIVATE cxx_range_for)
-	target_link_libraries(goalkeeper_node ${catkin_LIBRARIES} ${opencv_LIBRARIES} ${qt_LIBRARIES} ${freenect_LIBRARIES})
+	target_link_libraries(goalkeeper_node ${catkin_LIBRARIES} ${opencv_LIBRARIES} ${freenect_LIBRARIES} ${qt_LIBRARIES})
 	add_dependencies(goalkeeper_node ${PROJECT_NAME}_gencpp)
 	########################################
 
