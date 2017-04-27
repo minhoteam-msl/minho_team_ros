@@ -25,6 +25,8 @@ AI::AI(ros::NodeHandle* parent, bool mode_real, int robot_id)
             1,&AI::robotInfoCallback,this);
    ai_pub = node->advertise<aiInfo>(ai_topic_name.str().c_str(),1);
    role = NULL;
+   
+   gk.impact_zone.z = -1;
    getNewRole(rSTOP,&role);
    
    bs.roles.resize(5,rSTOP); //default value
@@ -46,6 +48,7 @@ void AI::computeAI()
 
    pthread_mutex_lock(&robot_info_mutex);   
    robotInfo robInfo = robot;
+   goalKeeperInfo gkInfo = gk;
    pthread_mutex_unlock(&robot_info_mutex);
    
    // Update my role
@@ -56,7 +59,7 @@ void AI::computeAI()
    }
    
    // Determine action
-   role->updateWorldModel(bsInfo,robInfo);
+   role->updateWorldModel(bsInfo,robInfo,gkInfo);
    role->computeAction(&ai);
    
    /*ROS_INFO("%s->%s",role->getActiveRoleName().c_str(),
@@ -70,6 +73,14 @@ void AI::baseStationInfoCallback(const baseStationInfo::ConstPtr &msg)
    pthread_mutex_lock(&bs_info_mutex);
    bs = (*msg);
    pthread_mutex_unlock(&bs_info_mutex);   
+}
+
+void AI::goalKeeperInfoCallback(const goalKeeperInfo::ConstPtr &msg)
+{
+   pthread_mutex_lock(&robot_info_mutex);
+   gk = (*msg);
+   robot = msg->robot_info;
+   pthread_mutex_unlock(&robot_info_mutex);  
 }
 
 void AI::robotInfoCallback(const robotInfo::ConstPtr &msg)
