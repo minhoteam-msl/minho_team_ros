@@ -6,8 +6,6 @@ float32 Kd_rot
 float32 Kp_lin
 float32 Ki_lin
 float32 Kd_lin
-float32 acceleration
-float32 deceleration
 bool send_voronoi_seg
 bool send_intersect_seg
 bool send_dijk_path

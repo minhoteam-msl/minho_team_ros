@@ -224,48 +224,166 @@ bool Fundamental::intersect_Segment_and_Circle(Segment seg, Point circle_center,
     float seg_point_dist;
     Point intersect_point;
 
-    if(seg.source().x() == seg.target().x()) {
-        x_min = (float)seg.source().x() - radius;
-        x_max = (float)seg.source().x() + radius;
+    if(seg.source() != seg.target()) {
 
-        if(seg.source().y() < seg.target().y()) {
+        if(seg.source().x() == seg.target().x()) {
+            x_min = (float)seg.source().x() - radius;
+            x_max = (float)seg.source().x() + radius;
+
+            if(seg.source().y() < seg.target().y()) {
+                y_min = (float)seg.source().y() - radius;
+                y_max = (float)seg.target().y() + radius;
+                y_min_seg = (float)seg.source().y();
+                y_max_seg = (float)seg.target().y();
+            }else {
+                y_min = (float)seg.target().y() - radius;
+                y_max = (float)seg.source().y() + radius;
+                y_min_seg = (float)seg.target().y();
+                y_max_seg = (float)seg.source().y();
+            }
+
+            if(circle_center.x() >= x_min && circle_center.x() <= x_max && circle_center.y() >= y_min && circle_center.y() <= y_max) {
+
+                if(circle_center.y() >= y_min_seg && circle_center.y() <= y_max_seg) {
+                    intersect = true;
+                }else if(circle_center.y() < y_min_seg) {
+                    seg_point_dist = distance((float)seg.source().x(), y_min_seg, (float)circle_center.x(), (float)circle_center.y());
+                    if(seg_point_dist <= radius)
+                        intersect = true;
+                    else
+                        intersect = false;
+                }else if(circle_center.y() > y_max_seg) {
+                    seg_point_dist = distance((float)seg.source().x(), y_max_seg, (float)circle_center.x(), (float)circle_center.y());
+                    if(seg_point_dist <= radius)
+                        intersect = true;
+                    else
+                        intersect = false;
+                }
+            }else
+                intersect = false;
+
+        }else if(seg.source().y() == seg.target().y()) {
+
             y_min = (float)seg.source().y() - radius;
-            y_max = (float)seg.target().y() + radius;
-            y_min_seg = (float)seg.source().y();
-            y_max_seg = (float)seg.target().y();
-        }else {
-            y_min = (float)seg.target().y() - radius;
             y_max = (float)seg.source().y() + radius;
-            y_min_seg = (float)seg.target().y();
-            y_max_seg = (float)seg.source().y();
-        }
 
-        if(circle_center.x() >= x_min && circle_center.x() <= x_max && circle_center.y() >= y_min && circle_center.y() <= y_max) {
-
-            if(circle_center.y() >= y_min_seg && circle_center.y() <= y_max_seg) {
-                intersect = true;
-            }else if(circle_center.y() < y_min_seg) {
-                seg_point_dist = distance((float)seg.source().x(), y_min_seg, (float)circle_center.x(), (float)circle_center.y());
-                if(seg_point_dist <= radius)
-                    intersect = true;
-                else
-                    intersect = false;
-            }else if(circle_center.y() > y_max_seg) {
-                seg_point_dist = distance((float)seg.source().x(), y_max_seg, (float)circle_center.x(), (float)circle_center.y());
-                if(seg_point_dist <= radius)
-                    intersect = true;
-                else
-                    intersect = false;
+            if(seg.source().x() < seg.target().x()) {
+                x_min = (float)seg.source().x() - radius;
+                x_max = (float)seg.target().x() + radius;
+                x_min_seg = (float)seg.source().x();
+                x_max_seg = (float)seg.target().x();
+            }else {
+                x_min = (float)seg.target().x() - radius;
+                x_max = (float)seg.source().x() + radius;
+                x_min_seg = (float)seg.target().x();
+                x_max_seg = (float)seg.source().x();
             }
-        }else
-            intersect = false;
 
-    }else if(seg.source().y() == seg.target().y()) {
+            if(circle_center.x() >= x_min && circle_center.x() <= x_max && circle_center.y() >= y_min && circle_center.y() <= y_max) {
 
-        y_min = (float)seg.source().y() - radius;
-        y_max = (float)seg.source().y() + radius;
+                if(circle_center.x() >= x_min_seg && circle_center.x() <= x_max_seg) {
+                    intersect = true;
+                }else if(circle_center.x() < x_min_seg) {
+                    seg_point_dist = distance(x_min_seg, (float)seg.source().y(), (float)circle_center.x(), (float)circle_center.y());
+                    if(seg_point_dist <= radius)
+                        intersect = true;
+                    else
+                        intersect = false;
+                }else if(circle_center.x() > x_max_seg) {
+                    seg_point_dist = distance(x_max_seg, (float)seg.source().y(), (float)circle_center.x(), (float)circle_center.y());
+                    if(seg_point_dist <= radius)
+                        intersect = true;
+                    else
+                        intersect = false;
+                }
+            }else
+                intersect = false;
 
-        if(seg.source().x() < seg.target().x()) {
+        }else {
+            if(seg.source().x() < seg.target().x()) {
+                x_min = (float)seg.source().x() - radius;
+                x_max = (float)seg.target().x() + radius;
+                x_min_seg = (float)seg.source().x();
+                x_max_seg = (float)seg.target().x();
+            }else {
+                x_min = (float)seg.target().x() - radius;
+                x_max = (float)seg.source().x() + radius;
+                x_min_seg = (float)seg.target().x();
+                x_max_seg = (float)seg.source().x();
+            }
+
+            if(seg.source().y() < seg.target().y()) {
+                y_min = (float)seg.source().y() - radius;
+                y_max = (float)seg.target().y() + radius;
+                y_min_seg = (float)seg.source().y();
+                y_max_seg = (float)seg.target().y();
+            }else {
+                y_min = (float)seg.target().y() - radius;
+                y_max = (float)seg.source().y() + radius;
+                y_min_seg = (float)seg.target().y();
+                y_max_seg = (float)seg.source().y();
+            }
+
+            if(circle_center.x() >= x_min && circle_center.x() <= x_max && circle_center.y() >= y_min && circle_center.y() <= y_max) {
+
+                float seg_source_dist = distance((float)seg.source().x(), (float)seg.source().y(), (float)circle_center.x(), (float)circle_center.y());
+                float seg_target_dist = distance((float)seg.target().x(), (float)seg.target().y(), (float)circle_center.x(), (float)circle_center.y());
+
+                if(seg_source_dist < radius && seg_target_dist < radius)
+                    intersect = true;
+                else {
+                    Circle circle(Circ_Point(circle_center.x(), circle_center.y()), CGAL::Exact_rational(radius * radius), CGAL::CLOCKWISE);
+                    Circ_Line circ_line(Circ_Point(seg.source().x(), seg.source().y()), Circ_Point(seg.target().x(), seg.target().y()));
+
+                    vector<InterRes> output;
+                    Dispatcher disp = CGAL::dispatch_output<InterRes>(back_inserter(output));
+
+                    CGAL::intersection(circ_line, circle, disp);
+
+                    if(output.size() > 0) {
+                        intersect_point = Point(CGAL::to_double(output[0].first.x()), CGAL::to_double(output[0].first.y()));
+                        if(intersect_point.x() >= x_min_seg && intersect_point.x() <= x_max_seg &&
+                                intersect_point.y() >= y_min_seg && intersect_point.y() <= y_max_seg)
+                            intersect = true;
+                        else if(output.size() > 1) {
+                            intersect_point = Point(CGAL::to_double(output[1].first.x()), CGAL::to_double(output[1].first.y()));
+                            if(intersect_point.x() >= x_min_seg && intersect_point.x() <= x_max_seg &&
+                                    intersect_point.y() >= y_min_seg && intersect_point.y() <= y_max_seg)
+                                intersect = true;
+                            else
+                                intersect = false;
+                        }else
+                            intersect = false;
+                    }else
+                        intersect = false;
+                }
+            }else
+                intersect = false;
+        }
+    }else
+        intersect = false;
+
+    return intersect;
+}
+
+//
+/*
+ * seg                 -
+ * circle_center       -
+ * radius              -
+ * intersection_points -
+ */
+//
+bool Fundamental::intersect_Segment_and_Circle(Segment seg, Point circle_center, float radius, vector<Point>& intersection_points)
+{
+    float x_min, x_max, y_min, y_max;
+    float x_min_seg, x_max_seg, y_min_seg, y_max_seg;
+    bool intersect, intersect0, intersect1;
+    Point intersect_point;
+
+    if(seg.source() != seg.target()) {
+
+        if(seg.source().x() <= seg.target().x()) {
             x_min = (float)seg.source().x() - radius;
             x_max = (float)seg.target().x() + radius;
             x_min_seg = (float)seg.source().x();
@@ -277,40 +395,7 @@ bool Fundamental::intersect_Segment_and_Circle(Segment seg, Point circle_center,
             x_max_seg = (float)seg.source().x();
         }
 
-        if(circle_center.x() >= x_min && circle_center.x() <= x_max && circle_center.y() >= y_min && circle_center.y() <= y_max) {
-
-            if(circle_center.x() >= x_min_seg && circle_center.x() <= x_max_seg) {
-                intersect = true;
-            }else if(circle_center.x() < x_min_seg) {
-                seg_point_dist = distance(x_min_seg, (float)seg.source().y(), (float)circle_center.x(), (float)circle_center.y());
-                if(seg_point_dist <= radius)
-                    intersect = true;
-                else
-                    intersect = false;
-            }else if(circle_center.x() > x_max_seg) {
-                seg_point_dist = distance(x_max_seg, (float)seg.source().y(), (float)circle_center.x(), (float)circle_center.y());
-                if(seg_point_dist <= radius)
-                    intersect = true;
-                else
-                    intersect = false;
-            }
-        }else
-            intersect = false;
-
-    }else {
-        if(seg.source().x() < seg.target().x()) {
-            x_min = (float)seg.source().x() - radius;
-            x_max = (float)seg.target().x() + radius;
-            x_min_seg = (float)seg.source().x();
-            x_max_seg = (float)seg.target().x();
-        }else {
-            x_min = (float)seg.target().x() - radius;
-            x_max = (float)seg.source().x() + radius;
-            x_min_seg = (float)seg.target().x();
-            x_max_seg = (float)seg.source().x();
-        }
-
-        if(seg.source().y() < seg.target().y()) {
+        if(seg.source().y() <= seg.target().y()) {
             y_min = (float)seg.source().y() - radius;
             y_max = (float)seg.target().y() + radius;
             y_min_seg = (float)seg.source().y();
@@ -340,112 +425,35 @@ bool Fundamental::intersect_Segment_and_Circle(Segment seg, Point circle_center,
 
                 if(output.size() > 0) {
                     intersect_point = Point(CGAL::to_double(output[0].first.x()), CGAL::to_double(output[0].first.y()));
+
                     if(intersect_point.x() >= x_min_seg && intersect_point.x() <= x_max_seg &&
-                            intersect_point.y() >= y_min_seg && intersect_point.y() <= y_max_seg)
-                        intersect = true;
-                    else if(output.size() > 1) {
-                        intersect_point = Point(CGAL::to_double(output[1].first.x()), CGAL::to_double(output[1].first.y()));
-                        if(intersect_point.x() >= x_min_seg && intersect_point.x() <= x_max_seg &&
-                                intersect_point.y() >= y_min_seg && intersect_point.y() <= y_max_seg)
-                            intersect = true;
-                        else
-                            intersect = false;
+                            intersect_point.y() >= y_min_seg && intersect_point.y() <= y_max_seg) {
+                        intersect0 = true;
+                        intersection_points.push_back(intersect_point);
                     }else
-                        intersect = false;
+                        intersect0 = false;
                 }else
+                    intersect0 = false;
+
+                if(output.size() > 1) {
+                    intersect_point = Point(CGAL::to_double(output[1].first.x()), CGAL::to_double(output[1].first.y()));
+
+                    if(intersect_point.x() >= x_min_seg && intersect_point.x() <= x_max_seg &&
+                            intersect_point.y() >= y_min_seg && intersect_point.y() <= y_max_seg) {
+                        intersect1 = true;
+                        intersection_points.push_back(intersect_point);
+                    }else
+                        intersect1 = false;
+                }else
+                    intersect1 = false;
+
+                if(intersect0 || intersect1)
+                    intersect = true;
+                else
                     intersect = false;
             }
         }else
             intersect = false;
-    }
-
-    return intersect;
-}
-
-//
-/*
- * seg                 -
- * circle_center       -
- * radius              -
- * intersection_points -
- */
-//
-bool Fundamental::intersect_Segment_and_Circle(Segment seg, Point circle_center, float radius, vector<Point>& intersection_points)
-{
-    float x_min, x_max, y_min, y_max;
-    float x_min_seg, x_max_seg, y_min_seg, y_max_seg;
-    bool intersect, intersect0, intersect1;
-    Point intersect_point;
-
-    if(seg.source().x() <= seg.target().x()) {
-        x_min = (float)seg.source().x() - radius;
-        x_max = (float)seg.target().x() + radius;
-        x_min_seg = (float)seg.source().x();
-        x_max_seg = (float)seg.target().x();
-    }else {
-        x_min = (float)seg.target().x() - radius;
-        x_max = (float)seg.source().x() + radius;
-        x_min_seg = (float)seg.target().x();
-        x_max_seg = (float)seg.source().x();
-    }
-
-    if(seg.source().y() <= seg.target().y()) {
-        y_min = (float)seg.source().y() - radius;
-        y_max = (float)seg.target().y() + radius;
-        y_min_seg = (float)seg.source().y();
-        y_max_seg = (float)seg.target().y();
-    }else {
-        y_min = (float)seg.target().y() - radius;
-        y_max = (float)seg.source().y() + radius;
-        y_min_seg = (float)seg.target().y();
-        y_max_seg = (float)seg.source().y();
-    }
-
-    if(circle_center.x() >= x_min && circle_center.x() <= x_max && circle_center.y() >= y_min && circle_center.y() <= y_max) {
-
-        float seg_source_dist = distance((float)seg.source().x(), (float)seg.source().y(), (float)circle_center.x(), (float)circle_center.y());
-        float seg_target_dist = distance((float)seg.target().x(), (float)seg.target().y(), (float)circle_center.x(), (float)circle_center.y());
-
-        if(seg_source_dist < radius && seg_target_dist < radius)
-            intersect = true;
-        else {
-            Circle circle(Circ_Point(circle_center.x(), circle_center.y()), CGAL::Exact_rational(radius * radius), CGAL::CLOCKWISE);
-            Circ_Line circ_line(Circ_Point(seg.source().x(), seg.source().y()), Circ_Point(seg.target().x(), seg.target().y()));
-
-            vector<InterRes> output;
-            Dispatcher disp = CGAL::dispatch_output<InterRes>(back_inserter(output));
-
-            CGAL::intersection(circ_line, circle, disp);
-
-            if(output.size() > 0) {
-                intersect_point = Point(CGAL::to_double(output[0].first.x()), CGAL::to_double(output[0].first.y()));
-
-                if(intersect_point.x() >= x_min_seg && intersect_point.x() <= x_max_seg &&
-                        intersect_point.y() >= y_min_seg && intersect_point.y() <= y_max_seg) {
-                    intersect0 = true;
-                    intersection_points.push_back(intersect_point);
-                }else
-                    intersect0 = false;
-            }else
-                intersect0 = false;
-
-            if(output.size() > 1) {
-                intersect_point = Point(CGAL::to_double(output[1].first.x()), CGAL::to_double(output[1].first.y()));
-
-                if(intersect_point.x() >= x_min_seg && intersect_point.x() <= x_max_seg &&
-                        intersect_point.y() >= y_min_seg && intersect_point.y() <= y_max_seg) {
-                    intersect1 = true;
-                    intersection_points.push_back(intersect_point);
-                }else
-                    intersect1 = false;
-            }else
-                intersect1 = false;
-
-            if(intersect0 || intersect1)
-                intersect = true;
-            else
-                intersect = false;
-        }
     }else
         intersect = false;
 
@@ -465,25 +473,42 @@ bool Fundamental::intersect_Line_and_Circle(Point line_pointA, Point line_pointB
     bool intersect = false;
     Point intersect_point;
 
-    Circle circle(Circ_Point(circle_center.x(), circle_center.y()), CGAL::Exact_rational(radius * radius), CGAL::CLOCKWISE);
-    Circ_Line circ_line(Circ_Point(line_pointA.x(), line_pointA.y()), Circ_Point(line_pointB.x(), line_pointB.y()));
+    if(line_pointA != line_pointB) {
 
-    vector<InterRes> output;
-    Dispatcher disp = CGAL::dispatch_output<InterRes>(back_inserter(output));
+        Circle circle(Circ_Point(circle_center.x(), circle_center.y()), CGAL::Exact_rational(radius * radius), CGAL::CLOCKWISE);
+        Circ_Line circ_line(Circ_Point(line_pointA.x(), line_pointA.y()), Circ_Point(line_pointB.x(), line_pointB.y()));
 
-    CGAL::intersection(circ_line, circle, disp);
+        vector<InterRes> output;
+        Dispatcher disp = CGAL::dispatch_output<InterRes>(back_inserter(output));
 
-    if(output.size() > 0) {
-        intersect_point = Point(CGAL::to_double(output[0].first.x()), CGAL::to_double(output[0].first.y()));
-        intersection_points.push_back(intersect_point);
-        intersect = true;
-    }
+        CGAL::intersection(circ_line, circle, disp);
 
-    if(output.size() > 1) {
-        intersect_point = Point(CGAL::to_double(output[1].first.x()), CGAL::to_double(output[1].first.y()));
-        intersection_points.push_back(intersect_point);
-    }
+        if(output.size() > 0) {
+            intersect_point = Point(CGAL::to_double(output[0].first.x()), CGAL::to_double(output[0].first.y()));
+            intersection_points.push_back(intersect_point);
+            intersect = true;
+        }
+
+        if(output.size() > 1) {
+            intersect_point = Point(CGAL::to_double(output[1].first.x()), CGAL::to_double(output[1].first.y()));
+            intersection_points.push_back(intersect_point);
+        }
+    }else
+        intersect = false;
 
     return intersect;
+}
+
+//
+/*
+ *
+ */
+//
+bool Fundamental::isInsideField(Point point, float margin)
+{
+    if(fabs(point.x()) <= half_field_length + margin && fabs(point.y()) <= half_field_width + margin)
+        return true;
+
+    return false;
 }
 

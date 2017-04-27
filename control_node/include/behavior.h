@@ -40,8 +40,7 @@ private:
    bool initParameters();
    bool readControlParameters();
    bool writeControlParameters();
-   void goToPosition1(robotInfo robot, aiInfo ai, controlConfig cconfig);
-   void goToPosition2(robotInfo robot, aiInfo ai, controlConfig cconfig, const vector<Point>& path, float percent_vel);
+   void goToPosition1(robotInfo robot, aiInfo ai, controlConfig cconfig, const vector<Point>& path, float percent_vel);
 
    /// \brief pointer to parent ros node
    ros::NodeHandle *parent;
