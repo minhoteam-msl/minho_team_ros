@@ -130,11 +130,11 @@ void RoleSupStriker::computeAction(aiInfo *ai)
             ai->target_pose.y = mRobot.robot_pose.y;
 
             if(mBsInfo.posxside){
-               tarx = 0.0; tary = center_circle_radius;
+               tarx = 0.5; tary = center_circle_radius;
             } else {
-               tarx = -0.0; tary = -center_circle_radius;
+               tarx = -0.5; tary = -center_circle_radius;
             }
-            ai->target_kick_strength = 50;
+            ai->target_kick_strength = 35;
             passed_after_engage = true;
             kick_spot.x = mRobot.ball_position.x;
             kick_spot.y = mRobot.ball_position.y;
@@ -225,7 +225,7 @@ void RoleSupStriker::computeAction(aiInfo *ai)
             tary = mRobot.robot_pose.y;
             if(!mBsInfo.posxside) tarx = mRobot.robot_pose.x-distFromBall;
             else tarx = mRobot.robot_pose.x+distFromBall; 
-            ai->target_kick_strength = 50;
+            ai->target_kick_strength = 35;
             passed_after_engage = true;
             kick_spot.x = mRobot.ball_position.x;
             kick_spot.y = mRobot.ball_position.y;
@@ -380,8 +380,8 @@ void RoleSupStriker::computeAction(aiInfo *ai)
                                (mRobot.ball_position.y+big_area_y)*(mRobot.ball_position.y+big_area_y));
         bool goodSpotGKick = false; 
                    
-        if(distgkp1<=distgkp2 && distgkp1<=1.0) goodSpotGKick = true;
-        if(distgkp2<distgkp1 && distgkp2<=1.0) goodSpotGKick = true;
+        if(distgkp1<=distgkp2 && distgkp1<=2.0) goodSpotGKick = true;
+        if(distgkp2<distgkp1 && distgkp2<=2.0) goodSpotGKick = true;
         
         if(mRobot.sees_ball && goodSpotGKick){
             // place himself between the ball and the opposite goal, facing the other goal
@@ -447,7 +447,7 @@ void RoleSupStriker::computeAction(aiInfo *ai)
             tary = mRobot.robot_pose.y;
             if(!mBsInfo.posxside) tarx = mRobot.robot_pose.x+distFromBall;
             else tarx = mRobot.robot_pose.x-distFromBall; 
-            ai->target_kick_strength = 50;
+            ai->target_kick_strength = 35;
             passed_after_engage = true;
             kick_spot.x = mRobot.ball_position.x;
             kick_spot.y = mRobot.ball_position.y;
@@ -518,7 +518,19 @@ void RoleSupStriker::computeAction(aiInfo *ai)
       
       //////////////////////////////////////////////////
       //////////////////////////////////////////////////
-      
+      case sPRE_THEIR_CORNER:
+      case sTHEIR_CORNER:{
+        if(mBsInfo.posxside){
+            ai->target_pose.x = big_area_x;
+            ai->target_pose.y = 0.0;  
+            ai->target_pose.z = 270.0;
+         } else {
+            ai->target_pose.x = -big_area_x;
+            ai->target_pose.y = 0.0;  
+            ai->target_pose.z = 90.0;
+         }
+         break;
+      }
       
       //////////////////////////////////////////////////
       //////////////////////////////////////////////////
