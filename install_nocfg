@@ -1,0 +1,8 @@
+#!/bin/bash
+mkdir ~/temp_configs_minhoteamros
+cp -r ~/Common/Configs ~/temp_configs_minhoteamros
+cp -r Common ~
+cd ~/Common
+rm -r Configs
+cp -r ~/temp_configs_minhoteamros/* ~/Common
+rm -r ~/temp_configs_minhoteamros

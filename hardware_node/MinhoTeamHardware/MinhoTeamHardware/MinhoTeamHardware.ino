@@ -1,3 +1,4 @@
+#define USB_CON
 #include <Omni3MD.h>
 // ##### INCLUDES #####
 // ####################
@@ -238,6 +239,8 @@ unsigned long comunicationTimeOutTimeStamp = 0;
 // ##### TELEOP DATA #####
 // #######################
 bool teleop_active = false;
+bool kicked_ball = false;
+int kicked_counter = 0;
 // ##################################
 
 // ##### IMU LINEARIZATION DATA #####
@@ -278,6 +281,7 @@ void setup() {
   Timer1.stop();
 
   Serial.begin(57600);
+  while(!Serial){delay(500);}
   Serial.flush();
   Serial1.begin(9600);
   Serial1.flush();
@@ -328,6 +332,7 @@ void loop() {
     analogWrite(DRIBLLER1, 0); analogWrite(DRIBLLER2, 0);
     comunicationTimeOutTimeStamp = millis();
   }
+  
   // Read IMU Value
   if(Serial1.available()>0){
     String S1 = Serial1.readStringUntil('\n');
@@ -335,6 +340,7 @@ void loop() {
     S1.toCharArray(buffer, 10);
     hwinfo_msg.imu_value = correctImuAngle(atof(buffer));
   }
+  
   // Read Batteries
   if(millis()-baterryTimeStamp>baterryLimitTime){
     hwinfo_msg.battery_camera = analogRead(CamBattery) * maxVoltsBatteryCam / maxBatteryCam;
@@ -364,13 +370,18 @@ void loop() {
   // Publish Data
   if(millis()-dataSendTimeStamp>dataSendLimitTime){
     int ball = analogRead(BALLPIN);
+    
     /*char ballstr[10];
     sprintf(ballstr,"sensor %d",ball);
     nh.logwarn(ballstr);*/
-    if(ball<310) hwinfo_msg.ball_sensor = 1;
+    
+    if(ball>560 && ball<1024) hwinfo_msg.ball_sensor = 1;
     else hwinfo_msg.ball_sensor = 0;
     publishData();
     dataSendTimeStamp = millis();
+  
+    if(kicked_ball) kicked_counter++;
+    if(kicked_ball && kicked_counter>350){kicked_ball = false; kicked_counter=0;}  
   }
   
   // Master Battery low level sound warning
@@ -558,11 +569,13 @@ void controlInfoCallback(const minho_team_ros::controlInfo& msg)
     else omni.stop_motors();
     
     //dribler1
-    if(msg.dribbler_on) { digitalWrite(MM1,HIGH); digitalWrite(MM2,HIGH); analogWrite(DRIBLLER1, 255); analogWrite(DRIBLLER2, 255); }
-    else { digitalWrite(MM1,LOW); digitalWrite(MM2,LOW); analogWrite(DRIBLLER1, 0); analogWrite(DRIBLLER2, 0);}
-    // Velocities to apply to dribblers
-    //if(direct_dribler1!="2") analogWrite(DRIBLLER1, vel_dribler1.toInt());     //PWM Speed Control  
-    //if(direct_dribler2!="2") analogWrite(DRIBLLER2, vel_dribler2.toInt());     //PWM Speed Control  
+    if(hwinfo_msg.free_wheel_activated){
+      analogWrite(DRIBLLER1, 0); analogWrite(DRIBLLER2, 0);
+    } else {
+      if(msg.dribbler_on) { digitalWrite(MM1,HIGH); digitalWrite(MM2,HIGH); analogWrite(DRIBLLER1, 255); analogWrite(DRIBLLER2, 255); }
+      else { digitalWrite(MM1,LOW); digitalWrite(MM2,LOW); analogWrite(DRIBLLER1, 0); analogWrite(DRIBLLER2, 0);}
+    }
+    
   }  
 }
 
@@ -665,11 +678,12 @@ void IMUTableService(const requestIMULinTable::Request &req, requestIMULinTable:
 /// \param res - response data, flaggin if the kick was taken or not
 void kickService(const requestKick::Request &req, requestKick::Response &res)
 {   
+  if(hwinfo_msg.free_wheel_activated || kicked_ball) return;
   int maxTime = maxKick;
   if(req.kick_is_pass) maxTime = 10;
   int kickTime = (req.kick_strength*maxTime)/100;
   
-  if(kickTime>0 && hwinfo_msg.ball_sensor==1)
+  if(kickTime>0 /*&& hwinfo_msg.ball_sensor==1*/)
   {
     if(kickTime>maxTime)kickTime = maxTime;
     if(kickTime<0)kickTime = 0;
@@ -677,6 +691,7 @@ void kickService(const requestKick::Request &req, requestKick::Response &res)
     digitalWrite(KICKPIN, HIGH);
     Timer1.initialize(kickTime*1000);
     res.kicked = true;
+    kicked_ball = true;
   } else res.kicked = false;
 }
 

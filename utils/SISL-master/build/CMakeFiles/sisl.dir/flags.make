@@ -6,5 +6,5 @@ C_FLAGS =
 
 C_DEFINES = 
 
-C_INCLUDES = -I/home/pedro/SISL-master/include 
+C_INCLUDES = -I/home/bruno/catkin_ws/src/minho_team_ros/utils/SISL-master/include 
 

@@ -236,7 +236,7 @@ else()
    find_package(libfreenect REQUIRED)
    include_directories(/usr/include/libusb-1.0)
    include_directories(${FREENECT_INCLUDE_DIRS})
-   set(freenect_LIBRARIES ${FREENECT_LIBRARIES})
+   set(freenect_LIBRARIES ${FREENECT_LIBRARIES} libfreenect_sync.so)
    ########################################
 
    ## Linking steps for CGAL Libraries ##
@@ -359,6 +359,17 @@ else()
 	target_compile_features(ai_node PRIVATE cxx_range_for)
 	target_link_libraries(ai_node ${catkin_LIBRARIES} ${qt_LIBRARIES})
 	add_dependencies(ai_node ${PROJECT_NAME}_gencpp)
+	########################################
+	
+	############# GOALKEEPER NODE #############
+	###########################################
+	set(GK_DIR ${PROJECT_DIRECTORY}/goalkeeper_node)
+	include_directories(${PROJECT_DIRECTORY}/goalkeeper_node/include)
+	add_executable(goalkeeper_node ${GK_DIR}/src/main.cpp ${GK_DIR}/src/lidarlocalization.cpp ${GK_DIR}/src/kinectvision.cpp)
+	set_target_properties(goalkeeper_node PROPERTIES COMPILE_FLAGS "-fPIC")
+	target_compile_features(goalkeeper_node PRIVATE cxx_range_for)
+	target_link_libraries(goalkeeper_node ${catkin_LIBRARIES} ${opencv_LIBRARIES} ${qt_LIBRARIES} ${freenect_LIBRARIES})
+	add_dependencies(goalkeeper_node ${PROJECT_NAME}_gencpp)
 	########################################
 
 
