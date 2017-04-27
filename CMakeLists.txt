@@ -384,7 +384,7 @@ else()
        LIBRARY_OUTPUT_DIRECTORY ${MLIB_DIR}
    )
    target_compile_features(lidarLoc PRIVATE cxx_range_for)
-   target_link_libraries(lidarLoc ${flycap_LIBRARIES} ${qt_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES} ${freenect_LIBRARIES})
+   target_link_libraries(lidarLoc ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES} ${freenect_LIBRARIES})
    ########################################
    
     
