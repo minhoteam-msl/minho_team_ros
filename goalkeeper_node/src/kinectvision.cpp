@@ -36,14 +36,14 @@ bool kinectVision::detectGameBall()
 		filterByAnatomy(true);
 		chooseBestCandidate(true);
 		
-		//Display Information
+		/*//Display Information
 		fpsmeasure += fpsReader.elapsed();
 		fpscounter++;
 		if(fpscounter==200) {
 			ROS_INFO("Average FPS : %.1fFPS",(1000.0*fpscounter)/fpsmeasure);
 			fpsmeasure=fpscounter=0;
 		}
-		fpsReader.start();
+		fpsReader.start();*/
 		
 		current_state.robot_info.ball_position.x = ballPosWorld.x;
 		current_state.robot_info.ball_position.y = ballPosWorld.y;
@@ -250,7 +250,7 @@ void kinectVision::filterByColor(bool show)
     morphologyEx(binary,binary,MORPH_DILATE, elementdil);
     morphologyEx(binary,binary,MORPH_ERODE, elementero);
     
-    if(show)imshow("ColorSegmentation",binary);
+    //if(show)imshow("ColorSegmentation",binary);
     // copy binary to toSendBinary if requested
     
     vector<Mat> contours; Moments moment;
@@ -349,7 +349,7 @@ void kinectVision::filterByAnatomy(bool show)
 			//circle(rgbImage,Point(refinedCandidates[i][0],refinedCandidates[i][1]),refinedCandidates[i][2],
 			//Scalar(0,255,0),3);
 		}*/
-		imshow("Candidate",rgbImage); 
+		//imshow("Candidate",rgbImage); 
     }
     
 }
@@ -402,7 +402,10 @@ void kinectVision::chooseBestCandidate(bool show)
 		// Calculate elapsed distance and elapsed time
 		double elapsedDist = sqrt((lastBallPosition3D.x-ballPosition3D.x)*(lastBallPosition3D.x-ballPosition3D.x)
 			+(lastBallPosition3D.y-ballPosition3D.y)*(lastBallPosition3D.y-ballPosition3D.y));
-		double deltaTime = timerVel.elapsed()/1000.0;
+	    gettimeofday(&t2, NULL);
+		double deltaTime = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
+        deltaTime += (t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
+        deltaTime/=1000.0;
 		
 		if((elapsedDist/deltaTime)<=7.0){ // 7m/s top speed
 			//Assign initial velocities
@@ -418,7 +421,8 @@ void kinectVision::chooseBestCandidate(bool show)
 		//Assign to last
 		lastBallPosition3D = ballPosition3D;
 		lastBallPosWorld = ballPosWorld;
-		timerVel.start();
+		//timerVel.start();
+		gettimeofday(&t1, NULL);
 				
 	} else ballPosition3D = Point3d(0,0,-1);
 	
@@ -427,7 +431,7 @@ void kinectVision::chooseBestCandidate(bool show)
 		circle(rgbImage,Point(refinedCandidates[minID][0],refinedCandidates[minID][1]),
 		refinedCandidates[minID][2],Scalar(255,0,255),2);
 	}
- 	if(show) imshow("Candidate",rgbImage);   
+ 	//if(show) imshow("Candidate",rgbImage);   
 }
 
 bool kinectVision::getImages(Mat &depth_,Mat&rgb_)

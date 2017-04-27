@@ -12,7 +12,7 @@
 #include "minho_team_ros/goalKeeperInfo.h"
 #include "ros/ros.h"
 #include "Utils/types.h"
-#include <QTime>
+#include <sys/time.h> 
 
 using namespace cv;
 using namespace std;
@@ -72,7 +72,7 @@ private:
     Point3d ballPosition3D,lastBallPosition3D;
 	Point3d ballVelocities;
 	Point3d ballImpactZone;
-	QTime timerVel;
+
 	Point3d robotPose;
 	Point3d ballPosWorld,lastBallPosWorld;
 	//
@@ -92,7 +92,6 @@ private:
     double convVertical, convHorizontal;
     double hFov, vFov;
     double heightFromGround;
-    QTime fpsReader;
     
     int save_mind;
     int finalcounter;
@@ -100,6 +99,7 @@ private:
     fieldDimensions currentField;
     float goal_line_x;
     float side_line_y;
+    struct timeval t1, t2;
     
 };
 

@@ -6,7 +6,7 @@
 
 //ROS includes
 #include "std_msgs/String.h"
-//#include "kinectvision.h"
+#include "kinectvision.h"
 #include "minho_team_ros/hardwareInfo.h"
 #include "sensor_msgs/LaserScan.h"
 #include "minho_team_ros/goalKeeperInfo.h"
@@ -32,7 +32,7 @@ using minho_team_ros::goalKeeperInfo; //Namespace for gk info information msg - 
 using minho_team_ros::interestPoint; //Namespace for gk info information msg - PUBLISHING
 using minho_team_ros::requestReloc;
 
-//kinectVision *gkvision = NULL;
+kinectVision *gkvision = NULL;
 lidarLocalization *localization = NULL;
 
 /// \brief main sending thread
@@ -124,7 +124,7 @@ void* updateLocalizationData(void *data)
    make_periodic(info->period_us,info);
 
    while(ros::ok()){
-      //if(gkvision)gkvision->updateLocalizationData(localization->getPose(),localization->getVelocities());
+      if(gkvision)gkvision->updateLocalizationData(localization->getPose(),localization->getVelocities());
       wait_period(info);
    }
    return NULL;
@@ -138,14 +138,14 @@ void* detectBall(void *data)
    
    bool retvision = false;
    while(ros::ok()){
-      /*if(gkvision) {
+      if(gkvision) {
         retvision = gkvision->detectGameBall();   
       } else retvision = true;
-      */
+      
       if(retvision) wait_period(info);
       else thsleepms(5);
       
-      //if(gkvision) gkvision->publishData();
+      if(gkvision) gkvision->publishData();
    }
    return NULL;
 }
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
 	ROS_WARN("Checking hardware modules ...");
 	if(checkHardwareAvailability()){
         localization = new lidarLocalization();
-       // gkvision = new kinectVision(&gk_node,localization->getField());
+        gkvision = new kinectVision(&gk_node,localization->getField());
 	    ROS_WARN("MinhoTeam goalkeeper_node started running on ROS.");
 	    spinner.start();
 	} else ROS_ERROR("Failed to find hardware modules for goalkeeper node");
