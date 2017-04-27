@@ -655,61 +655,66 @@ void RoleStriker::computeAction(aiInfo *ai)
       //////////////////////////////////////////////////
       
       case sGAME_OWN_BALL:{
-      
-         if(mBsInfo.posxside){
-            ai->target_pose.x = -goal_line_x;
-            ai->target_pose.y = 0.0;
-         } else {
-            ai->target_pose.x = goal_line_x;
-            ai->target_pose.y = 0.0;  
-         }
          
-         mAction = aDRIBBLEBALL;
-         ai->target_pose.z = orientationToTarget(ai->target_pose.x,ai->target_pose.y);
-         
-        float distToTar = sqrt((mRobot.robot_pose.x-ai->target_pose.x)*
-         (mRobot.robot_pose.x-ai->target_pose.x)
-         +(mRobot.robot_pose.y-ai->target_pose.y)*
-         (mRobot.robot_pose.y-ai->target_pose.y));
-         
-         if(distToTar<=5.0){
-            float shoot_tarx = goal_line_x;
-            float shoot_tary = 0.0;
-            if(mBsInfo.posxside) shoot_tarx = -goal_line_x;
+         if(mRobot.has_ball){
+             if(mBsInfo.posxside){
+                ai->target_pose.x = -goal_line_x;
+                ai->target_pose.y = 0.0;
+             } else {
+                ai->target_pose.x = goal_line_x;
+                ai->target_pose.y = 0.0;  
+             }
+             
+             mAction = aDRIBBLEBALL;
+             ai->target_pose.z = orientationToTarget(ai->target_pose.x,ai->target_pose.y);
+             
+            float distToTar = sqrt((mRobot.robot_pose.x-ai->target_pose.x)*
+             (mRobot.robot_pose.x-ai->target_pose.x)
+             +(mRobot.robot_pose.y-ai->target_pose.y)*
+             (mRobot.robot_pose.y-ai->target_pose.y));
+             
+             if(distToTar<=5.0){
+                float shoot_tarx = goal_line_x;
+                float shoot_tary = 0.0;
+                if(mBsInfo.posxside) shoot_tarx = -goal_line_x;
 
-            if(mRobot.has_ball) stab_counter++;
-            else stab_counter = 0;
-            //check if path is clear
-            if(pathClearForShooting(shoot_tarx,&shoot_tary)){
-               /*if(stab_counter<=3) { mAction = aHOLDBALL; ai->target_pose = mRobot.robot_pose; break; }
-               stab_counter = 0;*/
+                if(mRobot.has_ball) stab_counter++;
+                else stab_counter = 0;
+                //check if path is clear
+                if(pathClearForShooting(shoot_tarx,&shoot_tary)){
+                   /*if(stab_counter<=3) { mAction = aHOLDBALL; ai->target_pose = mRobot.robot_pose; break; }
+                   stab_counter = 0;*/
 
-               ai->target_pose.x = mRobot.robot_pose.x;
-               ai->target_pose.y = mRobot.robot_pose.y;
-               ai->target_pose.z = orientationToTarget(shoot_tarx,shoot_tary);
+                   ai->target_pose.x = mRobot.robot_pose.x;
+                   ai->target_pose.y = mRobot.robot_pose.y;
+                   ai->target_pose.z = orientationToTarget(shoot_tarx,shoot_tary);
+                   mAction = aKICKBALL;
+                   ai->target_kick_strength = getKickStrength(shoot_tarx,
+                   shoot_tary);
+                }else {
+                   mAction = aDRIBBLEBALL; ai->target_pose = mRobot.robot_pose;
+                   // adjust robot position and heading to keep ball trajectory
+                   // out of contact with another robot
+                   float displacement_left = 0.0, displacement_right = 0.0;
+                   getObstaclesDisplacement(&displacement_left,&displacement_right);
 
-               ai->target_kick_strength = getKickStrength(shoot_tarx,
-               shoot_tary);
-            }else {
-               mAction = aDRIBBLEBALL; ai->target_pose = mRobot.robot_pose;
-               // adjust robot position and heading to keep ball trajectory
-               // out of contact with another robot
-               float displacement_left = 0.0, displacement_right = 0.0;
-               getObstaclesDisplacement(&displacement_left,&displacement_right);
-
-               if(!mBsInfo.posxside){
-                  if(displacement_left>=displacement_right) 
-                     ai->target_pose.y-=0.5*displacement_left; 
-                  else ai->target_pose.y+=0.5*displacement_right; 
-               } else {
-                  if(displacement_left>=displacement_right) 
-                     ai->target_pose.y+=0.5*displacement_left; 
-                  else ai->target_pose.y-=0.5*displacement_right;
-               }
-               
-            }   
-         }
-         
+                   if(!mBsInfo.posxside){
+                      if(displacement_left>=displacement_right) 
+                         ai->target_pose.y-=0.5*displacement_left; 
+                      else ai->target_pose.y+=0.5*displacement_right; 
+                   } else {
+                      if(displacement_left>=displacement_right) 
+                         ai->target_pose.y+=0.5*displacement_left; 
+                      else ai->target_pose.y-=0.5*displacement_right;
+                   }
+                   
+                }   
+             }
+        } else {
+            mAction = aENGAGEBALL;
+            ai->target_pose = mRobot.ball_position;
+        }
+        
         break;
       }
       

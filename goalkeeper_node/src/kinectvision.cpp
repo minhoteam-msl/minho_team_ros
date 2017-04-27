@@ -3,16 +3,20 @@
 /// \brief a mutex to avoid multi-thread access to message
 pthread_mutex_t locmsg_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-kinectVision::kinectVision(ros::NodeHandle *par)
+kinectVision::kinectVision(ros::NodeHandle *par, fieldDimensions field)
 {
     parent = par;
     save_mind = finalcounter = 0;
+    currentField = field;
     gk_info_pub = parent->advertise<goalKeeperInfo>("goalKeeperInfo", 1);
     goodCandidateFound = false;
     configFilePaths();
     initVariables();
     if(!readParameters()) exit(0);
     generateLookUpTable();
+    
+    goal_line_x = (float)currentField.fieldDims.LENGTH/2000.0;
+    side_line_y = (float)currentField.fieldDims.WIDTH/2000.0;
     _index = 0;
 }
 
@@ -41,13 +45,14 @@ bool kinectVision::detectGameBall()
 		}
 		fpsReader.start();
 		
-		current_state.robot_info.ball_position.x = ballPosition3D.x;
-		current_state.robot_info.ball_position.y = ballPosition3D.y;
-		current_state.robot_info.ball_position.z = ballPosition3D.z;
+		current_state.robot_info.ball_position.x = ballPosWorld.x;
+		current_state.robot_info.ball_position.y = ballPosWorld.y;
+		current_state.robot_info.ball_position.z = ballPosWorld.z;
 		
 		current_state.robot_info.ball_velocity.x = ballVelocities.x;
 		current_state.robot_info.ball_velocity.y = ballVelocities.y;
 		current_state.robot_info.ball_velocity.z = ballVelocities.z;
+		
 		
 		if(ballPosition3D.z<0)current_state.robot_info.sees_ball = false;
 		else current_state.robot_info.sees_ball = true;
@@ -357,6 +362,7 @@ void kinectVision::chooseBestCandidate(bool show)
     //bool goodCandidateFound = false;
 	goodCandidateFound =false;
     //get Z, morphological z operation, choose best
+    
     for(unsigned int cand=0;cand<refinedCandidates.size();cand++){
         mz = getZ(refinedCandidates[cand][3]); // Real Z in meters
         devArea = abs(1-(refinedCandidates[cand][4]/getStdArea(mz)));
@@ -380,18 +386,19 @@ void kinectVision::chooseBestCandidate(bool show)
 		
         }
     }
-	/* AQUIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII o candidatoooooo*/ 
+/* AQUIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII o candidatoooooo*/ 
 	if(refinedCandidates.size()>0 && goodCandidateFound){
 		ballPosition3D.x = minZ+0.125+0.1;
 		ballPosition3D.y = tan(((refinedCandidates[minID][0]-320)*convHorizontal)*(M_PI/180.0))*minZ;
 		ballPosition3D.z = 0.52+minZ*tan((M_PI/180.0)*(6-(refinedCandidates[minID][1]-240)*convVertical))+0.11;	
 		
-		// map to world
-		ROS_INFO("%.2f %.2f %.2f",robotPose.x, robotPose.y, robotPose.z);
 		Point2d aux = mapPointToWorld(0,0,robotPose.z,sqrt((ballPosition3D.x*ballPosition3D.x)+
 		(ballPosition3D.y*ballPosition3D.y)),atan2(ballPosition3D.y,ballPosition3D.x)+M_PI_2,0);
 		
-		ballPosWorld.x = aux.x+robotPose.x; ballPosWorld.y = aux.y+robotPose.y; ballPosWorld.z = ballPosition3D.z;
+		ballPosWorld.x = robotPose.x+aux.x;
+		ballPosWorld.y = robotPose.y+aux.y;
+		ballPosWorld.z = ballPosition3D.z;
+		
 		// Calculate elapsed distance and elapsed time
 		double elapsedDist = sqrt((lastBallPosition3D.x-ballPosition3D.x)*(lastBallPosition3D.x-ballPosition3D.x)
 			+(lastBallPosition3D.y-ballPosition3D.y)*(lastBallPosition3D.y-ballPosition3D.y));
@@ -599,16 +606,16 @@ double kinectVision::getStdRads(double mVal)
 // Prediction
 bool kinectVision::intrestingEventHappened(double x, double y, double xi)
 {
-    if(y>=3.0 || y<=-3.0) return true; // ball goes through lateral lines
-    else if(x-xi<=-0.3) return true; // 30cm to avoid errors, ball goes towards the other goalkeeper
-    else if(x>=4.9 && (y>=0.9 || y<=-0.9)) return true; // shot wide
-    else if(x<=5.4 && x>=4.7 && y<=0.9 && y>=-0.9) return true;
+    if(y>=side_line_y || y<=-side_line_y) return true; // ball goes through lateral lines
+    else if(fabs(x)>=goal_line_x && (y>=0.9 || y<=-0.9)) return true; // shot wide
+    else if(fabs(x)<=goal_line_x+0.3 && fabs(x)>=goal_line_x-0.3 && y<=0.9 && y>=-0.9) return true;
     else return false;
 }
 
 bool kinectVision::crossGoalLine(double x)
 {
-    if(x<=5.5 && x>=4.7) return true;
+    x = fabs(x);
+    if(x<=goal_line_x+0.3 && x>=goal_line_x-0.3) return true;
     else return false;
 }
 
@@ -621,9 +628,11 @@ void kinectVision::predictBallPosition()
 	double Vz = ballVelocities.z;
 	double e = 0.88;
 	int N = 10;
- if(ballVelocities.x<0.9) { ballImpactZone = Point3d(0,0,-1); return;} 
- for(int i=0; i<N; i++)//while
-    {
+	bool rside = true;
+	if(robotPose.x<0) rside = false;
+    if((rside && ballVelocities.x<0.9) || (!rside && ballVelocities.x>-0.9)) { ballImpactZone = Point3d(0,0,-1); return;} 
+    for(int i=0; i<N; i++)//while
+        {
         double t=(-Vz-sqrt((Vz)*(Vz) + 4*ballPosWorld.z*0.5*g))/(2*-0.5*g);
 
         for(double j=0; j<=t; j+=0.01){
@@ -656,11 +665,18 @@ void kinectVision::predictBallPosition()
         potentialGoal=false;
         double m=(Yf-YfAux)/(Xf-XfAux);
         double b=Yf-m*Xf;
-	double new_y=m*4.7+b;
+        double xPredTarget = goal_line_x;
+        if(!rside) xPredTarget *= -1.0;
+	    double new_y=m*xPredTarget+b;
         if(new_y<=0.9&&new_y>=-0.9){
-		 ballImpactZone = Point3d(4.7,new_y,0);
+		   ballImpactZone = Point3d(xPredTarget,new_y,0);
         } else ballImpactZone = Point3d(0,0,-1);
     }
+    
+    current_state.impact_zone.x = ballImpactZone.x;
+    current_state.impact_zone.y = ballImpactZone.y;
+    current_state.impact_zone.z = ballImpactZone.z;
+    
 }
 
 hsv kinectVision::rgbtohsv(rgb in)

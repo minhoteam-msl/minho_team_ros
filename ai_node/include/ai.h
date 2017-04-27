@@ -22,6 +22,7 @@
 #include <ros/ros.h>
 #include <minho_team_ros/baseStationInfo.h>
 #include <minho_team_ros/robotInfo.h>
+#include <minho_team_ros/goalKeeperInfo.h>
 #include <minho_team_ros/aiInfo.h>
 #include <QFile>
 #include <QTextStream>
@@ -31,6 +32,7 @@ using namespace ros;
 using minho_team_ros::aiInfo;
 using minho_team_ros::baseStationInfo;
 using minho_team_ros::robotInfo;
+using minho_team_ros::goalKeeperInfo;
 
 class AI
 {
@@ -39,6 +41,7 @@ public:
    void computeAI();
    ~AI();
    void baseStationInfoCallback(const baseStationInfo::ConstPtr &msg);
+   void goalKeeperInfoCallback(const goalKeeperInfo::ConstPtr &msg);
    void robotInfoCallback(const robotInfo::ConstPtr &msg);
    void getNewRole(Roles role, Role **newrole);
    bool initGameField();
@@ -46,8 +49,9 @@ private:
    ros::NodeHandle* node;
    aiInfo ai;
    baseStationInfo bs;
+   goalKeeperInfo gk;
    robotInfo robot;
-   ros::Subscriber bs_sub,rob_sub;
+   ros::Subscriber bs_sub,rob_sub, gk_sub;
    ros::Publisher ai_pub;
    int agent_id;
    Role *role;

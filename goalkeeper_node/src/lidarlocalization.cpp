@@ -1,4 +1,6 @@
 #include "lidarlocalization.h"
+#define TESTING 1
+#define SIDER 0
 // CONSTRUCTOR
 
 lidarLocalization::lidarLocalization()
@@ -40,8 +42,15 @@ void lidarLocalization::initField(QString file_)
        counter++;
     }
     
-    bsInfo.posxside = false; // start in the right
-    float initial_angle = 270.0;
+    float initial_angle = 0.0;
+    
+    if(SIDER){
+        bsInfo.posxside = true; // start in the right
+        initial_angle = 90.0;
+    } else {
+        bsInfo.posxside = false; // start in the right
+        initial_angle = 270.0;
+    }
     lastPose = pose = Point3d((float)fieldAnatomy.fieldDims.LENGTH/2000.0,0.0,initial_angle);
     lidar.angle = initial_angle;
     tipPositionRight = Point2d((float)fieldAnatomy.fieldDims.LENGTH/2000.0-(float)fieldAnatomy.fieldDims.AREA_LENGTH2/1000.0,
@@ -50,6 +59,8 @@ void lidarLocalization::initField(QString file_)
     
     ROS_INFO("Tips %.2f %.2f %.2f %.2f",tipPositionRight.x,tipPositionRight.y,tipPositionLeft.x,tipPositionLeft.y);
 }
+
+fieldDimensions lidarLocalization::getField() {return fieldAnatomy;}
 
 void lidarLocalization::assertPoseToGlobalPosition()
 {
@@ -223,7 +234,7 @@ void lidarLocalization::updateLidarEstimate(vector<float> *distances)
 	static float LastLidarAng = 0;
 	//ROS_INFO("%d",(int)bsInfo.posxside);
 	// remove this line after testing
-	readyHardware = true;
+	if(TESTING) readyHardware = true;
 	if(readyHardware){
 		//map detected points to world position (0,0,angle)
 		mapDetectedPoints(distances);

@@ -84,7 +84,11 @@ void RoleGoalKeeper::computeAction(aiInfo *ai)
          // Harm game situation, implement mixed game defense strategy
          // with spotting areas. If the ball has impact point inside
          // golie, move towards the point.
-         if(mRobot.sees_ball){
+         if(mGkInfo.impact_zone.z>0){
+            ai->target_pose = mGkInfo.impact_zone;
+            if(mBsInfo.posxside) ai->target_pose.z = 90.0;
+            else ai->target_pose.z = 270.0;
+         } else if(mRobot.sees_ball){
             if(!predictImpactPosition()){
                computeGoalPreventionLocation();
                //Compute heading towards the ball

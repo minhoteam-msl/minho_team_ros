@@ -171,8 +171,8 @@ int main(int argc, char **argv)
 
 	ROS_WARN("Checking hardware modules ...");
 	if(checkHardwareAvailability()){
-        gkvision = new kinectVision(&gk_node);
         localization = new lidarLocalization();
+        gkvision = new kinectVision(&gk_node,localization->getField());
 	    ROS_WARN("MinhoTeam goalkeeper_node started running on ROS.");
 	    spinner.start();
 	} else ROS_ERROR("Failed to find hardware modules for goalkeeper node");

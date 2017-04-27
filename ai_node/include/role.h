@@ -4,6 +4,7 @@
 #include "minho_team_ros/aiInfo.h"
 #include "minho_team_ros/robotInfo.h"
 #include "minho_team_ros/baseStationInfo.h"
+#include "minho_team_ros/goalKeeperInfo.h"
 #include <ros/ros.h>
 #include "Utils/types.h"
 #include <iostream>
@@ -11,6 +12,7 @@
 using minho_team_ros::aiInfo;
 using minho_team_ros::baseStationInfo;
 using minho_team_ros::robotInfo;
+using minho_team_ros::goalKeeperInfo;
 
 typedef struct vec2d{
    float x,y;
@@ -30,8 +32,8 @@ public:
    inline Roles getActiveRole(){return mRole;}
    inline Actions getActiveAction(){return mAction;}
    std::string getActiveActionName();
-   inline void updateWorldModel(baseStationInfo bs,robotInfo rb)
-   { mBsInfo=bs; mRobot=rb;}
+   inline void updateWorldModel(baseStationInfo bs,robotInfo rb, goalKeeperInfo gk)
+   { mBsInfo=bs; mRobot=rb; mGkInfo=gk;}
    float orientationToTarget(float tarx, float tary);
 
    // pure virtual functions to implement in each subclass
@@ -45,6 +47,7 @@ public:
    Roles mRole;
    Actions mAction;
    baseStationInfo mBsInfo;
+   goalKeeperInfo mGkInfo;
    robotInfo mRobot;
    fieldDimensions field;
    ros::NodeHandle *node; 

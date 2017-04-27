@@ -24,7 +24,7 @@ class kinectVision
 {
 
 public:
-    kinectVision(ros::NodeHandle *par);
+    kinectVision(ros::NodeHandle *par,fieldDimensions field);
     void updateLocalizationData(Point3f pose, Point3f vels);
     
     
@@ -97,6 +97,9 @@ private:
     int save_mind;
     int finalcounter;
     bool goodCandidateFound;
+    fieldDimensions currentField;
+    float goal_line_x;
+    float side_line_y;
     
 };
 

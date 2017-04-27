@@ -27,6 +27,7 @@ public:
     Point3d getPose();
     Point3d getVelocities();
     vector<Point2f> getWorldPoints();
+    fieldDimensions getField();
 
 
     void readMapConfFile(QString file_);
@@ -57,6 +58,7 @@ private:
     double normalizeAngle(double angulo);
     void computeVelocities();
     int getQuadrant(double angle);
+    
 
 	//Localization
     int scale, outputResolution;
