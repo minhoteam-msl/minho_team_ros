@@ -35,7 +35,7 @@ public:
 	
     // Image reading using libfreenect sync
 	bool getImages(Mat &depth_,Mat&rgb_);
-	void detectGameBall();
+	bool detectGameBall();
 	//Image processing Functions
 	void filterByColor(bool show);
 	void filterByAnatomy(bool show);
@@ -60,6 +60,7 @@ public:
 	bool intrestingEventHappened(double x, double y, double xi);
 	bool crossGoalLine(double x);
 	void predictBallPosition();
+	void publishData();
 	
 private: 
     ros::NodeHandle *parent;
@@ -74,6 +75,8 @@ private:
 	QTime timerVel;
 	Point3d robotPose;
 	Point3d ballPosWorld,lastBallPosWorld;
+	//
+	ros::Publisher gk_info_pub;
     
     //Process Variables
 	int YUVLookUpTable[256*256*256];
@@ -89,6 +92,7 @@ private:
     double convVertical, convHorizontal;
     double hFov, vFov;
     double heightFromGround;
+    QTime fpsReader;
     
     int save_mind;
     int finalcounter;

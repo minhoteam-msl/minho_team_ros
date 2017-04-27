@@ -7,6 +7,7 @@ kinectVision::kinectVision(ros::NodeHandle *par)
 {
     parent = par;
     save_mind = finalcounter = 0;
+    gk_info_pub = parent->advertise<goalKeeperInfo>("goalKeeperInfo", 1);
     goodCandidateFound = false;
     configFilePaths();
     initVariables();
@@ -15,13 +16,57 @@ kinectVision::kinectVision(ros::NodeHandle *par)
     _index = 0;
 }
 
+void kinectVision::publishData()
+{
+    gk_info_pub.publish(current_state);    
+}
+bool kinectVision::detectGameBall()
+{
+	static int fpsmeasure = 0,fpscounter = 0;
+	QTime measure;
+	measure.start();
+	int timing = 0;
+	if(getImages(depthImage,rgbImage)){
+		// Process Image
+		filterByColor(true);
+		filterByAnatomy(true);
+		chooseBestCandidate(true);
+		
+		//Display Information
+		fpsmeasure += fpsReader.elapsed();
+		fpscounter++;
+		if(fpscounter==200) {
+			ROS_INFO("Average FPS : %.1fFPS",(1000.0*fpscounter)/fpsmeasure);
+			fpsmeasure=fpscounter=0;
+		}
+		fpsReader.start();
+		
+		current_state.robot_info.ball_position.x = ballPosition3D.x;
+		current_state.robot_info.ball_position.y = ballPosition3D.y;
+		current_state.robot_info.ball_position.z = ballPosition3D.z;
+		
+		current_state.robot_info.ball_velocity.x = ballVelocities.x;
+		current_state.robot_info.ball_velocity.y = ballVelocities.y;
+		current_state.robot_info.ball_velocity.z = ballVelocities.z;
+		
+		if(ballPosition3D.z<0)current_state.robot_info.sees_ball = false;
+		else current_state.robot_info.sees_ball = true;
+   
+        waitKey(5);
+		return true;
+	} else {
+	    ROS_ERROR("Failed to read image");
+		return false;
+	}
+}
+
 void kinectVision::updateLocalizationData(Point3f pose, Point3f vels)
 {
     pthread_mutex_lock (&locmsg_mutex); //Lock mutex
     
-    current_state.robot_info.robot_pose.x = pose.x;
-    current_state.robot_info.robot_pose.y = pose.y;
-    current_state.robot_info.robot_pose.z = pose.z;
+    current_state.robot_info.robot_pose.x = robotPose.x = pose.x;
+    current_state.robot_info.robot_pose.y = robotPose.y = pose.y;
+    current_state.robot_info.robot_pose.z = robotPose.z = pose.z;
     
     current_state.robot_info.robot_velocity.x = vels.x;
     current_state.robot_info.robot_velocity.y = vels.y;
@@ -342,10 +387,11 @@ void kinectVision::chooseBestCandidate(bool show)
 		ballPosition3D.z = 0.52+minZ*tan((M_PI/180.0)*(6-(refinedCandidates[minID][1]-240)*convVertical))+0.11;	
 		
 		// map to world
-		Point2d aux = mapPointToWorld(robotPose.x,robotPose.y,robotPose.z,sqrt((ballPosition3D.x*ballPosition3D.x)+
+		ROS_INFO("%.2f %.2f %.2f",robotPose.x, robotPose.y, robotPose.z);
+		Point2d aux = mapPointToWorld(0,0,robotPose.z,sqrt((ballPosition3D.x*ballPosition3D.x)+
 		(ballPosition3D.y*ballPosition3D.y)),atan2(ballPosition3D.y,ballPosition3D.x)+M_PI_2,0);
 		
-		ballPosWorld.x = aux.x; ballPosWorld.y = aux.y; ballPosWorld.z = ballPosition3D.z;
+		ballPosWorld.x = aux.x+robotPose.x; ballPosWorld.y = aux.y+robotPose.y; ballPosWorld.z = ballPosition3D.z;
 		// Calculate elapsed distance and elapsed time
 		double elapsedDist = sqrt((lastBallPosition3D.x-ballPosition3D.x)*(lastBallPosition3D.x-ballPosition3D.x)
 			+(lastBallPosition3D.y-ballPosition3D.y)*(lastBallPosition3D.y-ballPosition3D.y));

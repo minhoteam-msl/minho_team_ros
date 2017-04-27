@@ -19,6 +19,8 @@
 
 #define DATA_UPDATE_HZ 40
 #define DATA_UPDATE_USEC 1000000/DATA_UPDATE_HZ
+#define DATA2_UPDATE_HZ 30
+#define DATA2_UPDATE_USEC 1000000/DATA2_UPDATE_HZ
 
 using namespace ros;
 using namespace std;
@@ -38,6 +40,11 @@ pthread_t send_info_thread;
 /// \brief periodic_info struct containing info to make
 /// thread a timed function
 periodic_info pi_sendth;
+/// \brief main vision thread
+pthread_t vision_thread;
+/// \brief periodic_info struct containing info to make
+/// thread a timed function
+periodic_info pi_vision;
 
 goalKeeperInfo keeper;
 ros::Publisher gk_info_pub;
@@ -104,7 +111,7 @@ bool checkHardwareAvailability()
     }
     
     pi_sendth.id = 1; pi_sendth.period_us = DATA_UPDATE_USEC;
-
+    pi_vision.id = 2; pi_vision.period_us = DATA2_UPDATE_USEC;   
     return true;
 }
 
@@ -119,6 +126,26 @@ void* updateLocalizationData(void *data)
    while(ros::ok()){
       if(gkvision)gkvision->updateLocalizationData(localization->getPose(),localization->getVelocities());
       wait_period(info);
+   }
+   return NULL;
+}
+
+void* detectBall(void *data)
+{
+   static int counter = 0;
+   periodic_info *info = (periodic_info *)(data);
+   make_periodic(info->period_us,info);
+   
+   bool retvision = false;
+   while(ros::ok()){
+      if(gkvision) {
+        retvision = gkvision->detectGameBall();   
+      } else retvision = true;
+      
+      if(retvision) wait_period(info);
+      else thsleepms(5);
+      
+      if(gkvision) gkvision->publishData();
    }
    return NULL;
 }
@@ -144,15 +171,18 @@ int main(int argc, char **argv)
 
 	ROS_WARN("Checking hardware modules ...");
 	if(checkHardwareAvailability()){
-        //gkvision = new kinectVision(&gk_node);
+        gkvision = new kinectVision(&gk_node);
         localization = new lidarLocalization();
 	    ROS_WARN("MinhoTeam goalkeeper_node started running on ROS.");
 	    spinner.start();
 	} else ROS_ERROR("Failed to find hardware modules for goalkeeper node");
 	
 	pi_sendth.id = 1; pi_sendth.period_us = DATA_UPDATE_USEC;
-    pthread_create(&send_info_thread, NULL, updateLocalizationData,&pi_sendth);
-	pthread_join(send_info_thread,NULL);
+	pi_sendth.id = 2; pi_sendth.period_us = DATA2_UPDATE_USEC;
 	
+    pthread_create(&send_info_thread, NULL, updateLocalizationData,&pi_sendth);
+    pthread_create(&vision_thread, NULL, detectBall,&pi_vision);
+	pthread_join(send_info_thread,NULL);
+	pthread_join(vision_thread,NULL);
 	return 0;
 }
