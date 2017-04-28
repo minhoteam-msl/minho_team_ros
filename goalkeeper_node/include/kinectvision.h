@@ -11,6 +11,7 @@
 #include "minho_team_ros/hardwareInfo.h"
 #include "minho_team_ros/goalKeeperInfo.h"
 #include "ros/ros.h"
+#include <iostream>
 #include "Utils/types.h"
 #include <sys/time.h> 
 
