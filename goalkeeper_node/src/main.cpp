@@ -4,7 +4,7 @@
 #include <fstream>
 #include "ros/ros.h"
 
-#define USE_KINECT
+//#define USE_KINECT
 
 
 //ROS includes
@@ -107,6 +107,8 @@ bool checkHardwareAvailability()
         boost::process::create_child(exe,args);
         ROS_INFO("Booted urg_node");
     }
+    
+    #ifdef USE_KINECT
     // read kinect output file
     ifstream avkin ("/tmp/avkinect.test");
     if (avkin.is_open()){
@@ -116,6 +118,7 @@ bool checkHardwareAvailability()
         else ROS_ERROR("Failed to find kinect device.");
         avkin.close();
     }
+    #endif
     
     pi_sendth.id = 1; pi_sendth.period_us = DATA_UPDATE_USEC;
     pi_vision.id = 2; pi_vision.period_us = DATA2_UPDATE_USEC;   

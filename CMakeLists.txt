@@ -389,8 +389,7 @@ else()
    
     
 	include_directories(${PROJECT_DIRECTORY}/goalkeeper_node/include)
-	add_executable(goalkeeper_node ${GK_DIR}/src/main.cpp ${GK_DIR}/src/kinectvision.cpp ${GK_DIR}/src/lidarlocalization.cpp )
-	qt5_use_modules(goalkeeper_node Core Widgets)
+	add_executable(goalkeeper_node ${GK_DIR}/src/main.cpp ${GK_DIR}/src/lidarlocalization.cpp )
 	target_compile_features(goalkeeper_node PRIVATE cxx_range_for)
 	set_target_properties(goalkeeper_node PROPERTIES COMPILE_FLAGS "-fPIC")
 	target_link_libraries(goalkeeper_node ${opencv_LIBRARIES} ${catkin_LIBRARIES} ${freenect_LIBRARIES} )
