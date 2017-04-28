@@ -163,11 +163,12 @@ nodo lidarLocalization::parseString(std::string str)
 {
     struct nodo dummy;
     memset(&dummy,0,sizeof(struct nodo));
-    std::string left = str.substr(0,str.find(":")-1);
+    std::string left = str.substr(1,str.find(":")-1);
     left = left.substr(0,left.size()-1);
     
     std::vector<std::string> coordinates = split(left,',');
-    std::string right = str.substr(str.find(":"),str.length()-1);
+    std::string right = str.substr(str.find(":")+1,str.length()-1);
+    
     dummy.x = std::stof(coordinates[0]);
     dummy.y = std::stof(coordinates[1]);
     dummy.closestDistance = std::stof(right);
