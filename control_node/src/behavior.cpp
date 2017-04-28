@@ -215,7 +215,7 @@ void Behavior::doWork()
         }
         if(USE_PATH)
             dijkstra_path->motionPlanning_pathPlanning(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
-        goToPosition1(robot_info_copy, ai_info_copy, control_config_copy, path, 0.5);
+        goToPosition1(robot_info_copy, ai_info_copy, control_config_copy, path, 0.7);
         control_info.dribbler_on = false;
     } break;
 
@@ -229,14 +229,14 @@ void Behavior::doWork()
     case aRECEIVEBALL: {
         if(USE_PATH)
             dijkstra_path->motionPlanning_pathPlanning(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
-        goToPosition1(robot_info_copy, ai_info_copy, control_config_copy, path, 0.5);
+        goToPosition1(robot_info_copy, ai_info_copy, control_config_copy, path, 0.6);
         control_info.dribbler_on = true;
     } break;
 
     case aENGAGEBALL: {
         if(USE_PATH)
             dijkstra_path->motionPlanning_pathPlanning(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
-        goToPosition1(robot_info_copy, ai_info_copy, control_config_copy, path, 0.8);
+        goToPosition1(robot_info_copy, ai_info_copy, control_config_copy, path, 0.85);
         float distToBall = sqrt(
                     (robot_info_copy.robot_pose.x-ai_info_copy.target_pose.x)*
                     (robot_info_copy.robot_pose.x-ai_info_copy.target_pose.x)
@@ -262,7 +262,7 @@ void Behavior::doWork()
         }
         if(USE_PATH)
             dijkstra_path->motionPlanning_pathPlanning(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
-        goToPosition1(robot_info_copy, ai_info_copy, control_config_copy, path, 0.5);
+        goToPosition1(robot_info_copy, ai_info_copy, control_config_copy, path, 0.7);
         control_info.dribbler_on = false;
     } break;
 
@@ -335,7 +335,7 @@ void Behavior::doWork()
     case aDRIBBLEBALL: {
         if(USE_PATH)
             dijkstra_path->motionPlanning_pathPlanning(robot_info_copy, Point(ai_info_copy.target_pose.x, ai_info_copy.target_pose.y), path);
-        goToPosition1(robot_info_copy, ai_info_copy, control_config_copy, path, 0.5);
+        goToPosition1(robot_info_copy, ai_info_copy, control_config_copy, path, 0.7);
         control_info.dribbler_on = true;
     } break;
 

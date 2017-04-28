@@ -190,7 +190,7 @@ void RoleStriker::computeAction(aiInfo *ai)
       
       //////////////////////////////////////////////////
       //////////////////////////////////////////////////
-      
+      case sPRE_OWN_CORNER:
       case sPRE_OWN_FREEKICK:{
          kicked_after_recv = ball_already_passed = initialPlay = false;
          if(mBsInfo.posxside){
@@ -207,6 +207,7 @@ void RoleStriker::computeAction(aiInfo *ai)
          kick_spot.y = mRobot.ball_position.y;
          break; 
       }
+      case sOWN_CORNER:
       case sOWN_FREEKICK:{
          float distFromKickSpot = sqrt((kick_spot.x-mRobot.ball_position.x)*
          (kick_spot.x-mRobot.ball_position.x)
@@ -573,36 +574,7 @@ void RoleStriker::computeAction(aiInfo *ai)
       
       //////////////////////////////////////////////////
       //////////////////////////////////////////////////
-      
-      case sPRE_OWN_CORNER:
-      case sOWN_CORNER:{
-        bool topside = true;
-        if(mRobot.ball_position.y>0) topside = false;
-        else topside = true;
-        
-        if(mBsInfo.posxside){
-            ai->target_pose.x = -big_area_x;
-            if(topside) { 
-                ai->target_pose.y = -big_area_y; 
-            } else {
-                ai->target_pose.y = big_area_y;
-            }
-            
-            ai->target_pose.z = orientationToTarget(-goal_line_x,
-            ai->target_pose.y);
-         } else {
-            ai->target_pose.x = big_area_x;
-            if(topside) { 
-                ai->target_pose.y = big_area_y; 
-            } else {
-                ai->target_pose.y = -big_area_y;
-            }
-            
-            ai->target_pose.z = orientationToTarget(-goal_line_x,
-            ai->target_pose.y);
-         }
-         break;
-      }
+   
       
       //////////////////////////////////////////////////
       //////////////////////////////////////////////////
@@ -655,8 +627,10 @@ void RoleStriker::computeAction(aiInfo *ai)
       //////////////////////////////////////////////////
       
       case sGAME_OWN_BALL:{
+      static int invisCounter = 0;
          
          if(mRobot.has_ball){
+             invisCounter = 0;
              if(mBsInfo.posxside){
                 ai->target_pose.x = -goal_line_x;
                 ai->target_pose.y = 0.0;
@@ -710,12 +684,158 @@ void RoleStriker::computeAction(aiInfo *ai)
                    
                 }   
              }
-        } else {
+        } else if(mRobot.sees_ball){
             mAction = aENGAGEBALL;
             ai->target_pose = mRobot.ball_position;
+            ai->target_pose.z = orientationToTarget(mRobot.ball_position.x,mRobot.ball_position.y);
+        } else if(invisCounter>200){
+            if(mBsInfo.posxside){
+                ai->target_pose.x = big_area_x;
+                ai->target_pose.y = big_area_y/2.0;  
+                ai->target_pose.z = 90.0;
+            } else {
+                ai->target_pose.x = big_area_x;
+                ai->target_pose.y = -big_area_y/2.0;  
+                ai->target_pose.z = 270.0;
+            }
+            
+        } else {
+            invisCounter++;
+            mAction = aENGAGEBALL;
+            ai->target_pose = mRobot.ball_position;
+            ai->target_pose.z = orientationToTarget(mRobot.ball_position.x,mRobot.ball_position.y);
         }
         
         break;
+      }
+      
+      //////////////////////////////////////////////////
+      //////////////////////////////////////////////////
+      case sPRE_THEIR_THROWIN:
+      case sTHEIR_THROWIN:{
+        // Go to middle half of left/right field and rotate towards ball
+         if(mBsInfo.posxside){
+                ai->target_pose.x = big_area_x;
+                ai->target_pose.y = big_area_y/2.0;  
+                ai->target_pose.z = 90.0;
+            } else {
+                ai->target_pose.x = big_area_x;
+                ai->target_pose.y = -big_area_y/2.0;  
+                ai->target_pose.z = 270.0;
+            }
+         
+        break;
+      }
+      
+      //////////////////////////////////////////////////
+      //////////////////////////////////////////////////
+      
+      case sPRE_OWN_THROWIN:{
+         kicked_after_recv = ball_already_passed = initialPlay = false;
+         if(mRobot.ball_position.y>0){
+            ai->target_pose.x = mRobot.ball_position.x;
+            ai->target_pose.y = mRobot.ball_position.y-distFromBall;
+            ai->target_pose.z = 0.0;
+         } else {
+            ai->target_pose.x = mRobot.ball_position.x;
+            ai->target_pose.y = mRobot.ball_position.y+distFromBall;
+            ai->target_pose.z = 180.0; 
+         }     
+         
+         kick_spot.x = mRobot.ball_position.x;
+         kick_spot.y = mRobot.ball_position.y;
+         break; 
+      }
+      case sOWN_THROWIN:{
+         float distFromKickSpot = sqrt((kick_spot.x-mRobot.ball_position.x)*
+         (kick_spot.x-mRobot.ball_position.x)
+         +(kick_spot.y-mRobot.ball_position.y)*
+         (kick_spot.y-mRobot.ball_position.y));
+         
+         float distFromMe = sqrt((mRobot.robot_pose.x-mRobot.ball_position.x)*
+         (mRobot.robot_pose.x-mRobot.ball_position.x)
+         +(mRobot.robot_pose.y-mRobot.ball_position.y)*
+         (mRobot.robot_pose.y-mRobot.ball_position.y));
+
+         if(mRobot.has_ball){ // kick to goal
+            float shoot_tarx = goal_line_x;
+            float shoot_tary = 0.0;
+            if(mBsInfo.posxside) shoot_tarx = -goal_line_x;
+
+            if(mRobot.has_ball) stab_counter++;
+            else stab_counter = 0;
+            //check if path is clear
+            if(pathClearForShooting(shoot_tarx,&shoot_tary)){
+               /*if(stab_counter<=3) { mAction = aHOLDBALL; ai->target_pose = mRobot.robot_pose; break; }
+               stab_counter = 0;*/
+
+               ai->target_pose.x = mRobot.robot_pose.x;
+               ai->target_pose.y = mRobot.robot_pose.y;
+               ai->target_pose.z = orientationToTarget(shoot_tarx,shoot_tary);
+
+               ai->target_kick_strength = getKickStrength(shoot_tarx,
+               shoot_tary);
+            }else {
+               mAction = aDRIBBLEBALL; ai->target_pose = mRobot.robot_pose;
+               // adjust robot position and heading to keep ball trajectory
+               // out of contact with another robot
+               float displacement_left = 0.0, displacement_right = 0.0;
+               getObstaclesDisplacement(&displacement_left,&displacement_right);
+
+               if(!mBsInfo.posxside){
+                  if(displacement_left>=displacement_right) 
+                     ai->target_pose.y-=0.5*displacement_left; 
+                  else ai->target_pose.y+=0.5*displacement_right; 
+               } else {
+                  if(displacement_left>=displacement_right) 
+                     ai->target_pose.y+=0.5*displacement_left; 
+                  else ai->target_pose.y-=0.5*displacement_right;
+               }
+               
+            }
+         } else { // receive ball
+            /*float ball_velocity = sqrt
+            (mRobot.ball_velocity.x*mRobot.ball_velocity.x+
+            mRobot.ball_velocity.y*mRobot.ball_velocity.y);
+
+            if(!ball_already_passed && distFromKickSpot>0.5 &&
+            ball_velocity>0.25){
+               ball_already_passed = true;
+            }
+            
+            bool ball_opdir = true;
+            if(mBsInfo.posxside){
+               if(mRobot.ball_velocity.x>0.35) ball_opdir = false; 
+            } else {
+               if(mRobot.ball_velocity.x<-0.35) ball_opdir = false;  
+            }              
+    
+            bool surpassCondition = false;
+            if(mBsInfo.posxside){
+                if(fabs(mRobot.ball_position.x)<=fabs(mRobot.robot_pose.x)) surpassCondition = false;
+                else surpassCondition = true;
+            } else {
+                if(fabs(mRobot.ball_position.x)<=fabs(mRobot.robot_pose.x)) surpassCondition = true;
+                else surpassCondition = false;
+            }
+            if(ball_already_passed &&
+            (((distFromKickSpot>0.5&&distFromMe<1.5)&&(ball_velocity<0.25||ball_opdir))
+            || surpassCondition)){
+               mAction = aENGAGEBALL;
+               ai->target_pose = mRobot.ball_position;
+               ai->target_pose.z = orientationToTarget
+               (mRobot.ball_position.x,mRobot.ball_position.y);
+            } else {*/
+               mAction = aRECEIVEBALL;
+               ai->target_pose.x = mRobot.robot_pose.x; 
+               ai->target_pose.y = mRobot.ball_position.y;
+               ai->target_pose.z = orientationToTarget
+               (mRobot.ball_position.x,mRobot.ball_position.y);
+            //}
+             
+         }
+
+         break;
       }
       
       //////////////////////////////////////////////////

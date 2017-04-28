@@ -193,6 +193,7 @@ void RoleSupStriker::computeAction(aiInfo *ai)
       //////////////////////////////////////////////////
       //////////////////////////////////////////////////
       
+      case sPRE_OWN_CORNER:
       case sPRE_OWN_FREEKICK:{
          // place himself between the ball and the opposite goal, facing the other goal
          passed_after_engage = ball_position_locked = false;
@@ -208,6 +209,7 @@ void RoleSupStriker::computeAction(aiInfo *ai)
          }     
          break;   
       }
+      case sOWN_CORNER:
       case sOWN_FREEKICK:{
          float  tarx = 0.0, tary = 0.0;
          if(mRobot.has_ball) stab_counter++;
@@ -580,6 +582,101 @@ void RoleSupStriker::computeAction(aiInfo *ai)
         break;
       }
       
+      //////////////////////////////////////////////////
+      //////////////////////////////////////////////////
+      
+      case sGAME_OWN_BALL:{
+        // Go to middle half of left/right field and rotate towards ball
+         if(mBsInfo.posxside){
+                ai->target_pose.x = big_area_x;
+                ai->target_pose.y = -big_area_y/2.0;  
+                ai->target_pose.z = 90.0;
+            } else {
+                ai->target_pose.x = big_area_x;
+                ai->target_pose.y = big_area_y/2.0;  
+                ai->target_pose.z = 270.0;
+            }
+         
+        break;
+      }
+      
+      case sPRE_THEIR_THROWIN:
+      case sTHEIR_THROWIN:{
+        // Go to middle half of left/right field and rotate towards ball
+         if(mBsInfo.posxside){
+                ai->target_pose.x = big_area_x;
+                ai->target_pose.y = -big_area_y/2.0;  
+                ai->target_pose.z = 90.0;
+            } else {
+                ai->target_pose.x = big_area_x;
+                ai->target_pose.y = big_area_y/2.0;  
+                ai->target_pose.z = 270.0;
+            }
+         
+        break;
+      }
+      
+      //////////////////////////////////////////////////
+      //////////////////////////////////////////////////
+      
+      
+      case sPRE_OWN_THROWIN:{
+         // place himself between the ball and the opposite goal, facing the other goal
+         passed_after_engage = ball_position_locked = false;
+         stab_counter = 0;
+         if(mRobot.ball_position.y>0){
+            ai->target_pose.x = mRobot.ball_position.x;
+            ai->target_pose.y = mRobot.ball_position.y+distFromBall;
+            ai->target_pose.z = 180.0;
+         } else {
+            ai->target_pose.x = mRobot.ball_position.x;
+            ai->target_pose.y = mRobot.ball_position.y-distFromBall;
+            ai->target_pose.z = 0.0; 
+         }     
+         break;   
+      }
+      case sOWN_THROWIN:{
+         float  tarx = 0.0, tary = 0.0;
+         if(mRobot.has_ball) stab_counter++;
+         else stab_counter = 0;
+    
+         float distFromMe = sqrt((mRobot.robot_pose.x-mRobot.ball_position.x)*
+         (mRobot.robot_pose.x-mRobot.ball_position.x)
+         +(mRobot.robot_pose.y-mRobot.ball_position.y)*
+         (mRobot.robot_pose.y-mRobot.ball_position.y));
+     
+         if(mRobot.has_ball){
+            if(stab_counter<=3) { mAction = aHOLDBALL; ai->target_pose = mRobot.robot_pose; break; }
+            ai->target_pose.x = mRobot.robot_pose.x;
+            ai->target_pose.y = mRobot.robot_pose.y;
+            
+            tarx = mRobot.robot_pose.x;
+            
+            if(mRobot.ball_position.y>0) tary = mRobot.robot_pose.y-distFromBall;
+            else tary = mRobot.robot_pose.y+distFromBall; 
+            
+            ai->target_kick_strength = 35;
+            passed_after_engage = true;
+            kick_spot.x = mRobot.ball_position.x;
+            kick_spot.y = mRobot.ball_position.y;
+         } else {
+            stab_counter = 0;
+            if(passed_after_engage) { 
+                mAction = aSTOP;  
+             } else {
+                mAction = aSLOWENGAGEBALL;
+                ai->target_pose = mRobot.ball_position;
+                tarx = mRobot.ball_position.x;
+                tary = mRobot.ball_position.y;
+             }
+         }
+         
+         ai->target_pose.z = orientationToTarget(tarx,tary);
+         
+         break;
+      }
+      
+            
       //////////////////////////////////////////////////
       //////////////////////////////////////////////////
       default: {mAction = aSTOP; break; }
