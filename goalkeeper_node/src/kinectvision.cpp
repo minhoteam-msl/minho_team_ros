@@ -27,8 +27,7 @@ void kinectVision::publishData()
 bool kinectVision::detectGameBall()
 {
 	static int fpsmeasure = 0,fpscounter = 0;
-	QTime measure;
-	measure.start();
+
 	int timing = 0;
 	if(getImages(depthImage,rgbImage)){
 		// Process Image

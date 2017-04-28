@@ -367,32 +367,32 @@ else()
 	
 	### libGigECam ###
    ##################
-   add_library(kinectVision SHARED ${GK_DIR}/src/kinectvision.cpp)
-   set_target_properties( kinectVision
-       PROPERTIES
-       LIBRARY_OUTPUT_DIRECTORY ${MLIB_DIR}
-   )
-   target_compile_features(kinectVision PRIVATE cxx_range_for)
-   target_link_libraries(kinectVision ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES} ${freenect_LIBRARIES})
+   #add_library(kinectVision SHARED ${GK_DIR}/src/kinectvision.cpp)
+   #set_target_properties( kinectVision
+   #    PROPERTIES
+  #     LIBRARY_OUTPUT_DIRECTORY ${MLIB_DIR}
+  # )
+  # target_compile_features(kinectVision PRIVATE cxx_range_for)
+  # target_link_libraries(kinectVision ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES} ${freenect_LIBRARIES})
    ########################################
    
    ### libGigECam ###
    ##################
-   add_library(lidarLoc SHARED ${GK_DIR}/src/lidarlocalization.cpp)
-   set_target_properties( lidarLoc
-       PROPERTIES
-       LIBRARY_OUTPUT_DIRECTORY ${MLIB_DIR}
-   )
-   target_compile_features(lidarLoc PRIVATE cxx_range_for)
-   target_link_libraries(lidarLoc ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES} ${freenect_LIBRARIES})
+   #add_library(lidarLoc SHARED ${GK_DIR}/src/lidarlocalization.cpp)
+   #set_target_properties( lidarLoc
+  #     PROPERTIES
+  #     LIBRARY_OUTPUT_DIRECTORY ${MLIB_DIR}
+  # )
+ #  target_compile_features(lidarLoc PRIVATE cxx_range_for)
+ #  target_link_libraries(lidarLoc ${flycap_LIBRARIES} ${opencv_LIBRARIES} ${catkin_LIBRARIES} ${freenect_LIBRARIES})
    ########################################
    
     
 	include_directories(${PROJECT_DIRECTORY}/goalkeeper_node/include)
-	add_executable(goalkeeper_node ${GK_DIR}/src/main.cpp)
+	add_executable(goalkeeper_node ${GK_DIR}/src/main.cpp ${GK_DIR}/src/kinectvision.cpp ${GK_DIR}/src/lidarlocalization.cpp )
 	set_target_properties(goalkeeper_node PROPERTIES COMPILE_FLAGS "-fPIC")
 	target_compile_features(goalkeeper_node PRIVATE cxx_range_for)
-	target_link_libraries(goalkeeper_node ${catkin_LIBRARIES} ${MLIB_DIR}/liblidarLoc.so ${MLIB_DIR}/libkinectVision.so )
+	target_link_libraries(goalkeeper_node ${opencv_LIBRARIES} ${catkin_LIBRARIES} ${freenect_LIBRARIES} )
 	add_dependencies(goalkeeper_node ${PROJECT_NAME}_gencpp lidarLoc)
 	########################################
 
