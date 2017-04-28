@@ -4,12 +4,12 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 #include <stdlib.h>
-#include <QFile>
-#include <QTextStream>
 #include "ros/ros.h"
 #include "minho_team_ros/hardwareInfo.h"
 #include "minho_team_ros/robotInfo.h"
 #include "minho_team_ros/baseStationInfo.h"
+#include <fstream>
+#include <iostream>
 
 using namespace std;
 using namespace cv;
@@ -22,15 +22,16 @@ class lidarLocalization
 public:
     lidarLocalization();
     // Setup and Output
-    void initField(QString file_);
+    void initField(std::string file_);
     Point3d getPose();
     Point3d getVelocities();
     vector<Point2f> getWorldPoints();
     fieldDimensions getField();
+    std::vector<std::string> split(const std::string& s, char seperator);
 
 
-    void readMapConfFile(QString file_);
-    struct nodo parseString(QString str);
+    void readMapConfFile(std::string file_);
+    struct nodo parseString(std::string str);
     double getDistance(double x,double y);
     double positionError(double rx, double ry, double angle);
     double errorFunction(double error);
@@ -79,8 +80,8 @@ private:
     Point2d tipPositionRight, tipPositionLeft;
     bool halfIsRight;
     // File Paths
-    QString mainFilePath, configFolderPath;
-    QString fieldPath, mapPath;
+    std::string mainFilePath, configFolderPath;
+    std::string fieldPath, mapPath;
     bool readyHardware;
     // Kalman Filter
     struct MTKalmanFilter kalman;

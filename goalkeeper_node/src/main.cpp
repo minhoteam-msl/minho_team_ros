@@ -4,9 +4,14 @@
 #include <fstream>
 #include "ros/ros.h"
 
+#define USE_KINECT
+
+
 //ROS includes
 #include "std_msgs/String.h"
-//#include "kinectvision.h"
+#ifdef USE_KINECT
+#include "kinectvision.h"
+#endif
 #include "minho_team_ros/hardwareInfo.h"
 #include "sensor_msgs/LaserScan.h"
 #include "minho_team_ros/goalKeeperInfo.h"
@@ -32,7 +37,9 @@ using minho_team_ros::goalKeeperInfo; //Namespace for gk info information msg - 
 using minho_team_ros::interestPoint; //Namespace for gk info information msg - PUBLISHING
 using minho_team_ros::requestReloc;
 
-//kinectVision *gkvision = NULL;
+#ifdef USE_KINECT
+    kinectVision *gkvision = NULL;
+#endif
 lidarLocalization *localization = NULL;
 
 /// \brief main sending thread
@@ -124,7 +131,9 @@ void* updateLocalizationData(void *data)
    make_periodic(info->period_us,info);
 
    while(ros::ok()){
-      //if(gkvision)gkvision->updateLocalizationData(localization->getPose(),localization->getVelocities());
+   #ifdef USE_KINECT
+      if(gkvision)gkvision->updateLocalizationData(localization->getPose(),localization->getVelocities());
+   #endif
       wait_period(info);
    }
    return NULL;
@@ -139,15 +148,16 @@ void* detectBall(void *data)
    bool retvision = false;
    while(ros::ok()){
    
-      /*if(gkvision) {
+      #ifdef USE_KINECT
+      if(gkvision) {
         retvision = gkvision->detectGameBall();   
       } else retvision = true;
       
       if(retvision) wait_period(info);
       else thsleepms(5);
       
-      if(gkvision) gkvision->publishData();*/
-      
+      if(gkvision) gkvision->publishData();
+      #else
       keeper.robot_info.robot_pose.x = localization->getPose().x;
       keeper.robot_info.robot_pose.y = localization->getPose().y;
       keeper.robot_info.robot_pose.z = localization->getPose().z;
@@ -157,6 +167,7 @@ void* detectBall(void *data)
       keeper.robot_info.robot_velocity.z = localization->getVelocities().z;
       
       gk_info_pub.publish(keeper);
+      #endif
       
       wait_period(info);
    }
@@ -185,7 +196,9 @@ int main(int argc, char **argv)
 	ROS_WARN("Checking hardware modules ...");
 	if(checkHardwareAvailability()){
         localization = new lidarLocalization();
-        //gkvision = new kinectVision(&gk_node,localization->getField());
+        #ifdef USE_KINECT
+            gkvision = new kinectVision(&gk_node,localization->getField());
+        #endif
 	    ROS_WARN("MinhoTeam goalkeeper_node started running on ROS.");
 	    spinner.start();
 	} else ROS_ERROR("Failed to find hardware modules for goalkeeper node");

@@ -36,15 +36,6 @@ bool kinectVision::detectGameBall()
 		filterByAnatomy(true);
 		chooseBestCandidate(true);
 		
-		/*//Display Information
-		fpsmeasure += fpsReader.elapsed();
-		fpscounter++;
-		if(fpscounter==200) {
-			ROS_INFO("Average FPS : %.1fFPS",(1000.0*fpscounter)/fpsmeasure);
-			fpsmeasure=fpscounter=0;
-		}
-		fpsReader.start();*/
-		
 		current_state.robot_info.ball_position.x = ballPosWorld.x;
 		current_state.robot_info.ball_position.y = ballPosWorld.y;
 		current_state.robot_info.ball_position.z = ballPosWorld.z;
@@ -250,7 +241,7 @@ void kinectVision::filterByColor(bool show)
     morphologyEx(binary,binary,MORPH_DILATE, elementdil);
     morphologyEx(binary,binary,MORPH_ERODE, elementero);
     
-    //if(show)imshow("ColorSegmentation",binary);
+    if(show)imshow("ColorSegmentation",binary);
     // copy binary to toSendBinary if requested
     
     vector<Mat> contours; Moments moment;
@@ -349,7 +340,7 @@ void kinectVision::filterByAnatomy(bool show)
 			//circle(rgbImage,Point(refinedCandidates[i][0],refinedCandidates[i][1]),refinedCandidates[i][2],
 			//Scalar(0,255,0),3);
 		}*/
-		//imshow("Candidate",rgbImage); 
+		imshow("Candidate",rgbImage); 
     }
     
 }
@@ -431,7 +422,7 @@ void kinectVision::chooseBestCandidate(bool show)
 		circle(rgbImage,Point(refinedCandidates[minID][0],refinedCandidates[minID][1]),
 		refinedCandidates[minID][2],Scalar(255,0,255),2);
 	}
- 	//if(show) imshow("Candidate",rgbImage);   
+ 	if(show) imshow("Candidate",rgbImage);   
 }
 
 bool kinectVision::getImages(Mat &depth_,Mat&rgb_)
@@ -455,16 +446,16 @@ bool kinectVision::getImages(Mat &depth_,Mat&rgb_)
 
 void kinectVision::configFilePaths()
 {
-    QString home = getenv("HOME");
-    configFolderPath = home+QString(COMMON_PATH);
-    configFolderPath += QString(KIN_CFG_PATH);
-	lutFile = configFolderPath+QString(KINLUTFILENAME);
-	paramFile = configFolderPath+QString(KINPARAMSFILENAME);
+    std::string home = std::string(getenv("HOME"));
+    configFolderPath = home+std::string(COMMON_PATH);
+    configFolderPath += std::string(KIN_CFG_PATH);
+	lutFile = configFolderPath+std::string(KINLUTFILENAME);
+	paramFile = configFolderPath+std::string(KINPARAMSFILENAME);
 }
 
 void kinectVision::generateLookUpTable()
 {
- 	if(start){
+ 	/*if(start){
  		QFile file_(lutFile);
 		if(!file_.open(QIODevice::WriteOnly)) {
 		    ROS_ERROR("Error writing to %s",KINLUTFILENAME);
@@ -474,7 +465,7 @@ void kinectVision::generateLookUpTable()
 		in_ << QString("SRANGES="+QString::number(LUTRanges[2])+","+QString::number(LUTRanges[3])+"\n");
 		in_ << QString("VRANGES="+QString::number(LUTRanges[4])+","+QString::number(LUTRanges[5])+"\n");
 		file_.close();
-	}
+	}*/
     //Generates in memory look up table
 	int y,u,v;
     rgb pix; hsv pix2;
@@ -531,46 +522,70 @@ bool kinectVision::isInRange(int z, int val)
     else return false;
 }
  
+std::vector<std::string> kinectVision::split(const std::string& s, char seperator)
+{
+   std::vector<std::string> output;
+
+    std::string::size_type prev_pos = 0, pos = 0;
+
+    while((pos = s.find(seperator, pos)) != std::string::npos)
+    {
+        std::string substring( s.substr(prev_pos, pos-prev_pos) );
+
+        output.push_back(substring);
+
+        prev_pos = ++pos;
+    }
+
+    output.push_back(s.substr(prev_pos, pos-prev_pos)); // Last word
+
+    return output;
+}
+
 bool kinectVision::readParameters()
 {
     heightFromGround = 0.7;
-    QFile file(paramFile);
-    if(!file.open(QIODevice::ReadOnly)) {
+    std::ifstream file(paramFile);
+    if(!file.is_open()) {
         ROS_ERROR("Error reading %s",KINPARAMSFILENAME);
         return false;
-    } QTextStream in(&file);
+    }
 	
 	//Init height from ground
-    QString height = in.readLine();
-    heightFromGround = height.right(height.size()-height.indexOf('=')-1).toDouble();
+    std::string height; getline(file,height);
+    heightFromGround = std::stof(height.substr(height.find("="),height.size()-1));
 	
 	//Init FOV
-    QString fov = in.readLine();
-    fov =  fov.right(fov.size()-fov.indexOf('=')-1);
-    QStringList fovs = fov.split(",");
-    hFov = fovs[0].toDouble();
-    vFov = fovs[1].toDouble();
+    std::string fov; getline(file,fov);
+    fov = fov.substr(fov.find("="),fov.size()-1);
+    
+    
+    std::vector<std::string> fovs = split(fov,',');
+    hFov = std::stof(fovs[0]);
+    vFov = std::stof(fovs[1]);
     file.close();
     
-    QFile file_(lutFile);
-    if(!file_.open(QIODevice::ReadOnly)) {
+    std::ifstream file_(lutFile);
+    if(!file_.is_open()) {
         ROS_ERROR("Error reading %s",KINLUTFILENAME);
         return false;
-    } QTextStream in_(&file_);
+    }
     
     memset(LUTRanges,0,6*sizeof(int));
-    QString h = in_.readLine();
-    QStringList hValues = h.right(h.size()-h.indexOf('=')-1).split(",");
+    std::string h; getline(file_,h);
+    std::vector<std::string> hValues = split(h.substr(h.find("="),h.size()-1),',');
     if(hValues.size()!=2 || h=="") { ROS_ERROR("Error in H %s file",KINLUTFILENAME); exit(0); }
-    LUTRanges[0] = hValues[0].toInt(); LUTRanges[1] = hValues[1].toInt();
-    QString s = in_.readLine();
-    QStringList sValues = s.right(s.size()-s.indexOf('=')-1).split(",");
-    if(sValues.size()!=2 || s=="") { ROS_ERROR("Error in S %s file",KINLUTFILENAME); exit(1); }
-    LUTRanges[2] = sValues[0].toInt(); LUTRanges[3] = sValues[1].toInt();
-    QString v = in_.readLine();
-    QStringList vValues = v.right(v.size()-v.indexOf('=')-1).split(",");
-    if(vValues.size()!=2 || v=="") { ROS_ERROR("Error in V %s file",KINLUTFILENAME); exit(2); }
-    LUTRanges[4] = vValues[0].toInt(); LUTRanges[5] = vValues[1].toInt();
+    LUTRanges[0] = std::stoi(hValues[0]); LUTRanges[1] = std::stoi(hValues[1]);
+    
+    std::string s; getline(file_,h);
+    std::vector<std::string> sValues = split(s.substr(s.find("="),s.size()-1),',');
+    if(sValues.size()!=2 || s=="") { ROS_ERROR("Error in S %s file",KINLUTFILENAME); exit(0); }
+    LUTRanges[2] = std::stoi(sValues[0]); LUTRanges[3] = std::stoi(sValues[1]);
+    
+    std::string v; getline(file_,h);
+    std::vector<std::string> vValues = split(v.substr(v.find("="),v.size()-1),',');
+    if(vValues.size()!=2 || v=="") { ROS_ERROR("Error in V %s file",KINLUTFILENAME); exit(0); }
+    LUTRanges[4] = std::stoi(vValues[0]); LUTRanges[5] = std::stoi(vValues[1]);
     
     file_.close();
     

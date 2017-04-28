@@ -24,21 +24,20 @@ lidarLocalization::lidarLocalization()
 }
 // **********************************
 // INITIALIZATION FUNCTIONS
-void lidarLocalization::initField(QString file_)
+void lidarLocalization::initField(std::string file_)
 {
     // Create view of current Field
-    QFile file(file_);
-    if(!file.open(QIODevice::ReadOnly)) {
-        ROS_ERROR("Error reading %s",file_.toStdString().c_str());
+    std::ifstream file (file_);
+
+    if(!file.is_open()) {
+        ROS_ERROR("Error reading %s",file_.c_str());
         exit(6);
     }
-    QTextStream in(&file);
-
-    QString value; 
+    
+    std::string value; 
     int counter = 0;
-    while(!in.atEnd()){
-       value = in.readLine();
-       fieldAnatomy.dimensions[counter] = value.right(value.size()-value.indexOf('=')-1).toInt();
+    while(getline(file,value)){
+       fieldAnatomy.dimensions[counter] = std::stoi(value.substr(value.find("=")+1,value.size()-1).c_str());
        counter++;
     }
     
@@ -74,26 +73,27 @@ void lidarLocalization::assertPoseToGlobalPosition()
 	}
 }
 
-void lidarLocalization::readMapConfFile(QString file_)
+void lidarLocalization::readMapConfFile(std::string file_)
 {
-    QFile file(file_);
-    if(!file.open(QIODevice::ReadOnly)) {
-        ROS_ERROR("Error reading %s",file_.toStdString().c_str());
-       	exit(10);
-    } QTextStream in(&file);
+    std::ifstream file (file_);
+    if(!file.is_open()) {
+        ROS_ERROR("Error reading %s",file_.c_str());
+        exit(6);
+    }
 
+    std::string value;
     int xCounter = 0;
     map.clear();
     vector<struct nodo> temp; temp.clear();
     struct nodo dummy;
-    QString res = in.readLine();
+    
+    getline(file,value);
     outputResolution = 50;
     outputResolution_m = outputResolution/1000.0;
     ceilaux = outputResolution_m/2;
     
-    while(!in.atEnd()){
-        QString values = in.readLine();
-        dummy = parseString(values);
+    while(getline(file,value)){
+        dummy = parseString(value);
         if(xCounter>0&&dummy.x==0){
             map.push_back(temp);
             temp.clear();
@@ -113,22 +113,22 @@ void lidarLocalization::readMapConfFile(QString file_)
 
 bool lidarLocalization::configFilePaths()
 {
-    QString home = QString::fromStdString(getenv("HOME"));
-    QString commonDir = home+QString(COMMON_PATH);
-    QString cfgDir = commonDir+QString(KIN_CFG_PATH);
-    QString fieldsDir = commonDir+QString(FIELDS_PATH);
-    QString mainFile = commonDir+QString(MAINFILENAME);
+    std::string home = std::string(getenv("HOME"));
+    std::string commonDir = home+std::string(COMMON_PATH);
+    std::string cfgDir = commonDir+std::string(KIN_CFG_PATH);
+    std::string fieldsDir = commonDir+std::string(FIELDS_PATH);
+    std::string mainFile = commonDir+std::string(MAINFILENAME);
 
-    QFile file(mainFile);
-    if(!file.open(QIODevice::ReadOnly)) {
+    std::ifstream file(mainFile);
+    if(!file.is_open()) {
         return false;
     }
-    QTextStream in(&file);
 
-    QString field_ = in.readLine();
+    std::string field_;
+    getline(file,field_);
 
     fieldPath = fieldsDir+field_+".view";
-    mapPath = fieldsDir+QString("G")+field_+".map";
+    mapPath = fieldsDir+std::string("G")+field_+".map";
     
     file.close();
     return true;
@@ -138,17 +138,40 @@ void lidarLocalization::doReloc()
 {
     doGlobalLocalization = true;
 }
-nodo lidarLocalization::parseString(QString str)
+
+std::vector<std::string> lidarLocalization::split(const std::string& s, char seperator)
+{
+   std::vector<std::string> output;
+
+    std::string::size_type prev_pos = 0, pos = 0;
+
+    while((pos = s.find(seperator, pos)) != std::string::npos)
+    {
+        std::string substring( s.substr(prev_pos, pos-prev_pos) );
+
+        output.push_back(substring);
+
+        prev_pos = ++pos;
+    }
+
+    output.push_back(s.substr(prev_pos, pos-prev_pos)); // Last word
+
+    return output;
+}
+
+nodo lidarLocalization::parseString(std::string str)
 {
     struct nodo dummy;
     memset(&dummy,0,sizeof(struct nodo));
-    QString left = str.left(str.indexOf(":")-1);
-    left = left.right(left.size()-1);
-    QStringList coordinates = left.split(",");
-    QString right = str.right(str.length()-str.indexOf(":")-1);
-    dummy.x = coordinates[0].toDouble();
-    dummy.y = coordinates[1].toDouble();
-    dummy.closestDistance = right.toDouble();
+    std::string left = str.substr(0,str.find(":")-1);
+    left = left.substr(0,left.size()-1);
+    
+    std::vector<std::string> coordinates = split(left,',');
+    std::string right = str.substr(str.find(":"),str.length()-1);
+    dummy.x = std::stof(coordinates[0]);
+    dummy.y = std::stof(coordinates[1]);
+    dummy.closestDistance = std::stof(right);
+    
     return dummy;
 }
 

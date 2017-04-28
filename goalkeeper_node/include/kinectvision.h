@@ -61,10 +61,11 @@ public:
 	bool crossGoalLine(double x);
 	void predictBallPosition();
 	void publishData();
+	std::vector<std::string> split(const std::string& s, char seperator);
 	
 private: 
     ros::NodeHandle *parent;
-    QString lutFile, paramFile,configFolderPath;
+    std::string lutFile, paramFile,configFolderPath;
     
     //State variables
     goalKeeperInfo current_state, last_state;
