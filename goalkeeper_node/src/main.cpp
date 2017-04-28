@@ -210,5 +210,6 @@ int main(int argc, char **argv)
     pthread_create(&vision_thread, NULL, detectBall,&pi_vision);
 	pthread_join(send_info_thread,NULL);
 	pthread_join(vision_thread,NULL);
+	
 	return 0;
 }
