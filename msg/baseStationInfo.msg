@@ -4,3 +4,4 @@ bool posxside
 uint8[] roles
 uint8 gamestate
 uint8[] requests
+position ball
