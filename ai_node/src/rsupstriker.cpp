@@ -79,7 +79,14 @@ void RoleSupStriker::computeAction(aiInfo *ai)
    ai->action = mAction;  
 
    if(mAction==aSTOP)return;
-
+    
+    
+   if(!mRobot.sees_ball){
+       mRobot.sees_ball = true;
+       mRobot.ball_position.x = mBsInfo.ball.x;
+       mRobot.ball_position.y = mBsInfo.ball.y;
+   }
+   
    switch(mBsInfo.gamestate){
       case sPARKING:{
          // Go to parking spot
@@ -589,11 +596,11 @@ void RoleSupStriker::computeAction(aiInfo *ai)
         // Go to middle half of left/right field and rotate towards ball
          if(mBsInfo.posxside){
                 ai->target_pose.x = big_area_x;
-                ai->target_pose.y = -big_area_y/2.0;  
+                ai->target_pose.y = 0.0;  
                 ai->target_pose.z = 90.0;
             } else {
-                ai->target_pose.x = big_area_x;
-                ai->target_pose.y = big_area_y/2.0;  
+                ai->target_pose.x = -big_area_x;
+                ai->target_pose.y = 0.0;  
                 ai->target_pose.z = 270.0;
             }
          

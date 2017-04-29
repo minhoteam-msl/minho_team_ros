@@ -72,6 +72,13 @@ void RoleStriker::computeAction(aiInfo *ai)
 
    if(mAction==aSTOP)return;
 
+
+   if(!mRobot.sees_ball){
+       mRobot.sees_ball = true;
+       mRobot.ball_position.x = mBsInfo.ball.x;
+       mRobot.ball_position.y = mBsInfo.ball.y;
+   }
+   
    switch(mBsInfo.gamestate){
       case sPARKING:{
          // Go to parking spot
@@ -827,8 +834,8 @@ void RoleStriker::computeAction(aiInfo *ai)
                (mRobot.ball_position.x,mRobot.ball_position.y);
             } else {*/
                mAction = aRECEIVEBALL;
-               ai->target_pose.x = mRobot.robot_pose.x; 
-               ai->target_pose.y = mRobot.ball_position.y;
+               ai->target_pose.x = mRobot.ball_position.x; 
+               ai->target_pose.y = mRobot.robot_pose.y;
                ai->target_pose.z = orientationToTarget
                (mRobot.ball_position.x,mRobot.ball_position.y);
             //}
