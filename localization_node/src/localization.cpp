@@ -106,7 +106,7 @@ void Localization::discoverWorldModel() // Main Function
       // Detect points of interest like lines, obstacles and ball
       processor->detectInterestPoints(); //  máximo 10ms que demorou (em média)
       // Calculate Orientation with histograms
-      calcHistOrientation();
+      //calcHistOrientation();
       // Fuse odometry and vision orientation with kalmanFilter
       // If there isnt any odometry change in angle, dont fuse estimates
       fuseOrientationEstimates();
@@ -784,6 +784,7 @@ void Localization::calcHistOrientation()
     current_hardware_state.imu_value = 0.5 * current_hardware_state.imu_value + 0.5 * histEstimate;
   } else current_hardware_state.imu_value = histEstimate;
 
+
   /*delete[] horHist;
   delete[] verHist;*/
 }
@@ -819,7 +820,7 @@ bool Localization::computeGlobalLocalization() //compute initial localization gl
    unsigned int i, j;
 
    // Tamanho da matriz
-   if(bsInfo.posxside){
+/*   if(bsInfo.posxside){
      i = float(currentField.FIELD_LENGTH/currentField.SCALE)+1;
      i = i/2;
      j = float(currentField.FIELD_WIDTH/currentField.SCALE)+1;
@@ -833,8 +834,10 @@ bool Localization::computeGlobalLocalization() //compute initial localization gl
      Lenght = Lenght/2;
      Width = float(currentField.FIELD_WIDTH/currentField.SCALE)+1;
      Width = Width/2;
-   }
+   }*/
 
+   Lenght = float(currentField.FIELD_LENGTH/currentField.SCALE)+1;
+   Width = float(currentField.FIELD_WIDTH/currentField.SCALE)+1;
 
    for(i = 0; i < Lenght; i++){
      for(j = 0; j < Width; j++){

@@ -6,7 +6,6 @@ BlackflyCam::BlackflyCam(bool cal, int robot_id)
 {
     calibrate = cal;
     rob_id = robot_id;
-
     // Initialize PID gains for Properties controler
     if(!initPidValues(rob_id)){
 		ROS_ERROR("Error Reading Properties PID controler gains");
