@@ -375,7 +375,7 @@ void loop() {
     sprintf(ballstr,"sensor %d",ball);
     nh.logwarn(ballstr);*/
     
-    if(ball>820 && ball<1024) hwinfo_msg.ball_sensor = 1;
+    if(ball>575 && ball<1024) hwinfo_msg.ball_sensor = 1;
     else hwinfo_msg.ball_sensor = 0;
     publishData();
     dataSendTimeStamp = millis();

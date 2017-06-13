@@ -88,6 +88,9 @@ void Localization::discoverWorldModel() // Main Function
    measure.start();
    // Acquire image using function pointer
    buffer = CALL_MEMBER_FN((*processor),processor->acquireImage)(&have_image);
+   
+   is_hardware_ready = true;
+   current_hardware_state.imu_value = 0;
    // Localization code
    /*
       If USE_IMU, reloc is done with imu angle, otherwise, it is with 0.

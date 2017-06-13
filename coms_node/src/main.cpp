@@ -460,7 +460,7 @@ void error(std::string msg) {
 /// receives or not its own packets (for simulated robots)
 void setupMultiCastSocket(uint8_t receive_own_packets)
 {
-   socket_fd = openSocket("wlan0",&ip_base,&agent_id,receive_own_packets);
+   socket_fd = openSocket("eth0",&ip_base,&agent_id,receive_own_packets);
    if(socket_fd<0) exit(0);
    ROS_INFO("UDP Multicast System started.");
 }

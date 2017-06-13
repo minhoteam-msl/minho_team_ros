@@ -64,7 +64,7 @@ int getRobotIdByIP()
    int	fd;
 	struct ifreq if_info;
 	int if_index;
-   std::string ifname = "wlan0";
+   std::string ifname = "eth0";
 	memset(&if_info, 0, sizeof(if_info));
 	strncpy(if_info.ifr_name, ifname.c_str(), IFNAMSIZ-1);
 

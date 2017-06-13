@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/pedro/catkin_ws/src/minho_team_ros/hidden/build/devel/setup.sh
